@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+  <rect width="100%" height="100%" fill="#1a1429"/>
+  <!-- Decreased vegetation -->
+  <polygon points="40,80 380,80 380,540 40,540" fill="#1b4d3e" opacity="0.6"/>
+  <!-- Heavy new urban expansion in 2024 -->
+  <polygon points="420,80 760,80 760,540 420,540" fill="#4a5568" opacity="0.85"/>
+  <path d="M 400 80 L 400 540" stroke="#cbd5e1" stroke-width="8" fill="none" opacity="0.9"/>
+  <path d="M 40 310 L 760 310" stroke="#cbd5e1" stroke-width="6" fill="none" opacity="0.9"/>
+  <!-- New building clusters -->
+  <g fill="#e2e8f0" stroke="#64748b" stroke-width="1.5">
+    <rect x="460" y="120" width="60" height="45"/>
+    <rect x="540" y="115" width="70" height="50"/>
+    <rect x="630" y="130" width="55" height="40"/>
+    <rect x="465" y="190" width="80" height="50"/>
+    <rect x="560" y="200" width="60" height="55"/>
+    <rect x="640" y="195" width="75" height="50"/>
+    <rect x="470" y="340" width="70" height="60"/>
+    <rect x="560" y="350" width="80" height="55"/>
+    <rect x="660" y="345" width="65" height="50"/>
+  </g>
+  <text x="30" y="40" fill="#c084fc" font-family="monospace" font-size="14" font-weight="bold">CARTOSAT-3 PAN [T2 POST-DEVELOPMENT: 2024-01-08]</text>
+</svg>

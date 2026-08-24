@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+  <rect width="100%" height="100%" fill="transparent"/>
+  <!-- New Urban expansion in RED -->
+  <g fill="#ff5c5c" opacity="0.85">
+    <rect x="450" y="110" width="260" height="340" rx="6"/>
+  </g>
+  <!-- Vegetation Loss in AMBER -->
+  <g fill="#ffb020" opacity="0.75">
+    <polygon points="380,80 440,80 440,540 380,540"/>
+  </g>
+  <!-- New Road infrastructure in CYAN -->
+  <path d="M 40 310 L 760 310" stroke="#3ed0ff" stroke-width="12" fill="none" opacity="0.9"/>
+</svg>

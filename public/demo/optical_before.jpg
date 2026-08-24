@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+  <rect width="100%" height="100%" fill="#0a192f"/>
+  <!-- Pure agricultural and sparse trees in 2022 -->
+  <polygon points="40,80 760,80 760,540 40,540" fill="#1b4d3e" opacity="0.8"/>
+  <path d="M 400 80 L 400 540" stroke="#cbd5e1" stroke-width="4" fill="none" opacity="0.6"/>
+  <!-- Few old buildings -->
+  <g fill="#4a5568" stroke="#718096">
+    <rect x="100" y="120" width="40" height="30"/>
+    <rect x="160" y="130" width="50" height="40"/>
+  </g>
+  <text x="30" y="40" fill="#3ed0ff" font-family="monospace" font-size="14" font-weight="bold">CARTOSAT-3 PAN [T1 BASELINE: 2022-01-10]</text>
+</svg>

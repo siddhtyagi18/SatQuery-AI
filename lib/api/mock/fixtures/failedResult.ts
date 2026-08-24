@@ -1,0 +1,90 @@
+// lib/api/mock/fixtures/failedResult.ts
+import type { AnalysisResult } from '@/lib/types/analysis';
+
+export const failedResult: AnalysisResult = {
+  id: 'analysis-004',
+  mode: 'bi_temporal',
+  query: 'Detect flood inundation extent and compare with previous dry-season baseline.',
+  status: 'failed',
+  createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+  images: [
+    {
+      id: 'img-004a',
+      role: 'before',
+      previewUrl: null,
+      metadata: {
+        fileName: 'IRS-flood-baseline-2023-11.tif',
+        fileFormat: 'GeoTIFF',
+        modality: 'optical',
+        modalityDetectionConfidence: 0.88,
+        acquisitionDate: '2023-11-14',
+        widthPx: null,
+        heightPx: null,
+        bandCount: null,
+        crs: null,
+        gsdMeters: null,
+        fileSizeBytes: 134217728,
+      },
+    },
+    {
+      id: 'img-004b',
+      role: 'after',
+      previewUrl: null,
+      metadata: {
+        fileName: 'IRS-flood-event-2024-07.tif',
+        fileFormat: 'GeoTIFF',
+        modality: 'optical',
+        modalityDetectionConfidence: 0.85,
+        acquisitionDate: '2024-07-22',
+        widthPx: null,
+        heightPx: null,
+        bandCount: null,
+        crs: null,
+        gsdMeters: null,
+        fileSizeBytes: 134217728,
+      },
+    },
+  ],
+  detectedTasks: ['change_detection'],
+  answerText: null,
+  confidence: null,
+  boundingBoxes: null,
+  changeMap: null,
+  toolInvocations: [
+    {
+      toolId: 'change-det-v1',
+      toolName: 'Bi-temporal Change Detection Model',
+      version: '2.1.0-mock',
+      taskType: 'change_detection',
+      parameters: { algorithm: 'CVA+NDWI', threshold: 0.12, co_registration: true },
+      processingTimeMs: null,
+    },
+  ],
+  executionTrace: {
+    overallStatus: 'failed',
+    totalElapsedMs: 3200,
+    steps: [
+      {
+        id: 'step-1', title: 'Query Received',
+        detail: 'Query: "Detect flood inundation extent..." | Mode: bi_temporal',
+        status: 'done', startedAt: new Date(Date.now() - 3200).toISOString(), completedAt: new Date(Date.now() - 3000).toISOString(),
+      },
+      {
+        id: 'step-2', title: 'Input Validation',
+        detail: 'T1 format: GeoTIFF ✓ | T2 format: GeoTIFF ✓ | CRS check: FAILED — T1 CRS not found in file header | Co-registration: SKIPPED due to missing CRS',
+        status: 'error', startedAt: new Date(Date.now() - 3000).toISOString(), completedAt: new Date(Date.now() - 2500).toISOString(),
+      },
+      { id: 'step-3', title: 'Task Classification', detail: 'Skipped — validation failed upstream', status: 'pending', startedAt: null, completedAt: null },
+      { id: 'step-4', title: 'Tool Selection', detail: 'Skipped', status: 'pending', startedAt: null, completedAt: null },
+      { id: 'step-5', title: 'Parameters', detail: 'Skipped', status: 'pending', startedAt: null, completedAt: null },
+      { id: 'step-6', title: 'Processing', detail: 'Skipped', status: 'pending', startedAt: null, completedAt: null },
+      { id: 'step-7', title: 'Aggregation', detail: 'Skipped', status: 'pending', startedAt: null, completedAt: null },
+      {
+        id: 'step-8', title: 'Completion',
+        detail: 'Analysis FAILED at input validation stage | Reason: Missing CRS metadata in T1 image',
+        status: 'error', startedAt: new Date(Date.now() - 2500).toISOString(), completedAt: new Date(Date.now() - 2400).toISOString(),
+      },
+    ],
+  },
+  errorReason: 'Input validation failed: The T1 (before) image does not contain CRS/projection metadata in its header. GeoTIFF co-registration requires both images to have valid EPSG codes embedded. Please re-export with correct projection information or supply a .prj sidecar file.',
+};

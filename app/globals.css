@@ -1,0 +1,907 @@
+/* app/globals.css — SatQuery-AI Design System v2.0 */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ */
+/* CSS Custom Properties — Dark theme (default, mission-control)       */
+/* ------------------------------------------------------------------ */
+:root {
+  /* ============================================================
+     SURFACE ELEVATION — 3 explicit levels
+     Level 0 = page background (deepest)
+     Level 1 = panels, cards, hero, stat tiles
+     Level 2 = nested interactive: inputs, hover, selected cards
+     ============================================================ */
+  --surface-0: #05070D;
+  --surface-1: #0F1420;
+  --surface-2: #141A2A;
+  --surface-2-hover: #1A2035;
+
+  /* ============================================================
+     DOMAIN ACCENT COLORS — strict semantic assignment
+     CYAN   (#3ED0FF)  → Optical / single-image / primary actions
+     MAGENTA(#C084FC)  → Bi-temporal / change detection ONLY
+     AMBER  (#FFB020)  → SAR / Optical+SAR fusion / processing
+     GREEN  (#3DDC84)  → Success / completed / high confidence
+     RED    (#FF5C5C)  → Error / failed / low confidence
+     Everything decorative = neutral slate
+     ============================================================ */
+  --cyan:    #3ED0FF;
+  --magenta: #C084FC;
+  --amber:   #FFB020;
+  --green:   #3DDC84;
+  --red:     #FF5C5C;
+
+  /* Legacy aliases kept for compatibility — prefer explicit domain vars */
+  --accent-signal:   var(--cyan);
+  --accent-change:   var(--magenta);
+  --accent-warning:  var(--amber);
+  --accent-success:  var(--green);
+  --accent-danger:   var(--red);
+
+  /* Text palette */
+  --text-primary: #E8ECF4;
+  --text-muted:   #8B93A7;
+  --text-faint:   #4A5270;
+
+  /* Borders — hairline only, tinted cyan minimally for Level 1 */
+  --border-hairline: rgba(62, 208, 255, 0.12);
+  --border-subtle:   rgba(62, 208, 255, 0.06);
+  --border-strong:   rgba(62, 208, 255, 0.22);
+
+  /* Glow shadows — dark mode elevation mechanism */
+  --glow-cyan:    0 0 0 1px rgba(62,208,255,0.35),  0 0 24px -8px rgba(62,208,255,0.45);
+  --glow-magenta: 0 0 0 1px rgba(192,132,252,0.35), 0 0 24px -8px rgba(192,132,252,0.45);
+  --glow-amber:   0 0 0 1px rgba(255,176,32,0.35),  0 0 24px -8px rgba(255,176,32,0.45);
+  --glow-green:   0 0 0 1px rgba(61,220,132,0.35),  0 0 24px -8px rgba(61,220,132,0.35);
+  --glow-red:     0 0 0 1px rgba(255,92,92,0.35),   0 0 24px -8px rgba(255,92,92,0.35);
+
+  /* Typography */
+  --font-heading: 'Space Grotesk', system-ui, sans-serif;
+  --font-body:    'Inter', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Courier New', monospace;
+
+  /* Spacing scale (8px base) — use as gaps & paddings */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Radius scale */
+  --radius-xs: 2px;
+  --radius-sm: 4px;   /* badges, buttons, inputs — primary radius */
+  --radius-md: 6px;   /* panels & cards  */
+  --radius-lg: 10px;  /* large hero/cards */
+
+  /* Backward-compat surface aliases — untouched viewers/skeletons use these names */
+  --bg-base:           var(--surface-0);
+  --bg-panel:          var(--surface-1);
+  --bg-panel-elevated: var(--surface-2);
+  --bg-panel-hover:    var(--surface-2-hover);
+}
+
+/* ------------------------------------------------------------------ */
+/* Light theme — first class citizen, cool paper-gray, no naive invert */
+/* ------------------------------------------------------------------ */
+[data-theme="light"] {
+  /* Surfaces — cool paper tones, contrast does elevation work */
+  --surface-0: #F3F5F9;
+  --surface-1: #FFFFFF;
+  --surface-2: #F8FAFD;
+  --surface-2-hover: #EEF2F9;
+
+  /* Accent hues darkened for AA contrast on white — SAME semantic assignments */
+  --cyan:    #0091C8;
+  --magenta: #9333D6;
+  --amber:   #B8790A;
+  --green:   #1E9E5A;
+  --red:     #E53E3E;
+
+  --accent-signal:   var(--cyan);
+  --accent-change:   var(--magenta);
+  --accent-warning:  var(--amber);
+  --accent-success:  var(--green);
+  --accent-danger:   var(--red);
+
+  --text-primary: #0F1420;
+  --text-muted:   #5B6478;
+  --text-faint:   #98A2B8;
+
+  /* Borders use near-black slate for crispness, not cyan tint */
+  --border-hairline: rgba(15, 20, 32, 0.08);
+  --border-subtle:   rgba(15, 20, 32, 0.05);
+  --border-strong:   rgba(15, 20, 32, 0.14);
+
+  /* Light mode = neutral drop shadows, NO colored glow */
+  --glow-cyan:    0 0 0 1.5px var(--cyan),    0 2px 10px rgba(15,20,32,0.07);
+  --glow-magenta: 0 0 0 1.5px var(--magenta), 0 2px 10px rgba(15,20,32,0.07);
+  --glow-amber:   0 0 0 1.5px var(--amber),   0 2px 10px rgba(15,20,32,0.07);
+  --glow-green:   0 0 0 1.5px var(--green),   0 2px 10px rgba(15,20,32,0.07);
+  --glow-red:     0 0 0 1.5px var(--red),     0 2px 10px rgba(15,20,32,0.07);
+
+  /* Backward-compat surface aliases — untouched viewers/skeletons use these names */
+  --bg-base:           var(--surface-0);
+  --bg-panel:          var(--surface-1);
+  --bg-panel-elevated: var(--surface-2);
+  --bg-panel-hover:    var(--surface-2-hover);
+}
+
+/* ------------------------------------------------------------------ */
+/* Tailwind v4 theme tokens                                            */
+/* ------------------------------------------------------------------ */
+@theme inline {
+  /* Surfaces */
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-2-hover: var(--surface-2-hover);
+
+  /* Domain accents */
+  --color-cyan:    var(--cyan);
+  --color-magenta: var(--magenta);
+  --color-amber:   var(--amber);
+  --color-green:   var(--green);
+  --color-red:     var(--red);
+
+  /* Legacy accent aliases */
+  --color-accent-signal:   var(--accent-signal);
+  --color-accent-warning:  var(--accent-warning);
+  --color-accent-success:  var(--accent-success);
+  --color-accent-danger:   var(--accent-danger);
+  --color-accent-change:   var(--accent-change);
+
+  /* Text */
+  --color-text-primary: var(--text-primary);
+  --color-text-muted:   var(--text-muted);
+  --color-text-faint:   var(--text-faint);
+
+  /* Borders */
+  --color-border-hairline: var(--border-hairline);
+  --color-border-subtle:   var(--border-subtle);
+  --color-border-strong:   var(--border-strong);
+
+  /* Fonts */
+  --font-heading: var(--font-heading);
+  --font-body:    var(--font-body);
+  --font-mono:    var(--font-mono);
+
+  /* Radius scale — badge radius = sm (4px) uniformly */
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+}
+
+/* ------------------------------------------------------------------ */
+/* Base element styles                                                 */
+/* ------------------------------------------------------------------ */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--surface-0);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  min-height: 100dvh;
+  line-height: 1.6;
+  position: relative;
+}
+
+/* ============================================================
+   BACKGROUND TEXTURE (Level 0)
+   - Fine dot-matrix grid, 3-5% opacity dark / 1.5-2% light
+   - Single soft radial cyan glow anchored top-left behind hero
+   - Never covers or obscures text
+   ============================================================ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(62, 208, 255, 0.045) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+[data-theme="light"] body::before,
+body:has([data-theme="light"])::before {
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(15, 20, 32, 0.018) 1px, transparent 0);
+}
+
+/* Radial accent glow — sits behind hero area only */
+.hero-glow {
+  position: absolute;
+  top: -80px;
+  left: -60px;
+  width: 560px;
+  height: 560px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(circle, var(--cyan) 0%, transparent 62%);
+  opacity: 0.10;
+  filter: blur(10px);
+}
+[data-theme="light"] .hero-glow {
+  opacity: 0.06;
+}
+
+/* Level-0 positioning wrapper for page content to sit above texture */
+.page-shell {
+  position: relative;
+  z-index: 1;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+/* Display sizes for page/section titles */
+.text-display {
+  font-size: clamp(1.75rem, 3.2vw, 2.25rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.text-display-lg {
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+code, pre, .mono {
+  font-family: var(--font-mono);
+}
+
+/* ------------------------------------------------------------------ */
+/* Scrollbar                                                           */
+/* ------------------------------------------------------------------ */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--surface-1); }
+::-webkit-scrollbar-thumb { background: var(--border-hairline); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--cyan); opacity: 0.5; }
+
+/* ------------------------------------------------------------------ */
+/* Focus rings — cyan always = optical/primary action domain          */
+/* ------------------------------------------------------------------ */
+:focus-visible {
+  outline: 1.5px solid var(--cyan);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ------------------------------------------------------------------ */
+/* Animations                                                          */
+/* ------------------------------------------------------------------ */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.82); }
+}
+
+@keyframes scan-line {
+  0%   { transform: translateY(-100%); opacity: 0.55; }
+  100% { transform: translateY(200%);  opacity: 0;    }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+@keyframes trace-step-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
+
+@keyframes dash-flow {
+  to { stroke-dashoffset: -20; }
+}
+
+@keyframes arrow-slide {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(3px); }
+}
+
+.animate-pulse-dot     { animation: pulse-dot 1.4s ease-in-out infinite; }
+.animate-fade-in-up    { animation: fade-in-up 0.3s ease-out forwards; }
+.animate-trace-step    { animation: trace-step-in 0.25s ease-out forwards; }
+.animate-arrow-hover:hover svg.arrow-slide { animation: arrow-slide 0.9s ease-in-out infinite; }
+
+/* ============================================================
+   SPACE-THEMED ANIMATIONS — Dashboard only
+   ============================================================ */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.15; transform: scale(0.8); }
+  50%      { opacity: 1;    transform: scale(1.2); }
+}
+
+@keyframes starfield-drift {
+  0%   { transform: translateY(0) translateX(0); }
+  100% { transform: translateY(-20px) translateX(10px); }
+}
+
+@keyframes orbit {
+  0%   { transform: rotate(0deg) translateX(38px) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(38px) rotate(-360deg); }
+}
+
+@keyframes orbit-reverse {
+  0%   { transform: rotate(0deg) translateX(28px) rotate(0deg); }
+  100% { transform: rotate(-360deg) translateX(28px) rotate(360deg); }
+}
+
+@keyframes radar-sweep {
+  0%   { transform: rotate(0deg);   opacity: 0.9; }
+  100% { transform: rotate(360deg); opacity: 0.9; }
+}
+
+@keyframes radar-pulse {
+  0%   { transform: scale(0.3); opacity: 0.9; }
+  100% { transform: scale(1.6); opacity: 0;   }
+}
+
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+@keyframes float-soft-delay {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+@keyframes shooting-star {
+  0%   { transform: translateX(0) translateY(0); opacity: 0; }
+  10%  { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { transform: translateX(180px) translateY(120px); opacity: 0; }
+}
+
+@keyframes comet-tail {
+  0%   { opacity: 0;   width: 0; }
+  10%  { opacity: 0.8; width: 40px; }
+  80%  { opacity: 0.8; width: 40px; }
+  100% { opacity: 0;   width: 0; }
+}
+
+@keyframes nebula-pulse {
+  0%, 100% { opacity: 0.08; transform: scale(1); }
+  50%      { opacity: 0.18; transform: scale(1.08); }
+}
+
+@keyframes glow-breathe {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(62,208,255,0.35), 0 0 18px -6px rgba(62,208,255,0.35); }
+  50%      { box-shadow: 0 0 0 1px rgba(62,208,255,0.55), 0 0 32px -4px rgba(62,208,255,0.55); }
+}
+
+@keyframes counter-tick {
+  0%   { transform: translateY(4px); opacity: 0; }
+  100% { transform: translateY(0);   opacity: 1; }
+}
+
+@keyframes scan-sweep {
+  0%   { transform: translateX(-100%); opacity: 0; }
+  40%  { opacity: 0.5; }
+  100% { transform: translateX(300%); opacity: 0; }
+}
+
+@keyframes satellite-drift {
+  0%, 100% { transform: translate(0, 0) rotate(-6deg); }
+  25%      { transform: translate(2px, -3px) rotate(-2deg); }
+  50%      { transform: translate(0, -5px) rotate(2deg); }
+  75%      { transform: translate(-2px, -3px) rotate(-1deg); }
+}
+
+/* Starfield — layered CSS dots for dashboard hero */
+.starfield {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: inherit;
+}
+.starfield::before,
+.starfield::after {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  background-image:
+    radial-gradient(1px 1px at 12% 22%, rgba(62,208,255,0.9), transparent 60%),
+    radial-gradient(1px 1px at 28% 68%, rgba(192,132,252,0.8), transparent 60%),
+    radial-gradient(1.2px 1.2px at 44% 34%, rgba(255,255,255,0.85), transparent 60%),
+    radial-gradient(1px 1px at 62% 78%, rgba(62,208,255,0.75), transparent 60%),
+    radial-gradient(0.8px 0.8px at 76% 18%, rgba(255,176,32,0.85), transparent 60%),
+    radial-gradient(1.2px 1.2px at 88% 52%, rgba(255,255,255,0.9), transparent 60%),
+    radial-gradient(0.8px 0.8px at 18% 88%, rgba(61,220,132,0.8), transparent 60%),
+    radial-gradient(1px 1px at 52% 12%, rgba(192,132,252,0.7), transparent 60%),
+    radial-gradient(1px 1px at 34% 48%, rgba(255,255,255,0.7), transparent 60%),
+    radial-gradient(0.8px 0.8px at 72% 42%, rgba(62,208,255,0.7), transparent 60%),
+    radial-gradient(1px 1px at 8% 56%, rgba(255,176,32,0.65), transparent 60%),
+    radial-gradient(0.9px 0.9px at 94% 84%, rgba(255,255,255,0.75), transparent 60%),
+    radial-gradient(1px 1px at 40% 84%, rgba(62,208,255,0.7), transparent 60%),
+    radial-gradient(0.8px 0.8px at 60% 58%, rgba(192,132,252,0.6), transparent 60%);
+  background-size: 100% 100%;
+  animation: starfield-drift 40s ease-in-out infinite alternate;
+}
+.starfield::after {
+  background-size: 60% 60%;
+  background-position: 50% 50%;
+  animation-duration: 60s;
+  animation-direction: alternate-reverse;
+  opacity: 0.65;
+}
+[data-theme="light"] .starfield::before,
+[data-theme="light"] .starfield::after {
+  opacity: 0.5;
+}
+
+.animate-twinkle > span { animation: twinkle 2.2s ease-in-out infinite; }
+
+/* Orbiting elements container */
+.orbit-wrap {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+}
+.orbit-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan), 0 0 16px color-mix(in srgb, var(--cyan) 50%, transparent);
+  animation: orbit 7s linear infinite;
+}
+.orbit-dot.orbit-magenta {
+  background: var(--magenta);
+  box-shadow: 0 0 8px var(--magenta), 0 0 16px color-mix(in srgb, var(--magenta) 50%, transparent);
+  animation: orbit-reverse 5.5s linear infinite;
+  animation-duration: 5.5s;
+}
+.orbit-dot.orbit-amber {
+  background: var(--amber);
+  box-shadow: 0 0 8px var(--amber), 0 0 16px color-mix(in srgb, var(--amber) 50%, transparent);
+  animation: orbit 9s linear infinite;
+  animation-delay: -2s;
+}
+[data-theme="light"] .orbit-dot { opacity: 0.75; }
+
+/* Radar sweep badge glow */
+.radar-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.radar-wrap::before,
+.radar-wrap::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid var(--green);
+  animation: radar-pulse 2s ease-out infinite;
+}
+.radar-wrap::after {
+  animation-delay: 1s;
+}
+
+/* Float animations for workflow cards */
+.animate-float { animation: float-soft 5s ease-in-out infinite; }
+.animate-float-d1 { animation: float-soft 5s ease-in-out infinite; animation-delay: -1.2s; }
+.animate-float-d2 { animation: float-soft 5s ease-in-out infinite; animation-delay: -2.4s; }
+
+/* Shooting star in hero */
+.shooting-star {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px 2px rgba(255,255,255,0.7);
+  animation: shooting-star 7s ease-in infinite;
+  animation-delay: 1s;
+  opacity: 0;
+}
+.shooting-star::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 3px;
+  height: 1.5px;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, rgba(255,255,255,0.85), transparent);
+  animation: comet-tail 7s ease-in infinite;
+  animation-delay: 1s;
+}
+.shooting-star.s2 { top: 18%; left: 10%; animation-delay: 4s; }
+.shooting-star.s2::after { animation-delay: 4s; }
+.shooting-star.s3 { top: 42%; left: 65%; animation-delay: 2.5s; }
+.shooting-star.s3::after { animation-delay: 2.5s; }
+[data-theme="light"] .shooting-star { opacity: 0; }
+
+/* Nebula ambient glow */
+.nebula-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(40px);
+  pointer-events: none;
+  animation: nebula-pulse 9s ease-in-out infinite;
+}
+.nebula-glow.cyan    { background: radial-gradient(circle, var(--cyan) 0%, transparent 70%); width: 300px; height: 300px; top: -60px; right: -40px; opacity: 0.12; }
+.nebula-glow.magenta { background: radial-gradient(circle, var(--magenta) 0%, transparent 70%); width: 240px; height: 240px; bottom: -40px; left: 10%; opacity: 0.10; animation-delay: -3s; }
+.nebula-glow.amber   { background: radial-gradient(circle, var(--amber) 0%, transparent 70%); width: 180px; height: 180px; top: 30%; left: 40%; opacity: 0.07; animation-delay: -6s; }
+[data-theme="light"] .nebula-glow { opacity: 0.05; }
+
+/* Telemetry counter tick animation */
+.tick-counter > * {
+  animation: counter-tick 0.5s ease-out both;
+}
+.tick-counter > *:nth-child(2) { animation-delay: 0.08s; }
+.tick-counter > *:nth-child(3) { animation-delay: 0.16s; }
+.tick-counter > *:nth-child(4) { animation-delay: 0.24s; }
+
+/* Horizontal scan line for stat tiles */
+.stat-sweep {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.stat-sweep::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--cyan) 18%, transparent), transparent);
+  animation: scan-sweep 4.5s ease-in-out infinite;
+  opacity: 0.7;
+}
+[data-theme="light"] .stat-sweep::after {
+  opacity: 0.4;
+}
+
+/* Satellite icon drift in history list */
+.animate-satellite { animation: satellite-drift 4.5s ease-in-out infinite; }
+.animate-satellite.d1 { animation-delay: -0.6s; }
+.animate-satellite.d2 { animation-delay: -1.2s; }
+.animate-satellite.d3 { animation-delay: -1.8s; }
+.animate-satellite.d4 { animation-delay: -2.4s; }
+.animate-satellite.d5 { animation-delay: -3.0s; }
+
+/* Skeleton shimmer */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-1) 25%,
+    var(--surface-2) 50%,
+    var(--surface-1) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+/* ============================================================
+   HUD TELEMETRY LABEL + VALUE
+   Rule: all system/data field labels = mono + uppercase + letter-spaced.
+         Human-readable sentences/headings = sans.
+   ============================================================ */
+.hud-label {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.hud-value {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--cyan);
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Big numerals for stat tiles (telemetry counter feel) */
+.hud-counter {
+  font-family: var(--font-mono);
+  font-size: 2.5rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+/* ============================================================
+   PANEL SURFACES — strict elevation levels
+   ============================================================ */
+.panel {
+  background: var(--surface-1);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  position: relative;
+}
+.panel-elevated {
+  background: var(--surface-2);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  position: relative;
+}
+/* Light source — subtle 1px inset highlight on top edge (Level 2) */
+.panel-elevated::before,
+.panel[data-level="2"]::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  pointer-events: none;
+}
+[data-theme="light"] .panel-elevated::before,
+[data-theme="light"] .panel[data-level="2"]::before {
+  background: linear-gradient(90deg, transparent, rgba(15,20,32,0.03), transparent);
+}
+
+/* Level-2 hover elevation — glow (dark) / crisp border+shadow (light) */
+.panel-hover-glow-cyan:hover    { box-shadow: var(--glow-cyan);    }
+.panel-hover-glow-magenta:hover { box-shadow: var(--glow-magenta); }
+.panel-hover-glow-amber:hover   { box-shadow: var(--glow-amber);   }
+
+.panel-selected-cyan    { box-shadow: var(--glow-cyan);    }
+.panel-selected-magenta { box-shadow: var(--glow-magenta); }
+.panel-selected-amber   { box-shadow: var(--glow-amber);   }
+
+/* ============================================================
+   BADGE SYSTEM — ONE SHAPE LANGUAGE ONLY
+   All badges: rounded-sm (4px), mono font, uppercase letter-spaced,
+   uniform padding. Color is the ONLY variant dimension.
+   ============================================================ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+/* Semantic badge variants (color only) */
+.badge-cyan    { background: color-mix(in srgb, var(--cyan)    10%, transparent); color: var(--cyan);    border-color: color-mix(in srgb, var(--cyan)    25%, transparent); }
+.badge-magenta { background: color-mix(in srgb, var(--magenta) 10%, transparent); color: var(--magenta); border-color: color-mix(in srgb, var(--magenta) 25%, transparent); }
+.badge-amber   { background: color-mix(in srgb, var(--amber)   10%, transparent); color: var(--amber);   border-color: color-mix(in srgb, var(--amber)   25%, transparent); }
+.badge-green   { background: color-mix(in srgb, var(--green)   10%, transparent); color: var(--green);   border-color: color-mix(in srgb, var(--green)   25%, transparent); }
+.badge-red     { background: color-mix(in srgb, var(--red)     10%, transparent); color: var(--red);     border-color: color-mix(in srgb, var(--red)     25%, transparent); }
+.badge-neutral { background: color-mix(in srgb, var(--text-faint) 20%, transparent); color: var(--text-muted); border-color: color-mix(in srgb, var(--text-faint) 30%, transparent); }
+
+/* ============================================================
+   CORNER FRAME / RETICLE MOTIF (CSS fallback — see React comp)
+   Applies to panels marked .corner-frame
+   ============================================================ */
+.corner-frame {
+  position: relative;
+}
+.corner-frame > .cf-bracket {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-style: solid;
+  border-width: 1.5px;
+  border-color: var(--cyan);
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 3;
+}
+.corner-frame > .cf-tl { top: -1px; left: -1px;  border-right: 0; border-bottom: 0; }
+.corner-frame > .cf-tr { top: -1px; right: -1px; border-left: 0;  border-bottom: 0; }
+.corner-frame > .cf-bl { bottom: -1px; left: -1px;  border-right: 0; border-top: 0; }
+.corner-frame > .cf-br { bottom: -1px; right: -1px; border-left: 0;  border-top: 0; }
+
+/* Domain color variants for brackets */
+.corner-frame[data-domain="cyan"]    > .cf-bracket { border-color: var(--cyan); }
+.corner-frame[data-domain="magenta"] > .cf-bracket { border-color: var(--magenta); }
+.corner-frame[data-domain="amber"]   > .cf-bracket { border-color: var(--amber); }
+.corner-frame[data-domain="green"]   > .cf-bracket { border-color: var(--green); }
+
+.corner-frame > .cf-label {
+  position: absolute;
+  top: 0;
+  left: 18px;
+  transform: translateY(-50%);
+  padding: 0 6px;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--cyan);
+  background: var(--surface-1);
+  z-index: 3;
+  white-space: nowrap;
+}
+.corner-frame[data-domain="magenta"] > .cf-label { color: var(--magenta); }
+.corner-frame[data-domain="amber"]   > .cf-label { color: var(--amber); }
+.corner-frame[data-domain="green"]   > .cf-label { color: var(--green); }
+
+/* ============================================================
+   SCAN-LINE loading overlay (processing states only)
+   ============================================================ */
+.scan-overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 4;
+}
+.scan-overlay::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  animation: scan-line 6s linear infinite;
+  opacity: 0.7;
+}
+[data-theme="light"] .scan-overlay::after {
+  opacity: 0.9;
+}
+
+/* ============================================================
+   HEXAGON ICON FRAME — for domain-specific workflow card icons
+   ============================================================ */
+.icon-hex {
+  position: relative;
+  width: 44px;
+  height: 50px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+.icon-hex::before {
+  content: '';
+  position: absolute;
+  inset: 1.5px;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  z-index: 0;
+}
+.icon-hex > svg {
+  position: relative;
+  z-index: 1;
+}
+/* Filled/glowing version (selected) */
+.icon-hex[data-domain="cyan"]       { background: color-mix(in srgb, var(--cyan) 30%, transparent); }
+.icon-hex[data-domain="cyan"]::before    { background: color-mix(in srgb, var(--cyan) 12%, var(--surface-1)); box-shadow: inset 0 0 12px color-mix(in srgb, var(--cyan) 40%, transparent); }
+.icon-hex[data-domain="magenta"]    { background: color-mix(in srgb, var(--magenta) 30%, transparent); }
+.icon-hex[data-domain="magenta"]::before { background: color-mix(in srgb, var(--magenta) 12%, var(--surface-1)); box-shadow: inset 0 0 12px color-mix(in srgb, var(--magenta) 40%, transparent); }
+.icon-hex[data-domain="amber"]      { background: color-mix(in srgb, var(--amber) 30%, transparent); }
+.icon-hex[data-domain="amber"]::before   { background: color-mix(in srgb, var(--amber) 12%, var(--surface-1)); box-shadow: inset 0 0 12px color-mix(in srgb, var(--amber) 40%, transparent); }
+
+/* Outline version (unselected — muted) */
+.icon-hex-outline[data-domain="cyan"]       { background: color-mix(in srgb, var(--cyan) 18%, transparent); }
+.icon-hex-outline[data-domain="cyan"]::before    { background: var(--surface-1); }
+.icon-hex-outline[data-domain="magenta"]    { background: color-mix(in srgb, var(--magenta) 18%, transparent); }
+.icon-hex-outline[data-domain="magenta"]::before { background: var(--surface-1); }
+.icon-hex-outline[data-domain="amber"]      { background: color-mix(in srgb, var(--amber) 18%, transparent); }
+.icon-hex-outline[data-domain="amber"]::before   { background: var(--surface-1); }
+
+/* ============================================================
+   TOP ACCENT BAR — used on selected mode cards
+   ============================================================ */
+.top-accent-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  z-index: 1;
+}
+.top-accent-bar[data-domain="cyan"]    { background: linear-gradient(90deg, transparent, var(--cyan),    transparent); }
+.top-accent-bar[data-domain="magenta"] { background: linear-gradient(90deg, transparent, var(--magenta), transparent); }
+.top-accent-bar[data-domain="amber"]   { background: linear-gradient(90deg, transparent, var(--amber),   transparent); }
+
+/* ============================================================
+   UPLOAD DROPZONE — animated dashed border on active drag
+   ============================================================ */
+.dropzone-active {
+  position: relative;
+  overflow: hidden;
+}
+.dropzone-active::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1.5px dashed var(--cyan);
+  border-radius: calc(var(--radius-md) - 2px);
+  animation: dash-flow 0.8s linear infinite;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+/* ============================================================
+   PRIMARY CTA BUTTON — gradient with domain-appropriate glow
+   ============================================================ */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: all 150ms ease;
+  background: linear-gradient(135deg, var(--cyan) 0%, color-mix(in srgb, var(--cyan) 60%, #004466) 100%);
+  color: #05070D;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.btn-primary:hover:not(:disabled) {
+  box-shadow: var(--glow-cyan);
+  transform: translateY(-1px);
+}
+.btn-primary:disabled {
+  background: var(--surface-2);
+  color: var(--text-faint);
+  border: 1px solid var(--border-hairline);
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+[data-theme="light"] .btn-primary {
+  color: #FFFFFF;
+}
+[data-theme="light"] .btn-primary:hover:not(:disabled) {
+  box-shadow: 0 0 0 1.5px var(--cyan), 0 4px 14px rgba(0,145,200,0.22);
+}
+
+/* ============================================================
+   VERTICAL RHYTHM SECTION GAP UTILITIES
+   Major section gaps = 48px (--space-12)
+   Intra-card element gaps = 16px (--space-4)
+   ============================================================ */
+.section-gap { gap: var(--space-12); }
+.card-gap    { gap: var(--space-4);  }
