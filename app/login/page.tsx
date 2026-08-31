@@ -244,7 +244,7 @@ export default function LoginPage() {
           >
             {/* HUD Corner frame (CSS) */}
             <HudCorners domain="cyan" />
-            <div className="absolute top-0 left-5 -translate-y-1/2 z-10">
+            <div className="absolute top-0 left-5 -translate-y-1/2 z-10 flex items-center gap-2">
               <span
                 className="px-2 font-mono text-[0.62rem] font-semibold tracking-[0.16em] uppercase"
                 style={{
@@ -255,6 +255,17 @@ export default function LoginPage() {
               >
                 AUTH · GATEWAY-01
               </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('controller@isro.gov.in');
+                  setPassword('ISRO-SatQuery-2026');
+                  toast.info('Loaded demo mission controller credentials');
+                }}
+                className="px-2 py-0.5 rounded font-mono text-[0.58rem] font-semibold tracking-wider uppercase transition-all bg-[var(--cyan)]/15 border border-[var(--cyan)]/40 text-[var(--cyan)] hover:bg-[var(--cyan)]/25 cursor-pointer shadow-sm"
+              >
+                Auto-Fill Demo Credentials
+              </button>
             </div>
 
             <div
@@ -336,13 +347,14 @@ export default function LoginPage() {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <label className="hud-label">Clearance · Password</label>
-                    <Link
-                      href="/forgot-password"
-                      className="font-mono text-[0.65rem] font-semibold tracking-wide transition-colors hover:underline underline-offset-2"
+                    <button
+                      type="button"
+                      onClick={() => toast.info('Password recovery: Demo mode active. Use the Auto-Fill Demo Credentials button above.')}
+                      className="font-mono text-[0.65rem] font-semibold tracking-wide transition-colors hover:underline underline-offset-2 cursor-pointer"
                       style={{ color: 'var(--cyan)' }}
                     >
                       FORGOT?
-                    </Link>
+                    </button>
                   </div>
                   <div className="group relative">
                     <Lock
@@ -553,13 +565,18 @@ export default function LoginPage() {
               style={{ color: 'var(--text-muted)' }}
             >
               New operator?{' '}
-              <Link
-                href="/signup"
-                className="font-semibold transition-colors hover:underline underline-offset-2"
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('controller@isro.gov.in');
+                  setPassword('ISRO-SatQuery-2026');
+                  toast.info('Instant demo access configured. Click Enter Mission Control.');
+                }}
+                className="font-semibold transition-colors hover:underline underline-offset-2 cursor-pointer"
                 style={{ color: 'var(--cyan)' }}
               >
                 Request ground-station access →
-              </Link>
+              </button>
             </p>
           </div>
         </div>
