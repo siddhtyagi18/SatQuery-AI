@@ -94,7 +94,7 @@ export default function HistoryPage() {
           <h1 className="text-xl md:text-2xl font-bold font-heading text-[var(--text-primary)]">
             Analysis Telemetry Archive
           </h1>
-          <p className="text-xs text-[var(--text-muted)] font-mono mt-0.5">
+          <p className="text-sm text-[var(--text-muted)] font-normal mt-1 leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
             Historical log of all vision-language inference queries and mission reports.
           </p>
         </div>
@@ -128,13 +128,14 @@ export default function HistoryPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search queries, keywords, or analysis IDs…"
-            className="w-full pl-9 pr-3 py-2 rounded text-xs font-mono bg-[var(--bg-panel-elevated)] border border-[var(--border-hairline)] text-[var(--text-primary)] placeholder:text-[var(--text-faint)] focus:outline-none focus:border-[var(--accent-signal)]"
+            className="w-full pl-9 pr-3 py-2 rounded text-sm bg-[var(--bg-panel-elevated)] border border-[var(--border-hairline)] text-[var(--text-primary)] placeholder:text-[var(--text-faint)] focus:outline-none focus:border-[var(--accent-signal)]"
+            style={{ fontFamily: 'var(--font-body)' }}
           />
         </div>
 
         {/* Mode filter */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[0.65rem] font-mono text-[var(--text-faint)]">Mode:</span>
+          <span className="hud-label" style={{ fontSize: '0.65rem' }}>Mode:</span>
           <select
             value={selectedMode}
             onChange={(e) => setSelectedMode(e.target.value as any)}
@@ -147,7 +148,7 @@ export default function HistoryPage() {
           </select>
 
           {/* Status filter */}
-          <span className="text-[0.65rem] font-mono text-[var(--text-faint)] ml-2">Status:</span>
+          <span className="hud-label" style={{ fontSize: '0.65rem', marginLeft: '8px' }}>Status:</span>
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value as any)}
@@ -186,9 +187,9 @@ export default function HistoryPage() {
         </div>
       ) : (
         <div className="panel overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="w-full text-left text-sm border-collapse">
             <thead>
-              <tr className="border-b border-[var(--border-hairline)] bg-[var(--bg-panel-elevated)] font-mono text-[0.65rem] text-[var(--text-muted)]">
+              <tr className="border-b border-[var(--border-hairline)] bg-[var(--bg-panel-elevated)] font-mono text-xs text-[var(--text-muted)]">
                 <th className="p-3.5">ID / Mode</th>
                 <th className="p-3.5">Inquiry Query</th>
                 <th className="p-3.5">Status</th>
@@ -197,7 +198,7 @@ export default function HistoryPage() {
                 <th className="p-3.5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--border-subtle)] font-mono text-xs">
+            <tbody className="divide-y divide-[var(--border-subtle)] text-sm">
               {filteredItems.map((item) => (
                 <tr
                   key={item.id}
@@ -207,7 +208,7 @@ export default function HistoryPage() {
                   {/* ID + Mode */}
                   <td className="p-3.5 whitespace-nowrap">
                     <div className="flex flex-col gap-1">
-                      <span className="font-bold text-[var(--accent-signal)]">
+                      <span className="font-mono font-bold text-xs text-[var(--accent-signal)]">
                         {item.id}
                       </span>
                       <ModeBadge mode={item.mode} showIcon={false} />
@@ -215,7 +216,7 @@ export default function HistoryPage() {
                   </td>
 
                   {/* Query */}
-                  <td className="p-3.5 font-sans font-medium text-[var(--text-primary)] max-w-xs md:max-w-md truncate">
+                  <td className="p-3.5 text-[var(--text-primary)] max-w-xs md:max-w-md truncate font-normal" style={{ fontFamily: 'var(--font-body)' }}>
                     &ldquo;{item.query}&rdquo;
                   </td>
 
@@ -225,7 +226,7 @@ export default function HistoryPage() {
                   </td>
 
                   {/* Confidence */}
-                  <td className="p-3.5 whitespace-nowrap">
+                  <td className="p-3.5 whitespace-nowrap font-mono text-xs">
                     {item.confidence != null ? (
                       <span className="font-bold text-[var(--accent-success)]">
                         {(item.confidence * 100).toFixed(0)}%
@@ -236,7 +237,7 @@ export default function HistoryPage() {
                   </td>
 
                   {/* Timestamp */}
-                  <td className="p-3.5 whitespace-nowrap text-[var(--text-faint)] text-[0.68rem]">
+                  <td className="p-3.5 whitespace-nowrap text-[var(--text-muted)] font-mono text-xs">
                     {formatTimestamp(item.createdAt)}
                   </td>
 

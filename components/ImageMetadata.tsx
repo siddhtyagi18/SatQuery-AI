@@ -95,9 +95,9 @@ export function ImageMetadata({ image, loading, label, className }: ImageMetadat
 
       {/* Note for plain PNG/JPEG */}
       {(metadata.fileFormat === 'PNG' || metadata.fileFormat === 'JPEG') && (
-        <p className="text-[0.6rem] font-mono leading-relaxed" style={{ color: 'var(--text-faint)' }}>
-          ⓘ Geospatial metadata (CRS, GSD, band count, acquisition date) is not available for PNG/JPEG inputs.
-          Upload a GeoTIFF to enable full metadata extraction.
+        <p className="text-xs font-mono leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+          ⓘ Geospatial metadata (CRS, GSD, band count, acquisition date) is not available for standard PNG/JPEG raster previews.
+          Ingest a GeoTIFF image to extract full telemetry metadata.
         </p>
       )}
     </div>

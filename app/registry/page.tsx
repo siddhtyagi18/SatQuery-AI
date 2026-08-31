@@ -33,7 +33,7 @@ export default function RegistryPage() {
               Multi-Agent Specialist Registry
             </h1>
           </div>
-          <p className="text-xs text-[var(--text-muted)] font-mono">
+          <p className="text-sm text-[var(--text-muted)] font-normal leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
             Ground-station neural toolset documentation and dispatch contract specifications.
           </p>
         </div>

@@ -1,5 +1,5 @@
 /* app/globals.css — SatQuery-AI Design System v2.0 */
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 /* ------------------------------------------------------------------ */
@@ -56,10 +56,10 @@
   --glow-green:   0 0 0 1px rgba(61,220,132,0.35),  0 0 24px -8px rgba(61,220,132,0.35);
   --glow-red:     0 0 0 1px rgba(255,92,92,0.35),   0 0 24px -8px rgba(255,92,92,0.35);
 
-  /* Typography */
-  --font-heading: 'Space Grotesk', system-ui, sans-serif;
-  --font-body:    'Inter', system-ui, sans-serif;
-  --font-mono:    'JetBrains Mono', 'Courier New', monospace;
+  /* Typography — Clean, highly legible mission-control system */
+  --font-heading: 'Space Grotesk', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-body:    'Inter', 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Space Mono', monospace;
 
   /* Spacing scale (8px base) — use as gaps & paddings */
   --space-1: 4px;
@@ -683,20 +683,21 @@ code, pre, .mono {
 .hud-label {
   display: inline-block;
   font-family: var(--font-mono);
-  font-size: 0.65rem;
-  line-height: 1;
+  font-size: 0.6875rem;
+  line-height: 1.3;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.06em;
   color: var(--text-muted);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .hud-value {
   font-family: var(--font-mono);
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   color: var(--cyan);
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
+  font-weight: 500;
 }
 
 /* Big numerals for stat tiles (telemetry counter feel) */
@@ -759,13 +760,13 @@ code, pre, .mono {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 2px 8px;
+  padding: 3px 9px;
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   line-height: 1.4;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   border: 1px solid transparent;
   white-space: nowrap;

@@ -60,10 +60,10 @@ export function ToolRegistry({ tools, className }: ToolRegistryProps) {
                         <Cpu className="w-4 h-4" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-semibold text-[var(--text-primary)] font-heading">
+                        <h3 className="text-base font-semibold text-[var(--text-primary)] font-heading">
                           {tool.name}
                         </h3>
-                        <span className="text-[0.65rem] font-mono text-[var(--text-faint)]">
+                        <span className="text-xs font-mono text-[var(--text-faint)]">
                           v{tool.version}
                         </span>
                       </div>
@@ -72,19 +72,19 @@ export function ToolRegistry({ tools, className }: ToolRegistryProps) {
                     <StatusBadge status={tool.status} />
                   </div>
 
-                  <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                  <p className="text-sm leading-relaxed text-[var(--text-muted)]" style={{ fontFamily: 'var(--font-body)', fontWeight: 400 }}>
                     {tool.description}
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-2 pt-3 border-t border-[var(--border-hairline)]">
-                  <div className="flex items-center justify-between text-[0.65rem] font-mono">
+                  <div className="flex items-center justify-between text-xs font-mono">
                     <span className="text-[var(--text-faint)]">Supported Tasks:</span>
                     <div className="flex flex-wrap gap-1">
                       {tool.taskTypes.map((task) => (
                         <span
                           key={task}
-                          className="px-1.5 py-0.5 rounded bg-[var(--bg-panel-elevated)] border border-[var(--border-hairline)] text-[var(--text-muted)]"
+                          className="px-2 py-0.5 rounded text-xs bg-[var(--bg-panel-elevated)] border border-[var(--border-hairline)] text-[var(--text-muted)]"
                         >
                           {task}
                         </span>
@@ -92,13 +92,13 @@ export function ToolRegistry({ tools, className }: ToolRegistryProps) {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-[0.65rem] font-mono">
+                  <div className="flex items-center justify-between text-xs font-mono">
                     <span className="text-[var(--text-faint)]">Modalities:</span>
                     <div className="flex flex-wrap gap-1">
                       {tool.supportedModalities.map((mod) => (
                         <span
                           key={mod}
-                          className="px-1.5 py-0.5 rounded uppercase text-[0.6rem] bg-[var(--accent-signal)]/10 text-[var(--accent-signal)]"
+                          className="px-2 py-0.5 rounded uppercase text-xs bg-[var(--accent-signal)]/10 text-[var(--accent-signal)]"
                         >
                           {mod}
                         </span>

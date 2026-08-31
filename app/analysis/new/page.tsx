@@ -13,6 +13,7 @@ import { api } from '@/lib/api';
 import type { AnalysisMode, ExecutionTrace, UploadedImage } from '@/lib/types/analysis';
 import { Play, BookmarkCheck, AlertCircle } from 'lucide-react';
 import { singleImageResult, biTemporalResult, opticalSarResult } from '@/lib/api/mock/fixtures';
+import { API_MODE } from '@/lib/config';
 import { toast } from 'sonner';
 
 export default function NewAnalysisPage() {
@@ -63,24 +64,38 @@ export default function NewAnalysisPage() {
   };
 
   const handleLoadDemoExample = () => {
-    if (mode === 'single_image') {
-      const img = singleImageResult.images[0];
-      setUploads({ single: img });
-      setQuery(singleImageResult.query);
-    } else if (mode === 'bi_temporal') {
-      setUploads({
-        before: biTemporalResult.images[0],
-        after: biTemporalResult.images[1],
-      });
-      setQuery(biTemporalResult.query);
+    if (API_MODE === 'live') {
+      // In live mode, images must be uploaded by the user.
+      // We only pre-fill the query text as a helpful demo starting point.
+      if (mode === 'single_image') {
+        setQuery(singleImageResult.query);
+      } else if (mode === 'bi_temporal') {
+        setQuery(biTemporalResult.query);
+      } else {
+        setQuery(opticalSarResult.query);
+      }
+      toast.info(`Demo query loaded — please upload your satellite imagery to run analysis.`);
     } else {
-      setUploads({
-        optical: opticalSarResult.images[0],
-        sar: opticalSarResult.images[1],
-      });
-      setQuery(opticalSarResult.query);
+      // Mock mode: use pre-loaded fixture images so analysis runs immediately
+      if (mode === 'single_image') {
+        const img = singleImageResult.images[0];
+        setUploads({ single: img });
+        setQuery(singleImageResult.query);
+      } else if (mode === 'bi_temporal') {
+        setUploads({
+          before: biTemporalResult.images[0],
+          after: biTemporalResult.images[1],
+        });
+        setQuery(biTemporalResult.query);
+      } else {
+        setUploads({
+          optical: opticalSarResult.images[0],
+          sar: opticalSarResult.images[1],
+        });
+        setQuery(opticalSarResult.query);
+      }
+      toast.info(`Loaded pre-configured ${mode.replace('_', ' ')} demonstration suite`);
     }
-    toast.info(`Loaded pre-configured ${mode.replace('_', ' ')} demonstration suite`);
   };
 
   const hasRequiredImages = () => {
@@ -96,6 +111,7 @@ export default function NewAnalysisPage() {
     if (!canSubmit) return;
 
     setIsSubmitting(true);
+    let unsubscribe: (() => void) | null = null;
 
     try {
       const imageIds = Object.values(uploads)
@@ -108,9 +124,12 @@ export default function NewAnalysisPage() {
         imageIds,
       });
 
-      const unsubscribe = api.streamExecutionTrace(analysisId, (trace) => {
+      let redirected = false;
+      unsubscribe = api.streamExecutionTrace(analysisId, (trace) => {
         setActiveTrace(trace);
-        if (trace.overallStatus === 'completed' || trace.overallStatus === 'failed') {
+        if (!redirected && (trace.overallStatus === 'completed' || trace.overallStatus === 'failed')) {
+          redirected = true;
+          unsubscribe?.();
           setTimeout(() => {
             router.push(`/analysis/${analysisId}`);
           }, 800);
@@ -119,6 +138,7 @@ export default function NewAnalysisPage() {
     } catch (err: any) {
       toast.error(err.message || 'Submission failed');
       setIsSubmitting(false);
+      unsubscribe?.();
     }
   };
 
@@ -133,8 +153,8 @@ export default function NewAnalysisPage() {
       >
         <div className="flex flex-col gap-1.5">
           <h1 className="text-display">Initiate Remote Sensing Analysis</h1>
-          <p className="hud-label" style={{ fontSize: '0.62rem' }}>
-            CONFIGURE MULTI-MODAL INPUT PAYLOADS AND PROMPT THE ISRO SPECIALIST ENSEMBLE
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+            Configure multi-modal input payloads and prompt the ISRO specialist ensemble.
           </p>
         </div>
 
@@ -143,7 +163,7 @@ export default function NewAnalysisPage() {
           onClick={handleLoadDemoExample}
           disabled={isSubmitting}
           className="badge badge-cyan cursor-pointer hover:opacity-90 transition-opacity"
-          style={{ padding: '6px 12px', fontSize: '0.65rem' }}
+          style={{ padding: '6px 12px', fontSize: '0.75rem' }}
         >
           <BookmarkCheck className="w-3.5 h-3.5" />
           Load Demo Preset
@@ -157,11 +177,12 @@ export default function NewAnalysisPage() {
         <div className="flex items-center gap-3">
           <span
             className="badge badge-cyan"
-            style={{ padding: '2px 8px', fontSize: '0.58rem' }}
           >
             STEP 01
           </span>
-          <span className="hud-label">SELECT ANALYSIS DOMAIN &amp; WORKFLOW</span>
+          <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+            Select Analysis Domain &amp; Workflow
+          </h2>
         </div>
         <AnalysisModeSelector
           value={mode}
@@ -184,11 +205,12 @@ export default function NewAnalysisPage() {
                   ? 'badge-magenta'
                   : 'badge-amber'
             )}
-            style={{ padding: '2px 8px', fontSize: '0.58rem' }}
           >
             STEP 02
           </span>
-          <span className="hud-label">INGEST SENSOR PAYLOADS (DOWNLINK IMAGERY)</span>
+          <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+            Ingest Sensor Payloads (Downlink Imagery)
+          </h2>
         </div>
         <ImageUploader
           mode={mode}
@@ -209,11 +231,12 @@ export default function NewAnalysisPage() {
           <div className="flex items-center gap-3">
             <span
               className="badge badge-green"
-              style={{ padding: '2px 8px', fontSize: '0.58rem' }}
             >
               STEP 03
             </span>
-            <span className="hud-label">EXTRACTED TELEMETRY &amp; FORMAT METADATA</span>
+            <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+              Extracted Telemetry &amp; Format Metadata
+            </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {Object.entries(uploads).map(([role, img]) => (
@@ -221,7 +244,7 @@ export default function NewAnalysisPage() {
                 <ImageMetadata
                   key={role}
                   image={img}
-                  label={`${role.toUpperCase()} INPUT METADATA`}
+                  label={`${role.toUpperCase()} Input Metadata`}
                 />
               ) : null
             ))}
@@ -236,11 +259,12 @@ export default function NewAnalysisPage() {
         <div className="flex items-center gap-3">
           <span
             className="badge badge-cyan"
-            style={{ padding: '2px 8px', fontSize: '0.58rem' }}
           >
             STEP 04
           </span>
-          <span className="hud-label">ISSUE NATURAL-LANGUAGE INQUIRY TO AGENT ENSEMBLE</span>
+          <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+            Issue Natural-Language Inquiry to Agent Ensemble
+          </h2>
         </div>
         <QueryInput
           value={query}
@@ -268,13 +292,9 @@ export default function NewAnalysisPage() {
             style={{ color: 'var(--amber)' }}
           />
           <span
-            className="hud-label"
+            className="text-sm leading-relaxed"
             style={{
-              fontSize: '0.62rem',
               color: 'var(--text-muted)',
-              lineHeight: '1.5',
-              letterSpacing: '0.04em',
-              textTransform: 'none',
               fontFamily: 'var(--font-body)',
               fontWeight: 400,
             }}

@@ -209,41 +209,40 @@ function UploadSlot({ slot, uploaded, uploading, error, onFile, onRemove, disabl
                 />
               </div>
 
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1.5">
                 <span
-                  className="text-xs font-medium"
-                  style={{ color: 'var(--text-primary)' }}
+                  className="text-sm font-medium"
+                  style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-body)' }}
                 >
-                  Drop payload here or{' '}
-                  <span style={{ color: 'var(--cyan)', fontWeight: 600 }}>browse</span>
+                  Drop satellite payload here or{' '}
+                  <span style={{ color: 'var(--cyan)', fontWeight: 600 }}>browse files</span>
                 </span>
                 <span
-                  className="text-[0.65rem] leading-snug"
-                  style={{ color: 'var(--text-muted)' }}
+                  className="text-xs leading-relaxed"
+                  style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}
                 >
                   {slot.hint}
                 </span>
               </div>
 
-              {/* Spec readout line — mono-font CRS/format info as if spec sheet */}
+              {/* Spec readout line — clean mono format badge */}
               <div
-                className="mt-1 px-2 py-1 rounded flex items-center gap-2"
+                className="mt-1 px-3 py-1.5 rounded flex items-center gap-2"
                 style={{
                   background: 'var(--surface-2)',
                   border: '1px dashed var(--border-hairline)',
                 }}
               >
-                <Download className="w-3 h-3" style={{ color: 'var(--text-faint)' }} />
+                <Download className="w-3.5 h-3.5" style={{ color: 'var(--text-faint)' }} />
                 <span
-                  className="font-mono"
+                  className="font-mono text-xs"
                   style={{
-                    fontSize: '0.58rem',
                     color: 'var(--text-faint)',
                     letterSpacing: '0.04em',
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  GeoTIFF (EPSG) · PNG/JPEG · MAX {MAX_SIZE_MB}MB
+                  GeoTIFF (EPSG) · PNG/JPEG · Max {MAX_SIZE_MB}MB
                 </span>
               </div>
             </div>

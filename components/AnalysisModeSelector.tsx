@@ -142,20 +142,24 @@ export function AnalysisModeSelector({ value, onChange, disabled }: AnalysisMode
                   {mode.label}
                 </span>
                 <span
-                  className="text-xs leading-relaxed"
-                  style={{ color: 'var(--text-muted)' }}
+                  className="text-sm leading-relaxed"
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    color: 'var(--text-muted)',
+                    fontWeight: 400,
+                  }}
                 >
                   {mode.description}
                 </span>
               </div>
 
-              {/* Task chips: same badge class regardless, opacity shifts */}
-              <div className="flex flex-wrap gap-1.5 mt-auto pt-1">
+              {/* Task chips: consistent badges */}
+              <div className="flex flex-wrap gap-1.5 mt-auto pt-2">
                 {mode.tasks.map((task) => (
                   <span
                     key={task}
                     className={cn('badge', TAG_CLASS[mode.domain])}
-                    style={{ opacity: isSelected ? 1 : 0.55 }}
+                    style={{ opacity: isSelected ? 1 : 0.65 }}
                   >
                     {task}
                   </span>

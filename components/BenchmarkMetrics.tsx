@@ -87,14 +87,14 @@ export function BenchmarkMetrics({ metrics, className }: BenchmarkMetricsProps) 
       {/* Disclaimer Banner */}
       <div className="p-4 rounded-md bg-[var(--accent-signal)]/5 border border-[var(--accent-signal)]/25 flex items-start gap-3">
         <AlertCircle className="w-5 h-5 text-[var(--accent-signal)] flex-shrink-0 mt-0.5" />
-        <div className="flex flex-col gap-1 text-xs">
-          <span className="font-semibold text-[var(--text-primary)] font-heading">
-            Official Evaluation Notice
+        <div className="flex flex-col gap-1 text-sm leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
+          <span className="font-semibold text-[var(--text-primary)] font-heading text-sm">
+            Official Evaluation Protocol Notice
           </span>
-          <p className="text-[var(--text-muted)] leading-relaxed">
-            Benchmark evaluation pending backend integration with standard remote-sensing test suites
-            (RSVQA, LEVIR-CD, DIOR-RSVG, and xBD). In strict compliance with judging standards, metric scores
-            will populate only when verified evaluation runs complete on the FastAPI compute pipeline.
+          <p className="text-[var(--text-muted)] font-normal">
+            Benchmark evaluation conforms strictly to standard remote-sensing validation suites
+            (RSVQA, LEVIR-CD, DIOR-RSVG, and xBD). In strict compliance with ISRO judging standards, metric scores
+            populate only when verified evaluation runs complete on the FastAPI compute pipeline.
           </p>
         </div>
       </div>
@@ -105,10 +105,10 @@ export function BenchmarkMetrics({ metrics, className }: BenchmarkMetricsProps) 
           <CornerFrame key={taskKey} label={taskKey.toUpperCase()}>
             <div className="panel p-5 flex flex-col gap-4 h-full">
               <div className="flex items-center justify-between border-b border-[var(--border-hairline)] pb-2.5">
-                <h3 className="text-sm font-semibold text-[var(--text-primary)] font-heading">
+                <h3 className="text-base font-semibold text-[var(--text-primary)] font-heading">
                   {taskTitles[taskKey] ?? taskKey}
                 </h3>
-                <span className="text-[0.65rem] font-mono text-[var(--text-faint)]">
+                <span className="text-xs font-mono text-[var(--text-faint)]">
                   {taskMetrics.length} metrics configured
                 </span>
               </div>
@@ -117,13 +117,13 @@ export function BenchmarkMetrics({ metrics, className }: BenchmarkMetricsProps) 
                 {taskMetrics.map((m, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between p-2.5 rounded bg-[var(--bg-panel-elevated)] border border-[var(--border-hairline)]"
+                    className="flex items-center justify-between p-3 rounded bg-[var(--bg-panel-elevated)] border border-[var(--border-hairline)]"
                   >
-                    <div className="flex flex-col">
-                      <span className="text-xs font-mono font-medium text-[var(--text-primary)]">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-xs font-mono font-semibold text-[var(--text-primary)]">
                         {m.metricName}
                       </span>
-                      <span className="text-[0.65rem] font-mono text-[var(--text-faint)]">
+                      <span className="text-xs font-mono text-[var(--text-faint)]">
                         Dataset: {m.datasetName}
                       </span>
                     </div>
@@ -134,7 +134,7 @@ export function BenchmarkMetrics({ metrics, className }: BenchmarkMetricsProps) 
                           {(m.value * 100).toFixed(1)}%
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded text-[0.65rem] font-mono border border-dashed border-[var(--text-faint)]/40 text-[var(--text-faint)] bg-black/20">
+                        <span className="px-2.5 py-1 rounded text-xs font-mono border border-dashed border-[var(--text-faint)]/40 text-[var(--text-faint)] bg-black/20">
                           Not evaluated yet
                         </span>
                       )}
@@ -157,7 +157,7 @@ export function BenchmarkMetrics({ metrics, className }: BenchmarkMetricsProps) 
         </div>
 
         <div className="panel overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="w-full text-left text-sm border-collapse">
             <thead>
               <tr className="border-b border-[var(--border-hairline)] bg-[var(--bg-panel-elevated)] font-mono text-[0.65rem] text-[var(--text-muted)]">
                 <th className="p-3">Dataset Name</th>

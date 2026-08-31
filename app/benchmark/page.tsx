@@ -33,7 +33,7 @@ export default function BenchmarkPage() {
               Benchmark & Validation Protocol
             </h1>
           </div>
-          <p className="text-xs text-[var(--text-muted)] font-mono">
+          <p className="text-sm text-[var(--text-muted)] font-normal leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
             Standardised accuracy, visual grounding IoU, and bi-temporal change metrics across remote-sensing benchmarks.
           </p>
         </div>

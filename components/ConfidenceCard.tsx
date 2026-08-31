@@ -42,10 +42,10 @@ export function ConfidenceCard({ score, detectedTasks, breakdown, className }: C
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col gap-1">
             <span className="hud-label">Overall Model Confidence</span>
-            <span className="text-sm font-semibold" style={{ color: tier.color, fontFamily: 'var(--font-heading)' }}>
+            <span className="text-base font-semibold" style={{ color: tier.color, fontFamily: 'var(--font-heading)' }}>
               {tier.text}
             </span>
-            <p className="text-[0.65rem] text-[var(--text-faint)] leading-tight max-w-[200px]">
+            <p className="text-xs text-[var(--text-muted)] leading-relaxed max-w-[220px]" style={{ fontFamily: 'var(--font-body)' }}>
               Computed from posterior probabilities across invoked specialist heads.
             </p>
           </div>
@@ -53,16 +53,16 @@ export function ConfidenceCard({ score, detectedTasks, breakdown, className }: C
         </div>
 
         {items.length > 0 && (
-          <div className="flex flex-col gap-2 pt-3 border-t border-[var(--border-hairline)]">
+          <div className="flex flex-col gap-2.5 pt-3 border-t border-[var(--border-hairline)]">
             <span className="hud-label">Sub-claim Breakdown</span>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2.5">
               {items.map((item, i) => (
                 <div key={i} className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between text-[0.68rem] font-mono">
-                    <span className="text-[var(--text-muted)]">{item.label}</span>
-                    <span className="text-[var(--text-primary)]">{(item.score * 100).toFixed(0)}%</span>
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-[var(--text-muted)] font-normal">{item.label}</span>
+                    <span className="text-[var(--text-primary)] font-semibold">{(item.score * 100).toFixed(0)}%</span>
                   </div>
-                  <div className="h-1 rounded-full bg-[var(--bg-panel-elevated)] overflow-hidden">
+                  <div className="h-1.5 rounded-full bg-[var(--bg-panel-elevated)] overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-500"
                       style={{

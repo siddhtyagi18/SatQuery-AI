@@ -99,7 +99,7 @@ function StepRow({ step, isLast }: { step: ExecutionStep; isLast: boolean }) {
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <span
             className={cn(
-              'text-xs font-semibold flex items-center gap-1.5 transition-colors',
+              'text-sm font-semibold flex items-center gap-1.5 transition-colors',
               isActive && 'tracking-wide'
             )}
             style={{
@@ -118,10 +118,10 @@ function StepRow({ step, isLast }: { step: ExecutionStep; isLast: boolean }) {
           </span>
           {timeLabel && (
             <span
-              className="text-[0.6rem] font-mono flex items-center gap-1 flex-shrink-0"
-              style={{ color: 'var(--text-faint)' }}
+              className="text-xs font-mono flex items-center gap-1 flex-shrink-0"
+              style={{ color: 'var(--text-muted)' }}
             >
-              <Clock className="w-2.5 h-2.5" aria-hidden="true" />
+              <Clock className="w-3 h-3" aria-hidden="true" />
               {timeLabel}
             </span>
           )}
@@ -129,7 +129,7 @@ function StepRow({ step, isLast }: { step: ExecutionStep; isLast: boolean }) {
 
         {step.detail && !isPending && (
           <p
-            className="text-[0.7rem] font-mono leading-relaxed break-all"
+            className="text-xs font-mono leading-relaxed break-words"
             style={{ color: isActive ? 'var(--text-primary)' : isError ? 'rgba(255,92,92,0.85)' : 'var(--text-muted)' }}
           >
             {step.detail}
@@ -140,9 +140,9 @@ function StepRow({ step, isLast }: { step: ExecutionStep; isLast: boolean }) {
         {step.meta && Object.keys(step.meta).length > 0 && (
           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
             {Object.entries(step.meta).map(([k, v]) => (
-              <span key={k} className="text-[0.6rem] font-mono" style={{ color: 'var(--text-faint)' }}>
-                <span style={{ color: 'var(--accent-signal)', opacity: 0.8 }}>{k}</span>
-                =
+              <span key={k} className="text-xs font-mono" style={{ color: 'var(--text-faint)' }}>
+                <span style={{ color: 'var(--accent-signal)', opacity: 0.9 }}>{k}</span>
+                {' = '}
                 <span style={{ color: 'var(--text-muted)' }}>{String(v)}</span>
               </span>
             ))}

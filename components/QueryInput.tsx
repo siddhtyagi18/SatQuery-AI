@@ -107,13 +107,13 @@ export function QueryInput({
           placeholder="Ask anything about the satellite imagery... (e.g., 'What land cover types are visible? Locate all buildings')"
           rows={4}
           className={cn(
-            'w-full p-4 rounded-md text-sm resize-y min-h-[112px] transition-all bg-transparent',
+            'w-full p-4 rounded-md text-[15px] leading-relaxed resize-y min-h-[112px] transition-all bg-transparent',
             'text-[var(--text-primary)] focus:outline-none',
-            'placeholder:text-[var(--text-faint)] placeholder:text-xs',
+            'placeholder:text-[var(--text-faint)] placeholder:text-sm',
             disabled ? 'opacity-60 cursor-not-allowed' : ''
           )}
           style={{
-            fontFamily: 'var(--font-heading)',
+            fontFamily: 'var(--font-body)',
             boxShadow: 'none',
             border: 'none',
           }}
@@ -128,12 +128,12 @@ export function QueryInput({
         />
 
         <div
-          className="absolute bottom-2.5 right-3 pointer-events-none hidden sm:flex items-center gap-1 hud-label"
-          style={{ fontSize: '0.58rem', color: 'var(--text-faint)' }}
+          className="absolute bottom-2.5 right-3 pointer-events-none hidden sm:flex items-center gap-1.5 hud-label"
+          style={{ fontSize: '0.65rem', color: 'var(--text-faint)' }}
         >
           <span>CTRL + ENTER</span>
-          <CornerDownLeft className="w-3 h-3" />
-          <span>TO RUN</span>
+          <CornerDownLeft className="w-3.5 h-3.5" />
+          <span>TO EXECUTE</span>
         </div>
       </div>
 
@@ -141,24 +141,23 @@ export function QueryInput({
       <div className="flex flex-col gap-2 pt-1">
         <div
           className="flex items-center gap-1.5 hud-label"
-          style={{ color: domainVar, opacity: 0.85 }}
+          style={{ color: domainVar, opacity: 0.9 }}
         >
-          <Sparkles className="w-3 h-3" />
-          <span style={{ fontSize: '0.6rem' }}>
-            SUGGESTED INQUIRIES · {MODE_LABEL[mode].toUpperCase()}:
+          <Sparkles className="w-3.5 h-3.5" />
+          <span style={{ fontSize: '0.6875rem' }}>
+            Suggested Inquiries · {MODE_LABEL[mode]}:
           </span>
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {suggestions.map((suggestion, idx) => (
             <button
               key={idx}
               type="button"
               disabled={disabled}
               onClick={() => onChange(suggestion)}
-              className="px-2.5 py-1 rounded badge-neutral hover:bg-[var(--surface-2-hover)] transition-all text-left focus-visible:outline-none"
+              className="px-3 py-1.5 rounded text-xs transition-all text-left focus-visible:outline-none cursor-pointer"
               style={{
-                fontSize: '0.65rem',
-                fontFamily: 'var(--font-heading)',
+                fontFamily: 'var(--font-body)',
                 color: 'var(--text-muted)',
                 border: '1px solid var(--border-hairline)',
                 background: 'var(--surface-2)',
@@ -166,10 +165,12 @@ export function QueryInput({
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = 'var(--text-primary)';
-                e.currentTarget.style.borderColor = `color-mix(in srgb, ${domainVar} 35%, transparent)`;
+                e.currentTarget.style.background = 'var(--surface-2-hover)';
+                e.currentTarget.style.borderColor = `color-mix(in srgb, ${domainVar} 40%, transparent)`;
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.color = 'var(--text-muted)';
+                e.currentTarget.style.background = 'var(--surface-2)';
                 e.currentTarget.style.borderColor = 'var(--border-hairline)';
               }}
             >

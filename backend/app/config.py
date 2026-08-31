@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     FIREBASE_SERVICE_ACCOUNT_JSON: Optional[str] = None
     FIREBASE_COLLECTION_ANALYSES: str = "analyses"
 
-    VQA_MODE: str = "auto"
+    VQA_MODE: str = os.getenv("VQA_MODE", "mock")
     VQA_MODEL_ID: str = "HuggingFaceTB/SmolVLM-500M-Instruct"
     VQA_DEVICE: str = "cpu"
     VQA_PRECISION: str = "fp32"

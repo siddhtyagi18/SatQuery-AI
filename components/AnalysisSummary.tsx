@@ -60,17 +60,17 @@ export function AnalysisSummary({ answerText, detectedTasks, createdAt, classNam
           )}
         </div>
 
-        <div className="flex flex-col gap-3 text-sm leading-relaxed text-[var(--text-primary)]">
+        <div className="flex flex-col gap-3.5 text-[15px] leading-relaxed text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-body)' }}>
           {paragraphs.map((para, idx) => (
-            <p key={idx} className="tracking-wide">
+            <p key={idx} className="font-normal leading-relaxed">
               {para}
             </p>
           ))}
         </div>
 
-        <div className="flex items-center justify-between text-[0.65rem] font-mono text-[var(--text-faint)] pt-2 border-t border-[var(--border-hairline)]">
-          <div className="flex items-center gap-1.5 text-[var(--accent-success)]">
-            <CheckCircle2 className="w-3 h-3" />
+        <div className="flex items-center justify-between text-xs font-mono text-[var(--text-muted)] pt-3 border-t border-[var(--border-hairline)]">
+          <div className="flex items-center gap-1.5 text-[var(--accent-success)] font-medium">
+            <CheckCircle2 className="w-3.5 h-3.5" />
             <span>Verified by Specialist Ensemble</span>
           </div>
           {createdAt && (

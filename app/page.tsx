@@ -283,20 +283,20 @@ export default function DashboardPage() {
                       {w.label}
                     </h3>
                     <p
-                      className="text-xs leading-relaxed"
-                      style={{ color: 'var(--text-muted)' }}
+                      className="text-sm leading-relaxed"
+                      style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', fontWeight: 400 }}
                     >
                       {w.description}
                     </p>
                   </div>
 
                   {/* Capability tags */}
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-1.5 pt-1">
                     {w.tags.map((t) => (
                       <span
                         key={t}
                         className={`badge ${TAG_DOMAIN[w.domain]}`}
-                        style={{ opacity: 0.72 }}
+                        style={{ opacity: 0.85 }}
                       >
                         {t}
                       </span>
