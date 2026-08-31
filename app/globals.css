@@ -407,6 +407,72 @@ code, pre, .mono {
   100% { transform: translateX(300%); opacity: 0; }
 }
 
+@keyframes ambient-float-1 {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(30px, -20px, 0) scale(1.06); }
+  100% { transform: translate3d(-20px, 25px, 0) scale(0.95); }
+}
+
+@keyframes ambient-float-2 {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(-35px, 20px, 0) scale(1.08); }
+  100% { transform: translate3d(25px, -30px, 0) scale(0.94); }
+}
+
+@keyframes ambient-float-3 {
+  0%   { transform: translate3d(0, 0, 0) scale(0.96); }
+  50%  { transform: translate3d(20px, 15px, 0) scale(1.05); }
+  100% { transform: translate3d(-15px, -20px, 0) scale(1); }
+}
+
+@keyframes geo-grid-drift {
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(80px, 80px, 0); }
+}
+
+@keyframes orbital-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes orbital-spin-reverse {
+  from { transform: rotate(360deg); }
+  to   { transform: rotate(0deg); }
+}
+
+@keyframes scan-light-beam {
+  0%   { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes particle-drift {
+  0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.3; }
+  50%      { transform: translate3d(14px, -20px, 0); opacity: 0.85; }
+}
+
+@keyframes trace-pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 176, 32, 0.5); }
+  50%      { box-shadow: 0 0 0 8px rgba(255, 176, 32, 0); }
+}
+
+@keyframes trace-complete-pop {
+  0%   { transform: scale(0.7); opacity: 0.5; }
+  50%  { transform: scale(1.25); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes viewer-scan-beam {
+  0%   { transform: translateY(-100%); opacity: 0; }
+  20%  { opacity: 0.7; }
+  80%  { opacity: 0.7; }
+  100% { transform: translateY(250%); opacity: 0; }
+}
+
+@keyframes card-sheen {
+  0%   { transform: translateX(-100%) rotate(25deg); }
+  100% { transform: translateX(200%) rotate(25deg); }
+}
+
 @keyframes satellite-drift {
   0%, 100% { transform: translate(0, 0) rotate(-6deg); }
   25%      { transform: translate(2px, -3px) rotate(-2deg); }
@@ -872,7 +938,7 @@ code, pre, .mono {
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  transition: all 150ms ease;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms ease, background-color 180ms ease, opacity 180ms ease;
   background: linear-gradient(135deg, var(--cyan) 0%, color-mix(in srgb, var(--cyan) 60%, #004466) 100%);
   color: #05070D;
   border: 1px solid transparent;
@@ -880,7 +946,10 @@ code, pre, .mono {
 }
 .btn-primary:hover:not(:disabled) {
   box-shadow: var(--glow-cyan);
-  transform: translateY(-1px);
+  transform: translateY(-1.5px);
+}
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0.5px) scale(0.98);
 }
 .btn-primary:disabled {
   background: var(--surface-2);
@@ -899,9 +968,62 @@ code, pre, .mono {
 }
 
 /* ============================================================
+   PARTICLE NODES — Background geospatial telemetry markers
+   ============================================================ */
+.particle-node {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 8px 1px var(--cyan);
+  pointer-events: none;
+  animation: particle-drift 10s ease-in-out infinite alternate;
+}
+.particle-node.p-2 { background: var(--magenta); box-shadow: 0 0 8px 1px var(--magenta); width: 3px; height: 3px; animation-duration: 14s; }
+.particle-node.p-3 { background: var(--amber); box-shadow: 0 0 8px 1px var(--amber); width: 4px; height: 4px; animation-duration: 12s; }
+.particle-node.p-4 { background: #ffffff; box-shadow: 0 0 6px 1px rgba(255,255,255,0.8); width: 2.5px; height: 2.5px; animation-duration: 16s; }
+.particle-node.p-5 { background: var(--green); box-shadow: 0 0 8px 1px var(--green); width: 3.5px; height: 3.5px; animation-duration: 11s; }
+.particle-node.p-6 { background: var(--cyan); box-shadow: 0 0 10px 2px var(--cyan); width: 4px; height: 4px; animation-duration: 13s; }
+
+/* ============================================================
+   VIEWPORT RETICLE SCAN OVERLAY
+   ============================================================ */
+.viewer-scan-line {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  box-shadow: 0 0 12px var(--cyan);
+  pointer-events: none;
+  z-index: 15;
+  animation: viewer-scan-beam 8s ease-in-out infinite;
+}
+
+/* ============================================================
    VERTICAL RHYTHM SECTION GAP UTILITIES
    Major section gaps = 48px (--space-12)
    Intra-card element gaps = 16px (--space-4)
    ============================================================ */
 .section-gap { gap: var(--space-12); }
 .card-gap    { gap: var(--space-4);  }
+
+/* ============================================================
+   ACCESSIBILITY: PREFERS-REDUCED-MOTION
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .particle-node,
+  .shooting-star,
+  .starfield::before,
+  .starfield::after,
+  .stat-sweep::after,
+  .viewer-scan-line {
+    animation: none !important;
+  }
+}
