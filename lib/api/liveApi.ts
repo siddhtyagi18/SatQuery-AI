@@ -99,7 +99,7 @@ export const liveApi: SatQueryApi = {
               break;
             }
           }
-        } catch (e) {
+        } catch {
           // ignore network hiccups
         }
         await new Promise((r) => setTimeout(r, 400));

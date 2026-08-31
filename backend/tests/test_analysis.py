@@ -67,7 +67,8 @@ def test_submit_bi_temporal(client, png_file):
     result = g.json()
     assert "change_detection" in result["detectedTasks"] or "change_vqa" in result["detectedTasks"]
     assert result["changeMap"] is not None
-    assert result["changeMap"]["overlayUrl"] is None
+    assert result["changeMap"]["overlayUrl"] is not None
+    assert result["changeMap"]["overlayUrl"].startswith("/api/results/")
     assert "legend" in result["changeMap"]
     assert len(result["images"]) == 2
 

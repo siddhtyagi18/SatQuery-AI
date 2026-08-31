@@ -1,8 +1,11 @@
-// lib/config.ts
-// Central configuration. Change API_MODE to 'live' and set FASTAPI_BASE_URL
-// to point at a real FastAPI backend — no component code needs to change.
+// API_MODE controls which API client is used.
+// Set NEXT_PUBLIC_API_MODE=mock in .env.local to use the mock layer for
+// offline development without the FastAPI backend.
+// Defaults to 'live' so the real backend is used out of the box.
+export const API_MODE = (
+  (process.env.NEXT_PUBLIC_API_MODE as 'mock' | 'live' | undefined) ?? 'live'
+) as 'mock' | 'live';
 
-export const API_MODE: 'mock' | 'live' = 'mock';
 
 // When API_MODE is 'live', all SatQueryApi calls will be proxied to this URL.
 // Example: 'https://satquery-ai-api.isro.gov.in' or 'http://localhost:8000'

@@ -6,7 +6,12 @@ from ..schemas import AnalysisMode, TaskType, ToolInvocation
 from .task_classifier import classify_task
 from .tool_registry import get_tool, TOOL_REGISTRY
 from .mock_specialists import run_tool as run_mock_tool
+from .change_detection import run_cpu_change_detection
 from ..logging_setup import logger
+
+
+# Tool ID that routes to the real CPU change detection service
+REAL_CHANGE_DETECTOR_ID = "change_detector"
 
 
 TASK_TO_PREFERRED_TOOL: Dict[TaskType, str] = {
@@ -79,7 +84,11 @@ def plan_execution(
         elif tid == "rs_grounding":
             per_tool_params[tid] = {"confidence_threshold": 0.7, "nms_threshold": 0.45, "tile_size": 512}
         elif tid == "change_detector":
-            per_tool_params[tid] = {"algorithm": "CVA+NDVI", "threshold": 0.15, "co_registration": True}
+            per_tool_params[tid] = {
+                "algorithm": "grayscale-abs-diff",
+                "threshold": 35,
+                "noise_cleanup": "3x3-morphological-opening",
+            }
         elif tid == "change_vqa":
             per_tool_params[tid] = {"temperature": 0.2, "max_tokens": 768}
         elif tid == "optical_sar_analyzer":
@@ -115,7 +124,8 @@ def execute_plan(
     per_tool_params: Dict[str, Any],
     tasks: Optional[List[TaskType]] = None,
     image_file_paths: Optional[List[Path]] = None,
-) -> Tuple[str, Optional[float], List[ToolInvocation], List[Any], List[str], Any, Dict[str, str]]:
+    analysis_id: Optional[str] = None,
+) -> Tuple[str, Optional[float], List[ToolInvocation], List[Any], List[str], Any, Dict[str, str], Dict[str, Any]]:
     """Run the planned tools with Phase 2 routing:
 
       - single-image rs_vqa → routes through real VQAService if enabled
@@ -133,6 +143,7 @@ def execute_plan(
     answer_parts: List[str] = []
     confidences: List[float] = []
     change_map_out: Any = None
+    change_stats_out: Dict[str, Any] = {}
     tool_execution_modes: Dict[str, str] = {}
 
     from .vqa_service import get_vqa_service
@@ -142,7 +153,46 @@ def execute_plan(
         t_start = time.perf_counter()
         execution_mode: str = "mock"
         try:
-            if tid == REAL_VQA_TOOL_ID and vqa_service.should_use_real_vqa(mode, tasks):
+            # ------------------------------------------------------------------
+            # Real CPU change detection (bi_temporal mode, 2 image paths)
+            # ------------------------------------------------------------------
+            if (
+                tid == REAL_CHANGE_DETECTOR_ID
+                and mode == "bi_temporal"
+                and len(image_file_paths) == 2
+            ):
+                try:
+                    cd_result = run_cpu_change_detection(
+                        before_path=image_file_paths[0],
+                        after_path=image_file_paths[1],
+                        analysis_id=analysis_id or "unknown",
+                    )
+                    execution_mode = "real"
+                    tool_result = {
+                        "answer": cd_result.answer,
+                        "confidence": cd_result.confidence,  # always None
+                        "change_map": cd_result.change_map,
+                        "evidence": cd_result.evidence,
+                        "tool_id": tid,
+                        "is_mock": False,
+                    }
+                    # Capture stats for step-6 meta injection
+                    change_stats_out = cd_result.stats
+                    tool_execution_modes[tid] = "real"
+                    logger.info("[orchestrator] change_detector ran REAL CPU service")
+                except Exception as cd_exc:
+                    logger.warning(
+                        "[orchestrator] CPU change detection failed (%s: %s); falling back to mock.",
+                        type(cd_exc).__name__, cd_exc,
+                    )
+                    tool_result = run_mock_tool(tid, query, mode)
+                    execution_mode = "mock"
+                    tool_execution_modes[tid] = "mock"
+
+            # ------------------------------------------------------------------
+            # Real VQA
+            # ------------------------------------------------------------------
+            elif tid == REAL_VQA_TOOL_ID and vqa_service.should_use_real_vqa(mode, tasks):
                 mock_factory = _mock_vqa_factory(query, mode)
                 try:
                     vqa_result = vqa_service.run_real_or_fallback(
@@ -173,6 +223,10 @@ def execute_plan(
                         "is_mock": False,
                     }
                     tool_execution_modes[tid] = "real"
+
+            # ------------------------------------------------------------------
+            # All other tools — mock
+            # ------------------------------------------------------------------
             else:
                 tool_result = run_mock_tool(tid, query, mode)
                 execution_mode = "mock"
@@ -227,4 +281,5 @@ def execute_plan(
         all_evidence,
         change_map_out,
         tool_execution_modes,
+        change_stats_out,
     )

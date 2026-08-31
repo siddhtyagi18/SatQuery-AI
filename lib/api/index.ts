@@ -33,6 +33,7 @@ import type {
 } from '@/lib/types/analysis';
 import { API_MODE } from '@/lib/config';
 import { mockApi } from './mock/mockApi';
+import { liveApi } from './liveApi';
 
 export interface SatQueryApi {
   uploadImage(file: File, role: UploadedImage['role']): Promise<UploadedImage>;
@@ -46,5 +47,6 @@ export interface SatQueryApi {
   getBenchmarkMetrics(): Promise<BenchmarkMetric[]>;
 }
 
-// Swap this single export to `liveApi` when the FastAPI backend is ready.
-export const api: SatQueryApi = mockApi;
+// Automatically uses liveApi when API_MODE === 'live', mock otherwise.
+export const api: SatQueryApi = API_MODE === 'live' ? liveApi : mockApi;
+

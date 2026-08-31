@@ -1,6 +1,9 @@
+from pathlib import Path
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from .config import get_settings
 from .database import Base, engine
@@ -16,8 +19,9 @@ app = FastAPI(
     version=settings.APP_VERSION,
     description=(
         "SatQuery-AI Phase 2 Backend (FastAPI). "
-        "REAL: VQA (SmolVLM-500M via HuggingFace transformers, CPU-runnable). "
-        "MOCK: Captioning, Grounding, Change Detection, Change VQA, Optical-SAR Analysis. "
+        "REAL: VQA (SmolVLM-500M via HuggingFace transformers, CPU-runnable), "
+        "Change Detection (CPU-only classical pixel-difference, Pillow+NumPy). "
+        "MOCK: Captioning, Grounding, Change VQA, Optical-SAR Analysis. "
         "Firebase (Firestore + Cloud Storage) persistence is optional via env vars."
     ),
 )
@@ -53,6 +57,11 @@ app.include_router(benchmark.router)
 app.include_router(health.router)
 app.include_router(files.router)
 
+# Serve generated change-mask PNGs at /api/results/<filename>
+_results_dir = Path(__file__).resolve().parent.parent / "data" / "results"
+_results_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/api/results", StaticFiles(directory=str(_results_dir)), name="results")
+
 
 @app.get("/", tags=["root"])
 def root():
@@ -70,6 +79,6 @@ def root():
         "vqa_device": settings.VQA_DEVICE,
         "vqa_real_enabled_single_image": vqa_svc.should_use_real_vqa("single_image", tasks=["vqa"]),
         "firebase_enabled": is_firebase_enabled(),
-        "real_tools": ["rs_vqa"],
-        "mock_tools": ["rs_caption", "rs_grounding", "change_detector", "change_vqa", "optical_sar_analyzer", "spatial_analyzer"],
+        "real_tools": ["rs_vqa", "change_detector"],
+        "mock_tools": ["rs_caption", "rs_grounding", "change_vqa", "optical_sar_analyzer", "spatial_analyzer"],
     }

@@ -166,7 +166,9 @@ def _run_analysis_pipeline(db: Session, analysis: Analysis, files, input_data: S
     for tid in tool_ids:
         tm = get_tool(tid)
         is_real_vqa = (tid == "rs_vqa" and vqa_service.should_use_real_vqa(mode, tasks))
-        exec_label = "REAL" if is_real_vqa else "MOCK"
+        # change_detector is always REAL in bi_temporal mode (CPU service)
+        is_real_change = (tid == "change_detector" and mode == "bi_temporal")
+        exec_label = "REAL" if (is_real_vqa or is_real_change) else "MOCK"
         selection_bits.append(f"{tid}[{exec_label}] → {tm['name']} {tm['version']}")
     mark_step(db, aid, "step-4", "done",
               detail=" || ".join(selection_bits) if selection_bits else "No tools selected",
@@ -195,10 +197,12 @@ def _run_analysis_pipeline(db: Session, analysis: Analysis, files, input_data: S
             all_evidence,
             change_map,
             tool_exec_modes,
+            change_stats,
         ) = execute_plan(
             q, mode, tool_ids, per_tool_params,
             tasks=tasks,
             image_file_paths=image_file_paths,
+            analysis_id=aid,
         )
     except Exception as e:
         logger.exception("Pipeline execution failed")
@@ -223,16 +227,34 @@ def _run_analysis_pipeline(db: Session, analysis: Analysis, files, input_data: S
     if all_boxes:
         proc_bits.append(f"{len(all_boxes)} bounding boxes")
     if change_map:
-        proc_bits.append("change map generated")
+        is_real_changemap = tool_exec_modes.get("change_detector") == "real"
+        cm_label = (
+            "real CPU pixel-difference change map generated"
+            if is_real_changemap
+            else "change map generated (mock)"
+        )
+        proc_bits.append(cm_label)
+    # Build step-6 meta: always include tool counts; add scalar change stats when available
+    step6_meta: Dict[str, Any] = {
+        "tools_run": len(invocations),
+        "total_tool_ms": total_ms,
+        "boxes": len(all_boxes),
+        "any_real": any(v == "real" for v in tool_exec_modes.values()),
+    }
+    # Inject scalar change stats so the frontend can display the ChangeStatsPanel
+    # Only flat types (int, float, str, bool) — TypeScript meta is Record<string, string|number|boolean>
+    _SCALAR_STATS_KEYS = {
+        "changed_pixel_pct", "unchanged_pixel_pct", "changed_pixel_count",
+        "unchanged_pixel_count", "total_pixel_count", "threshold_raw_255",
+        "processing_time_ms", "size_mismatch_corrected", "severity",
+        "image_size_str", "overlay_url",
+    }
+    for k in _SCALAR_STATS_KEYS:
+        if k in change_stats and isinstance(change_stats[k], (int, float, str, bool)):
+            step6_meta[k] = change_stats[k]
     mark_step(db, aid, "step-6", "done",
               detail=" || ".join(proc_bits),
-              meta={
-                  "tools_run": len(invocations),
-                  "total_tool_ms": total_ms,
-                  "boxes": len(all_boxes),
-                  "tool_execution_modes": tool_exec_modes,
-                  "any_real": any(v == "real" for v in tool_exec_modes.values()),
-              })
+              meta=step6_meta)
 
     # Step 7 — Aggregation + Result validation (anti-fabrication)
     mark_step(db, aid, "step-7", "in_progress")

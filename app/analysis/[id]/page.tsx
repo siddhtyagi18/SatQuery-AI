@@ -3,7 +3,7 @@
 // Two-column layout on desktop: Visual evidence + synthesis on the left, sticky execution trace on right rail.
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { AnalysisResult } from '@/lib/types/analysis';
@@ -20,6 +20,7 @@ import { GroundingOverlay } from '@/components/GroundingOverlay';
 import { BeforeAfterViewer } from '@/components/BeforeAfterViewer';
 import { ChangeMapViewer } from '@/components/ChangeMapViewer';
 import { OpticalSarViewer } from '@/components/OpticalSarViewer';
+import { ChangeStatsPanel } from '@/components/ChangeStatsPanel';
 import { Download, RotateCcw, ArrowLeft, Cpu, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -40,17 +41,25 @@ export default function AnalysisResultPage() {
 
   useEffect(() => {
     if (!id) return;
-    setLoading(true);
+    let isMounted = true;
 
     api.getAnalysis(id)
       .then((data) => {
-        setResult(data);
-        setLoading(false);
+        if (isMounted) {
+          setResult(data);
+          setLoading(false);
+        }
       })
       .catch((err) => {
-        setError(err.message || 'Analysis not found');
-        setLoading(false);
+        if (isMounted) {
+          setError(err.message || 'Analysis not found');
+          setLoading(false);
+        }
       });
+
+    return () => {
+      isMounted = false;
+    };
   }, [id]);
 
   const handleDownloadReport = () => {
@@ -62,10 +71,6 @@ export default function AnalysisResultPage() {
     a.download = `SatQuery_${result.id}_report.json`;
     a.click();
     toast.success('Downloaded complete analysis telemetry report (JSON)');
-  };
-
-  const handlePrintReport = () => {
-    window.print();
   };
 
   if (loading) {
@@ -228,6 +233,9 @@ export default function AnalysisResultPage() {
                   legend={result.changeMap?.legend}
                 />
               </div>
+
+              {/* Real Change Statistics Panel */}
+              <ChangeStatsPanel trace={result.executionTrace} />
             </div>
           )}
 
