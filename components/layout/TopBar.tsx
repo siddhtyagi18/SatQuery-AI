@@ -8,16 +8,18 @@
 import { useTheme } from 'next-themes';
 import {
   Sun, Moon, Radio, Shield, Satellite,
-  Menu, X, PlusCircle, LayoutDashboard, History, Award, Cpu,
+  Menu, X, PlusCircle, LayoutDashboard, History, Award, Cpu, LogOut,
 } from 'lucide-react';
 import { DEMO_BADGE_TEXT } from '@/lib/config';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/lib/authContext';
 import { cn } from '@/lib/utils';
 
 export function TopBar() {
   const { theme, setTheme } = useTheme();
+  const { user, logout } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -150,7 +152,7 @@ export function TopBar() {
               aria-hidden
             />
 
-            {/* Mission operator identity */}
+            {/* Mission operator identity + Logout */}
             <div className="hidden sm:flex items-center gap-2 pl-1 pr-1">
               <div
                 className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0"
@@ -163,20 +165,30 @@ export function TopBar() {
                   className="font-mono text-[0.6rem] font-bold"
                   style={{ color: 'var(--cyan)' }}
                 >
-                  SIH
+                  ISRO
                 </span>
               </div>
               <div className="flex flex-col text-left leading-tight">
                 <span
-                  className="text-[0.65rem] font-semibold"
+                  className="text-[0.65rem] font-semibold truncate max-w-[90px]"
                   style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}
                 >
-                  Judge Demo
+                  {user?.name || 'Operator'}
                 </span>
                 <span className="hud-label" style={{ fontSize: '0.52rem' }}>
                   L-3 Sci
                 </span>
               </div>
+
+              <button
+                type="button"
+                onClick={logout}
+                title="Sign out to Login Screen"
+                aria-label="Sign out"
+                className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--accent-danger)] hover:bg-[var(--surface-2-hover)] transition-colors ml-1"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         </div>
@@ -211,6 +223,18 @@ export function TopBar() {
               </Link>
             );
           })}
+
+          <button
+            type="button"
+            onClick={() => {
+              setMobileMenuOpen(false);
+              logout();
+            }}
+            className="flex items-center gap-3 px-3 py-2 rounded badge badge-red text-left mt-2"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Sign Out</span>
+          </button>
         </div>
       )}
     </header>

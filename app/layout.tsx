@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { TopBar } from '@/components/layout/TopBar';
+import { AuthProvider } from '@/lib/authContext';
+import { AppShell } from '@/components/layout/AppShell';
 import { Toaster } from 'sonner';
 
 export const metadata: Metadata = {
@@ -18,33 +18,26 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="antialiased flex h-screen overflow-hidden bg-[var(--bg-base)] text-[var(--text-primary)]">
+      <body className="antialiased flex h-screen overflow-hidden bg-[var(--surface-0)] text-[var(--text-primary)]">
         <ThemeProvider>
-          <div className="flex h-full w-full">
-            {/* Collapsible Left Sidebar */}
-            <Sidebar />
-
-            {/* Main Content Area */}
-            <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-              <TopBar />
-              <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-                {children}
-              </main>
-            </div>
-          </div>
-          <Toaster
-            theme="dark"
-            position="bottom-right"
-            toastOptions={{
-              style: {
-                background: 'var(--bg-panel-elevated)',
-                border: '1px solid var(--border-hairline)',
-                color: 'var(--text-primary)',
-                fontFamily: 'var(--font-mono)',
-                fontSize: '0.75rem',
-              },
-            }}
-          />
+          <AuthProvider>
+            <AppShell>
+              {children}
+            </AppShell>
+            <Toaster
+              theme="dark"
+              position="bottom-right"
+              toastOptions={{
+                style: {
+                  background: 'var(--bg-panel-elevated)',
+                  border: '1px solid var(--border-hairline)',
+                  color: 'var(--text-primary)',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.75rem',
+                },
+              }}
+            />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

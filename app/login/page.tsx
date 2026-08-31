@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/authContext';
 import {
   Satellite,
   Mail,
@@ -17,6 +18,7 @@ import { toast } from 'sonner';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -36,10 +38,11 @@ export default function LoginPage() {
       return;
     }
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1400));
+    await new Promise((r) => setTimeout(r, 900));
+    login(email);
     setSubmitting(false);
     toast.success('Authentication successful. Redirecting to mission control…');
-    setTimeout(() => router.push('/'), 800);
+    setTimeout(() => router.push('/'), 400);
   };
 
   return (
@@ -546,11 +549,21 @@ export default function LoginPage() {
                     icon={<GoogleGlyph />}
                     label="Google"
                     domain="cyan"
+                    onLogin={() => {
+                      login('google.operator@isro.gov.in');
+                      toast.success('Authenticated via Google ISRO SSO. Entering mission control…');
+                      setTimeout(() => router.push('/'), 400);
+                    }}
                   />
                   <OAuthButton
                     icon={<GithubOctocat />}
                     label="GitHub"
                     domain="neutral"
+                    onLogin={() => {
+                      login('github.specialist@isro.gov.in');
+                      toast.success('Authenticated via GitHub Enterprise. Entering mission control…');
+                      setTimeout(() => router.push('/'), 400);
+                    }}
                   />
                 </div>
               </form>
@@ -907,17 +920,19 @@ function OAuthButton({
   icon,
   label,
   domain,
+  onLogin,
 }: {
   icon: React.ReactNode;
   label: string;
   domain: 'cyan' | 'neutral';
+  onLogin?: () => void;
 }) {
   const accent = domain === 'cyan' ? 'var(--cyan)' : 'var(--text-primary)';
   return (
     <button
       type="button"
-      onClick={() => toast.info(`${label} SSO — demo mode. Use email/password above.`)}
-      className="group relative flex items-center justify-center gap-2.5 px-4 py-3 rounded-md text-xs font-semibold tracking-wider uppercase transition-all"
+      onClick={onLogin}
+      className="group relative flex items-center justify-center gap-2.5 px-4 py-3 rounded-md text-xs font-semibold tracking-wider uppercase transition-all cursor-pointer"
       style={{
         background: 'var(--surface-0)',
         color: 'var(--text-muted)',
