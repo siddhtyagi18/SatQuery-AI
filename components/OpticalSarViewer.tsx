@@ -121,6 +121,9 @@ export function OpticalSarViewer({ opticalUrl, sarUrl, className }: OpticalSarVi
         ) : (
           /* Fusion Blend View */
           <div className="relative w-full h-[380px] bg-[#071322] overflow-hidden flex items-center justify-center">
+            {/* Telemetry Scan Line */}
+            <div className="viewer-scan-line opacity-50" aria-hidden="true" />
+
             {/* Optical Base */}
             <div className="absolute inset-0">
               {opticalUrl ? (

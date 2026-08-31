@@ -103,7 +103,7 @@ export function Sidebar() {
                 {/* Active indicator bar */}
                 {isActive && (
                   <span
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-4 rounded-r bg-[var(--accent-signal)]"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-4 rounded-r bg-[var(--accent-signal)] shadow-[0_0_8px_var(--accent-signal)]"
                     aria-hidden="true"
                   />
                 )}

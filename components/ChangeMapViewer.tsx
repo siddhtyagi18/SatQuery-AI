@@ -87,6 +87,9 @@ export function ChangeMapViewer({
 
         {/* Viewport with Mask overlay */}
         <div className="relative w-full h-[360px] bg-[#050b14] overflow-hidden flex items-center justify-center">
+          {/* Telemetry Scan Line */}
+          <div className="viewer-scan-line opacity-60" aria-hidden="true" />
+
           {/* Base Layer */}
           {baseImageUrl ? (
             <img src={baseImageUrl} alt="Base imagery" className="w-full h-full object-cover" />

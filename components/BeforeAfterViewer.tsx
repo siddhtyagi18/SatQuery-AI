@@ -135,19 +135,19 @@ export function BeforeAfterViewer({
 
             {/* Divider Line */}
             <div
-              className="absolute top-0 bottom-0 w-0.5 bg-[var(--accent-signal)] shadow-[0_0_10px_rgba(62,208,255,0.8)] z-20 pointer-events-none"
+              className="absolute top-0 bottom-0 w-0.5 bg-[var(--accent-signal)] shadow-[0_0_12px_rgba(62,208,255,0.9)] z-20 pointer-events-none"
               style={{ left: `${sliderPos}%` }}
             >
-              <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-[var(--bg-panel)] border-2 border-[var(--accent-signal)] flex items-center justify-center shadow-xl">
+              <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-[var(--surface-1)] border-2 border-[var(--accent-signal)] flex items-center justify-center shadow-[0_0_16px_rgba(62,208,255,0.6)] transition-transform duration-150">
                 <MoveHorizontal className="w-3.5 h-3.5 text-[var(--accent-signal)]" />
               </div>
             </div>
 
             {/* Corner Indicators */}
-            <span className="absolute bottom-3 left-3 px-2 py-1 rounded text-[0.6rem] font-mono bg-black/60 border border-[var(--accent-signal)]/30 text-[var(--accent-signal)] z-10">
+            <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded text-[0.6rem] font-mono bg-black/70 backdrop-blur-sm border border-[var(--accent-signal)]/40 text-[var(--accent-signal)] z-10 shadow-lg">
               ◄ {beforeDate}
             </span>
-            <span className="absolute bottom-3 right-3 px-2 py-1 rounded text-[0.6rem] font-mono bg-black/60 border border-[var(--accent-change)]/30 text-[var(--accent-change)] z-10">
+            <span className="absolute bottom-3 right-3 px-2.5 py-1 rounded text-[0.6rem] font-mono bg-black/70 backdrop-blur-sm border border-[var(--accent-change)]/40 text-[var(--accent-change)] z-10 shadow-lg">
               {afterDate} ►
             </span>
           </div>

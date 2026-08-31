@@ -96,16 +96,19 @@ export function SatelliteViewer({
         >
           {/* Subtle Grid lines */}
           <div
-            className="absolute inset-0 pointer-events-none opacity-15"
+            className="absolute inset-0 pointer-events-none opacity-20"
             style={{
               backgroundImage: 'linear-gradient(to right, rgba(62,208,255,0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(62,208,255,0.15) 1px, transparent 1px)',
               backgroundSize: '40px 40px',
             }}
           />
 
+          {/* Telemetry Scan Line */}
+          <div className="viewer-scan-line" aria-hidden="true" />
+
           {/* Transform Container */}
           <div
-            className="relative transition-transform duration-75"
+            className="relative transition-transform duration-100 ease-out"
             style={{
               transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
               transformOrigin: 'center center',
@@ -115,7 +118,7 @@ export function SatelliteViewer({
               <img
                 src={imageUrl}
                 alt={altText}
-                className="max-w-none w-[600px] h-[400px] object-cover rounded shadow-2xl pointer-events-none"
+                className="max-w-none w-[600px] h-[400px] object-cover rounded shadow-2xl pointer-events-none transition-opacity duration-300"
                 draggable={false}
               />
             ) : (

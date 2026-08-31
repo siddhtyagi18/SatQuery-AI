@@ -13,18 +13,43 @@ import { CornerFrame } from '@/components/ui/CornerFrame';
 // --- Step icon ---
 function StepIcon({ status }: { status: ExecutionStep['status'] }) {
   if (status === 'done')
-    return <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--accent-success)' }} aria-label="Completed" />;
+    return (
+      <CheckCircle2
+        className="w-4 h-4 flex-shrink-0 animate-[trace-complete-pop_0.35s_ease-out]"
+        style={{
+          color: 'var(--accent-success)',
+          filter: 'drop-shadow(0 0 4px rgba(61,220,132,0.5))',
+        }}
+        aria-label="Completed"
+      />
+    );
   if (status === 'error')
-    return <XCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--accent-danger)' }} aria-label="Error" />;
+    return (
+      <XCircle
+        className="w-4 h-4 flex-shrink-0"
+        style={{
+          color: 'var(--accent-danger)',
+          filter: 'drop-shadow(0 0 4px rgba(255,92,92,0.5))',
+        }}
+        aria-label="Error"
+      />
+    );
   if (status === 'in_progress')
     return (
-      <span className="w-4 h-4 flex-shrink-0 flex items-center justify-center" aria-label="In progress">
-        <span className="animate-pulse-dot w-2.5 h-2.5 rounded-full" style={{ background: 'var(--accent-warning)' }} />
+      <span className="w-4 h-4 flex-shrink-0 relative flex items-center justify-center" aria-label="In progress">
+        <span
+          className="absolute inset-0 rounded-full animate-ping opacity-60"
+          style={{ background: 'var(--accent-warning)' }}
+        />
+        <span
+          className="relative w-2.5 h-2.5 rounded-full shadow-[0_0_8px_var(--accent-warning)]"
+          style={{ background: 'var(--accent-warning)' }}
+        />
       </span>
     );
   return (
     <span className="w-4 h-4 flex-shrink-0 flex items-center justify-center" aria-label="Pending">
-      <span className="w-2 h-2 rounded-full border border-[var(--text-faint)] opacity-40" />
+      <span className="w-2 h-2 rounded-full border border-[var(--text-faint)] opacity-35" />
     </span>
   );
 }
@@ -45,7 +70,8 @@ function StepRow({ step, isLast }: { step: ExecutionStep; isLast: boolean }) {
   return (
     <li
       className={cn(
-        'flex gap-3 animate-trace-step',
+        'flex gap-3 animate-trace-step transition-all duration-300',
+        isActive && 'bg-[var(--surface-2)]/70 border border-[var(--amber)]/30 p-2.5 rounded -mx-2 shadow-[0_0_16px_rgba(255,176,32,0.08)]',
         isPending ? 'opacity-40' : 'opacity-100'
       )}
       aria-current={isActive ? 'step' : undefined}
@@ -55,9 +81,11 @@ function StepRow({ step, isLast }: { step: ExecutionStep; isLast: boolean }) {
         <StepIcon status={step.status} />
         {!isLast && (
           <div
-            className="w-px flex-1 min-h-[20px]"
+            className={cn('w-px flex-1 min-h-[20px] transition-colors duration-300')}
             style={{
-              background: isDone || isError
+              background: isActive
+                ? 'linear-gradient(180deg, var(--accent-warning), var(--border-hairline))'
+                : isDone || isError
                 ? 'var(--border-hairline)'
                 : 'var(--border-subtle)',
             }}
@@ -70,16 +98,23 @@ function StepRow({ step, isLast }: { step: ExecutionStep; isLast: boolean }) {
       <div className="flex flex-col gap-1 pb-4 flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <span
-            className="text-xs font-semibold"
+            className={cn(
+              'text-xs font-semibold flex items-center gap-1.5 transition-colors',
+              isActive && 'tracking-wide'
+            )}
             style={{
               fontFamily: 'var(--font-heading)',
               color: isActive ? 'var(--accent-warning)'
                 : isError ? 'var(--accent-danger)'
                 : isDone ? 'var(--text-primary)'
                 : 'var(--text-faint)',
+              textShadow: isActive ? '0 0 10px rgba(255,176,32,0.3)' : undefined,
             }}
           >
             {step.title}
+            {isActive && (
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent-warning)] animate-ping" />
+            )}
           </span>
           {timeLabel && (
             <span
@@ -95,7 +130,7 @@ function StepRow({ step, isLast }: { step: ExecutionStep; isLast: boolean }) {
         {step.detail && !isPending && (
           <p
             className="text-[0.7rem] font-mono leading-relaxed break-all"
-            style={{ color: isActive ? 'var(--text-muted)' : isError ? 'rgba(255,92,92,0.7)' : 'var(--text-muted)' }}
+            style={{ color: isActive ? 'var(--text-primary)' : isError ? 'rgba(255,92,92,0.85)' : 'var(--text-muted)' }}
           >
             {step.detail}
           </p>
@@ -106,7 +141,7 @@ function StepRow({ step, isLast }: { step: ExecutionStep; isLast: boolean }) {
           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
             {Object.entries(step.meta).map(([k, v]) => (
               <span key={k} className="text-[0.6rem] font-mono" style={{ color: 'var(--text-faint)' }}>
-                <span style={{ color: 'var(--accent-signal)', opacity: 0.7 }}>{k}</span>
+                <span style={{ color: 'var(--accent-signal)', opacity: 0.8 }}>{k}</span>
                 =
                 <span style={{ color: 'var(--text-muted)' }}>{String(v)}</span>
               </span>
@@ -185,12 +220,21 @@ export function AgentExecutionTrace({ trace, defaultExpanded = false, className 
         </button>
 
         {/* Progress bar */}
-        <div className="h-px w-full" style={{ background: 'var(--border-subtle)' }} aria-hidden="true">
+        <div className="h-[2px] w-full bg-[var(--border-subtle)] overflow-hidden" aria-hidden="true">
           <div
-            className="h-px transition-all duration-500"
+            className="h-full transition-all duration-500"
             style={{
               width: `${(doneCount / total) * 100}%`,
-              background: hasError ? 'var(--accent-danger)' : 'var(--accent-success)',
+              background: hasError
+                ? 'var(--accent-danger)'
+                : trace.overallStatus === 'completed'
+                ? 'var(--accent-success)'
+                : 'var(--accent-warning)',
+              boxShadow: hasError
+                ? '0 0 8px var(--accent-danger)'
+                : trace.overallStatus === 'completed'
+                ? '0 0 8px var(--accent-success)'
+                : '0 0 8px var(--accent-warning)',
             }}
           />
         </div>
