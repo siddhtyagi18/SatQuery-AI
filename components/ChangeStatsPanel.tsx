@@ -1,7 +1,8 @@
 // components/ChangeStatsPanel.tsx
 // Compact "Change Statistics" panel for bi-temporal analysis results.
 // Reads scalar change stats from executionTrace.steps (step-6 meta) —
-// injected by the backend when the real CPU change detection service runs.
+// injected by the backend when the real change detection service runs.
+// Displays execution provenance: model_checkpoint vs cpu_classical.
 // Renders nothing when stats are not available (graceful absent for mock/older results).
 
 import type { ExecutionTrace } from '@/lib/types/analysis';
@@ -15,6 +16,22 @@ const SEVERITY_STYLES: Record<string, { label: string; color: string; bg: string
   low:      { label: 'LOW',      color: 'var(--accent-success)',  bg: 'rgba(61,220,132,0.10)'  },
   moderate: { label: 'MODERATE', color: 'var(--accent-warning)',  bg: 'rgba(255,176,32,0.10)'  },
   high:     { label: 'HIGH',     color: 'var(--accent-danger)',   bg: 'rgba(255,92,92,0.10)'   },
+};
+
+// Execution mode badge styles
+const MODE_BADGE: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  model_checkpoint: {
+    label: 'SIAMESE U-NET MODEL',
+    color: '#a78bfa',
+    bg:    'rgba(167,139,250,0.12)',
+    border:'rgba(167,139,250,0.35)',
+  },
+  cpu_classical: {
+    label: 'CPU CLASSICAL BASELINE',
+    color: 'var(--accent-signal)',
+    bg:    'rgba(56,189,248,0.10)',
+    border:'rgba(56,189,248,0.30)',
+  },
 };
 
 export function ChangeStatsPanel({ trace }: ChangeStatsPanelProps) {
@@ -39,10 +56,35 @@ export function ChangeStatsPanel({ trace }: ChangeStatsPanelProps) {
   const imageSize    = typeof meta.image_size_str === 'string' ? meta.image_size_str : null;
   const thresholdRaw = typeof meta.threshold_raw_255 === 'number' ? meta.threshold_raw_255 : null;
 
+  // Execution provenance
+  const execMode    = typeof meta.execution_mode === 'string' ? meta.execution_mode : null;
+  const ckptPath    = typeof meta.checkpoint_path === 'string' ? meta.checkpoint_path : null;
+
   const severityStyle = severity ? (SEVERITY_STYLES[severity] ?? null) : null;
+  const modeBadge     = execMode ? (MODE_BADGE[execMode] ?? null) : null;
 
   const fmtPct = (v: number) => `${v.toFixed(1)}%`;
   const fmtNum = (v: number) => v.toLocaleString();
+
+  // Build the algorithm description based on what actually ran
+  let algorithmFootnote: string;
+  if (execMode === 'model_checkpoint') {
+    algorithmFootnote = 'Inference: Siamese U-Net trained on LEVIR-CD (256×256 overlapping tile sliding, averaged probabilities)';
+    if (ckptPath) algorithmFootnote += ` · checkpoint: ${ckptPath.split(/[\\/]/).pop()}`;
+  } else if (execMode === 'cpu_classical') {
+    algorithmFootnote = 'Algorithm: grayscale absolute pixel difference';
+    if (thresholdRaw != null) algorithmFootnote += ` (threshold ${thresholdRaw}/255)`;
+    algorithmFootnote += ' · No trained model used · Severity labels are heuristic only';
+  } else {
+    // Older result without execution_mode in meta
+    algorithmFootnote = 'Algorithm: grayscale absolute difference';
+    if (thresholdRaw != null) algorithmFootnote += ` (threshold ${thresholdRaw}/255)`;
+    if (imageSize) algorithmFootnote += ` · Image: ${imageSize} px`;
+  }
+
+  if (imageSize && execMode !== 'cpu_classical') {
+    algorithmFootnote += ` · Image: ${imageSize} px`;
+  }
 
   return (
     <div
@@ -51,16 +93,37 @@ export function ChangeStatsPanel({ trace }: ChangeStatsPanelProps) {
       aria-label="Change Statistics"
     >
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <span className="hud-label">Change Statistics</span>
-        {severityStyle && (
-          <span
-            className="text-[0.6rem] font-mono font-bold px-2 py-0.5 rounded"
-            style={{ color: severityStyle.color, background: severityStyle.bg }}
-          >
-            SEVERITY: {severityStyle.label}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Execution mode badge */}
+          {modeBadge && (
+            <span
+              className="text-[0.6rem] font-mono font-bold px-2 py-0.5 rounded"
+              style={{
+                color: modeBadge.color,
+                background: modeBadge.bg,
+                border: `1px solid ${modeBadge.border}`,
+              }}
+              title={
+                execMode === 'model_checkpoint'
+                  ? `Results produced by trained SiameseUNet model checkpoint${ckptPath ? ': ' + ckptPath : ''}`
+                  : 'Results produced by CPU classical pixel-difference algorithm (no trained model)'
+              }
+            >
+              {modeBadge.label}
+            </span>
+          )}
+          {/* Severity badge */}
+          {severityStyle && (
+            <span
+              className="text-[0.6rem] font-mono font-bold px-2 py-0.5 rounded"
+              style={{ color: severityStyle.color, background: severityStyle.bg }}
+            >
+              SEVERITY: {severityStyle.label}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Main bar — visual proportion */}
@@ -112,10 +175,7 @@ export function ChangeStatsPanel({ trace }: ChangeStatsPanelProps) {
         className="text-[0.6rem] font-mono leading-relaxed"
         style={{ color: 'var(--text-faint)' }}
       >
-        Algorithm: grayscale absolute difference
-        {thresholdRaw != null ? ` (threshold ${thresholdRaw}/255)` : ''}
-        {imageSize ? ` · Image: ${imageSize} px` : ''}
-        {' · '}No trained model used · Severity labels are heuristic only.
+        {algorithmFootnote}
       </p>
     </div>
   );

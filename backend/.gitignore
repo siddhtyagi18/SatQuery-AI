@@ -10,17 +10,34 @@ venv/
 *.egg-info/
 dist/
 build/
+_pydeps/
 
-# Virtual environment
+# Environment files
 .env
+.env.*
+!.env.example
 
 # Database
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
+satquery.db*
+test_satquery*.db*
 
-# Uploads
+# Uploads and results
 uploads/
+test_uploads/
+test_uploads_p2/
+data/results/*.png
+data/results/*.jpg
+data/cache/
+
+# Datasets
+*.parquet
+*LEVIR-CD*/
+BigEarthNet/
 
 # Logs
 logs/
@@ -38,10 +55,3 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
-
-# Test artifacts
-test_uploads/
-test_satquery.db
-
-# Local temp deps
-_pydeps/

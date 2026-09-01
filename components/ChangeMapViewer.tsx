@@ -17,6 +17,7 @@ interface ChangeMapViewerProps {
   changeMaskUrl?: string | null;
   legend?: LegendItem[];
   className?: string;
+  algorithmLabel?: string;  // displayed in toolbar, e.g. "Siamese U-Net Model" or "Grayscale Abs-Diff"
 }
 
 const DEFAULT_LEGEND: LegendItem[] = [
@@ -31,6 +32,7 @@ export function ChangeMapViewer({
   changeMaskUrl,
   legend = DEFAULT_LEGEND,
   className,
+  algorithmLabel,
 }: ChangeMapViewerProps) {
   const [showMask, setShowMask] = useState(true);
   const [opacity, setOpacity] = useState(0.75);
@@ -43,7 +45,7 @@ export function ChangeMapViewer({
           <div className="flex items-center gap-2">
             <Layers className="w-3.5 h-3.5 text-[var(--accent-change)]" />
             <span className="font-mono text-[0.68rem] text-[var(--text-primary)] font-medium">
-              CVA + NDVI Difference Mask
+              {algorithmLabel ?? 'Pixel-level Change Mask'}
             </span>
           </div>
 

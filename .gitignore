@@ -1,7 +1,7 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
+# ============================================================
+# Dependencies
+# ============================================================
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -10,32 +10,98 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
+# Python Virtual Environments & Packages
+.venv/
+venv/
+env/
+.Python
+*.egg-info/
+dist/
+build/
+_pydeps/
+
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ============================================================
+# Testing & Code Coverage
+# ============================================================
+.pytest_cache/
+.coverage
+htmlcov/
 /coverage
 
-# next.js
-/.next/
+# Test artifacts
+test_uploads/
+test_uploads_p2/
+test_satquery*.db*
+test_*.db*
+
+# ============================================================
+# Next.js & Frontend Build Artifacts
+# ============================================================
+.next/
 /out/
-
-# production
 /build
+.vercel
+*.tsbuildinfo
+next-env.d.ts
 
-# misc
-.DS_Store
-*.pem
+# ============================================================
+# Runtime Databases & Local Storage
+# ============================================================
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+backend/*.db*
 
-# debug
+# Uploads & Runtime Generated Results
+uploads/
+backend/uploads/
+backend/data/results/*.png
+backend/data/results/*.jpg
+backend/data/cache/
+
+# ============================================================
+# Datasets (Do NOT commit large datasets or parquet files)
+# ============================================================
+*.parquet
+LEVIR-CD/
+*LEVIR-CD*/
+BigEarthNet/
+
+# ============================================================
+# Environment Files & Secrets (NEVER commit secrets or real envs)
+# ============================================================
+.env
+.env.*
+*.env
+backend/.env
+backend/.env.*
+!.env.example
+!backend/.env.example
+
+# ============================================================
+# Logs & Debug
+# ============================================================
+logs/
+backend/logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# ============================================================
+# IDE, Editor & OS Specific Files
+# ============================================================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.pem

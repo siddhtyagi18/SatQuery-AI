@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     APP_NAME: str = "SatQuery-AI Backend"
-    APP_VERSION: str = "0.2.0-phase2"
+    APP_VERSION: str = "0.3.0-datasets"
     DEBUG: bool = True
 
     HOST: str = "0.0.0.0"
@@ -41,6 +41,39 @@ class Settings(BaseSettings):
     VQA_HF_TOKEN: Optional[str] = None
 
     INFERENCE_REQUEST_TIMEOUT_SEC: int = 240
+
+    # -----------------------------------------------------------------------
+    # Dataset configuration (Phase 3 — real dataset integration)
+    # All paths are read from environment variables; no local paths in source.
+    # -----------------------------------------------------------------------
+
+    # Path to extracted LEVIR-CD root folder containing train/val/test splits.
+    # Structure: <root>/{train,val,test}/{A,B,label}/
+    LEVIR_CD_DATASET_PATH: Optional[str] = None
+    LEVIR_CD_ROOT: Optional[str] = None
+
+    @property
+    def levir_cd_dir(self) -> Optional[str]:
+        """Return the configured LEVIR-CD path from either LEVIR_CD_DATASET_PATH or LEVIR_CD_ROOT."""
+        return self.LEVIR_CD_DATASET_PATH or self.LEVIR_CD_ROOT
+
+    # Path to BigEarthNet.txt.parquet (VQA annotation file, NOT image data).
+    BIGEARTHNET_TXT_PARQUET: Optional[str] = None
+
+    # Path to BigEarthNet metadata.parquet (patch-level metadata).
+    BIGEARTHNET_METADATA_PARQUET: Optional[str] = None
+
+    # Optional local cache directory for pre-processed dataset tensors / index files.
+    DATASET_CACHE_DIR: Optional[str] = None
+
+    # Directory where model checkpoints are saved during training.
+    # Defaults to <backend_root>/checkpoints if not set.
+    CHECKPOINT_DIR: Optional[str] = None
+
+    # Path to a specific trained change-detection checkpoint (.pt file).
+    # If set and the file exists, inference uses the trained model.
+    # If unset or missing, inference falls back to CPU classical baseline.
+    CHANGE_DETECTION_CHECKPOINT: Optional[str] = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

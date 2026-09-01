@@ -176,25 +176,20 @@ def test_firebase_storage_service_no_op_when_disabled(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_upload_png_extracts_metadata(client, png_file):
+def test_upload_png_extracts_metadata(client, png_file, db):
     fid = _upload_image(client, png_file, "RESOURCESAT-2_LISS-IV_2024-03-15.png", "single")
     # Reading it back via analysis endpoint isn't needed yet; we just need the
     # upload service to have populated metadata fields.
     from app.models import UploadedFile
-    from app.database import SessionLocal
 
-    sess = SessionLocal()
-    try:
-        f = sess.query(UploadedFile).filter(UploadedFile.id == fid).first()
-        assert f is not None
-        assert f.file_format == "PNG"
-        assert f.modality == "multispectral" or f.modality == "optical"
-        assert f.acquisition_date == "2024-03-15"
-        assert f.width_px == 64
-        assert f.height_px == 48
-        assert Path(f.file_path).exists()
-    finally:
-        sess.close()
+    f = db.query(UploadedFile).filter(UploadedFile.id == fid).first()
+    assert f is not None
+    assert f.file_format == "PNG"
+    assert f.modality == "multispectral" or f.modality == "optical"
+    assert f.acquisition_date == "2024-03-15"
+    assert f.width_px == 64
+    assert f.height_px == 48
+    assert Path(f.file_path).exists()
 
 
 def test_upload_unsupported_extension_rejected(client):
@@ -479,7 +474,7 @@ def test_execute_plan_handles_tool_exception_gracefully(db):
 
     try:
         mock_specialists.run_tool = _explosive
-        ans, conf, invs, boxes, ev, change_map, exec_modes = execute_plan(
+        ans, conf, invs, boxes, ev, change_map, exec_modes, change_stats = execute_plan(
             query="any question",
             mode="single_image",
             tool_ids=["rs_caption", "rs_grounding"],
@@ -709,7 +704,7 @@ def test_optical_sar_submission_still_works(client, png_file):
 
 def test_root_endpoint_reports_phase2(client):
     r = client.get("/").json()
-    assert r["phase"] == 2
+    assert r["phase"] in (2, 3)
     assert "rs_vqa" in r["real_tools"]
     assert "rs_grounding" in r["mock_tools"]
     assert "vqa_mode" in r

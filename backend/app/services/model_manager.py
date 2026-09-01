@@ -106,13 +106,14 @@ class ModelManager:
             mlock = self._per_model_locks.setdefault(model_id, threading.Lock())
             if not force_reload and model_id in self._cache:
                 return self._cache[model_id]
-            failure_time = self._failed_models.get(model_id)
-            if failure_time and (now - failure_time) < self._failure_cooldown_sec:
-                remaining = self._failure_cooldown_sec - (now - failure_time)
-                raise ModelLoadingError(
-                    f"Model {model_id} failed to load recently; cooldown remaining: "
-                    f"{remaining:.0f}s. Set force_reload=True to retry immediately."
-                )
+            if not force_reload:
+                failure_time = self._failed_models.get(model_id)
+                if failure_time and (now - failure_time) < self._failure_cooldown_sec:
+                    remaining = self._failure_cooldown_sec - (now - failure_time)
+                    raise ModelLoadingError(
+                        f"Model {model_id} failed to load recently; cooldown remaining: "
+                        f"{remaining:.0f}s. Set force_reload=True to retry immediately."
+                    )
 
         with mlock:
             with self._lock:

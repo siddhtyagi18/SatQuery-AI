@@ -39,6 +39,21 @@ export default function AnalysisResultPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Derived: execution mode of the change detection step (from trace step-6 meta)
+  const changeExecMode: string | null = (() => {
+    if (!result) return null;
+    const step6 = result.executionTrace?.steps?.find((s) => s.id === 'step-6');
+    const em = step6?.meta?.execution_mode;
+    return typeof em === 'string' ? em : null;
+  })();
+
+  // Human-readable algorithm label for ChangeMapViewer toolbar
+  const changeAlgorithmLabel = (() => {
+    if (changeExecMode === 'model_checkpoint') return 'Siamese U-Net Model (LEVIR-CD trained)';
+    if (changeExecMode === 'cpu_classical')    return 'Grayscale Absolute Difference (CPU Classical)';
+    return 'Pixel-level Change Mask';
+  })();
+
   useEffect(() => {
     if (!id) return;
     let isMounted = true;
@@ -226,11 +241,12 @@ export default function AnalysisResultPage() {
 
               {/* Change Detection Heatmap */}
               <div className="flex flex-col gap-2">
-                <span className="hud-label">Classified Change Matrix</span>
+                <span className="hud-label">Change Detection Output</span>
                 <ChangeMapViewer
                   baseImageUrl={result.images[1]?.previewUrl ?? '/demo/optical_after.jpg'}
                   changeMaskUrl={result.changeMap?.overlayUrl ?? '/demo/change_mask.png'}
                   legend={result.changeMap?.legend}
+                  algorithmLabel={changeAlgorithmLabel}
                 />
               </div>
 

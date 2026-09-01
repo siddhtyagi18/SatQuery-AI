@@ -5,8 +5,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from ..schemas import AnalysisMode, TaskType, ToolInvocation
 from .task_classifier import classify_task
 from .tool_registry import get_tool, TOOL_REGISTRY
-from .mock_specialists import run_tool as run_mock_tool
-from .change_detection import run_cpu_change_detection
+from . import mock_specialists
+from .model_inference import run_change_detection, get_inference_mode
 from ..logging_setup import logger
 
 
@@ -84,11 +84,21 @@ def plan_execution(
         elif tid == "rs_grounding":
             per_tool_params[tid] = {"confidence_threshold": 0.7, "nms_threshold": 0.45, "tile_size": 512}
         elif tid == "change_detector":
-            per_tool_params[tid] = {
-                "algorithm": "grayscale-abs-diff",
-                "threshold": 35,
-                "noise_cleanup": "3x3-morphological-opening",
-            }
+            # Reflect the actual dispatch path so the trace shows the right algorithm
+            actual_mode = get_inference_mode()
+            if actual_mode == "model_checkpoint":
+                per_tool_params[tid] = {
+                    "algorithm": "siamese-unet-model",
+                    "tile_size": 256,
+                    "tile_overlap": 32,
+                    "threshold": 0.5,
+                }
+            else:
+                per_tool_params[tid] = {
+                    "algorithm": "grayscale-abs-diff",
+                    "threshold": 35,
+                    "noise_cleanup": "3x3-morphological-opening",
+                }
         elif tid == "change_vqa":
             per_tool_params[tid] = {"temperature": 0.2, "max_tokens": 768}
         elif tid == "optical_sar_analyzer":
@@ -106,7 +116,7 @@ def _mock_vqa_factory(query: str, mode: AnalysisMode):
     """Return a zero-arg closure that produces a mock VQA result."""
     def _factory():
         from .vqa_service import VQAServiceResult
-        raw = run_mock_tool("rs_vqa", query, mode)
+        raw = mock_specialists.run_tool("rs_vqa", query, mode)
         return VQAServiceResult(
             answer=raw["answer"],
             confidence=raw.get("confidence"),
@@ -162,7 +172,7 @@ def execute_plan(
                 and len(image_file_paths) == 2
             ):
                 try:
-                    cd_result = run_cpu_change_detection(
+                    cd_result = run_change_detection(
                         before_path=image_file_paths[0],
                         after_path=image_file_paths[1],
                         analysis_id=analysis_id or "unknown",
@@ -185,7 +195,7 @@ def execute_plan(
                         "[orchestrator] CPU change detection failed (%s: %s); falling back to mock.",
                         type(cd_exc).__name__, cd_exc,
                     )
-                    tool_result = run_mock_tool(tid, query, mode)
+                    tool_result = mock_specialists.run_tool(tid, query, mode)
                     execution_mode = "mock"
                     tool_execution_modes[tid] = "mock"
 
@@ -228,7 +238,17 @@ def execute_plan(
             # All other tools — mock
             # ------------------------------------------------------------------
             else:
-                tool_result = run_mock_tool(tid, query, mode)
+                # For change_vqa, pass real change stats context so the mock can
+                # produce a contextually accurate summary instead of a blank template.
+                if tid == "change_vqa" and change_stats_out:
+                    tool_result = mock_specialists.run_tool(
+                        tid, query, mode,
+                        changed_pixel_pct=change_stats_out.get("changed_pixel_pct"),
+                        severity=change_stats_out.get("severity"),
+                        execution_mode=change_stats_out.get("execution_mode"),
+                    )
+                else:
+                    tool_result = mock_specialists.run_tool(tid, query, mode)
                 execution_mode = "mock"
                 tool_execution_modes[tid] = "mock"
         except Exception as e:

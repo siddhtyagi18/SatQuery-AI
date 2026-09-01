@@ -228,11 +228,15 @@ def _run_analysis_pipeline(db: Session, analysis: Analysis, files, input_data: S
         proc_bits.append(f"{len(all_boxes)} bounding boxes")
     if change_map:
         is_real_changemap = tool_exec_modes.get("change_detector") == "real"
-        cm_label = (
-            "real CPU pixel-difference change map generated"
-            if is_real_changemap
-            else "change map generated (mock)"
-        )
+        # Determine the specific algorithm used from change_stats
+        _cd_exec_mode = change_stats.get("execution_mode", "cpu_classical") if change_stats else "cpu_classical"
+        if is_real_changemap:
+            if _cd_exec_mode == "model_checkpoint":
+                cm_label = "real SiameseUNet model change map generated (LEVIR-CD trained checkpoint)"
+            else:
+                cm_label = "real CPU pixel-difference change map generated"
+        else:
+            cm_label = "change map generated (mock)"
         proc_bits.append(cm_label)
     # Build step-6 meta: always include tool counts; add scalar change stats when available
     step6_meta: Dict[str, Any] = {
@@ -248,6 +252,8 @@ def _run_analysis_pipeline(db: Session, analysis: Analysis, files, input_data: S
         "unchanged_pixel_count", "total_pixel_count", "threshold_raw_255",
         "processing_time_ms", "size_mismatch_corrected", "severity",
         "image_size_str", "overlay_url",
+        # Execution provenance — always present from model_inference dispatcher
+        "execution_mode", "checkpoint_path",
     }
     for k in _SCALAR_STATS_KEYS:
         if k in change_stats and isinstance(change_stats[k], (int, float, str, bool)):

@@ -6,7 +6,7 @@ from ..logging_setup import logger
 MOCK_PREFIX = "[MOCK — Phase 1, not real inference] "
 
 
-def _make_vqa_result(query: str, mode: AnalysisMode) -> Dict[str, Any]:
+def _make_vqa_result(query: str, mode: AnalysisMode, **kwargs: Any) -> Dict[str, Any]:
     q = query.strip()
     answer = (
         f"{MOCK_PREFIX}Analysis for query: \"{q}\". "
@@ -26,7 +26,7 @@ def _make_vqa_result(query: str, mode: AnalysisMode) -> Dict[str, Any]:
     }
 
 
-def _make_caption_result(query: str, mode: AnalysisMode) -> Dict[str, Any]:
+def _make_caption_result(query: str, mode: AnalysisMode, **kwargs: Any) -> Dict[str, Any]:
     answer = (
         f"{MOCK_PREFIX}Caption: High-resolution satellite view of a mixed urban-agricultural region. "
         "Visible features include clustered building footprints, field parcels with distinct crop boundaries, "
@@ -40,7 +40,7 @@ def _make_caption_result(query: str, mode: AnalysisMode) -> Dict[str, Any]:
     }
 
 
-def _make_grounding_result(query: str, mode: AnalysisMode) -> Dict[str, Any]:
+def _make_grounding_result(query: str, mode: AnalysisMode, **kwargs: Any) -> Dict[str, Any]:
     boxes: List[BoundingBox] = [
         BoundingBox(x=0.10, y=0.15, width=0.06, height=0.05, label="Building", confidence=0.85),
         BoundingBox(x=0.22, y=0.10, width=0.04, height=0.04, label="Building", confidence=0.80),
@@ -66,7 +66,7 @@ def _make_grounding_result(query: str, mode: AnalysisMode) -> Dict[str, Any]:
     }
 
 
-def _make_change_detection_result(query: str, mode: AnalysisMode) -> Dict[str, Any]:
+def _make_change_detection_result(query: str, mode: AnalysisMode, **kwargs: Any) -> Dict[str, Any]:
     change_map = {
         "overlayUrl": None,
         "legend": [
@@ -93,23 +93,42 @@ def _make_change_detection_result(query: str, mode: AnalysisMode) -> Dict[str, A
     }
 
 
-def _make_change_vqa_result(query: str, mode: AnalysisMode) -> Dict[str, Any]:
-    answer = (
-        f"{MOCK_PREFIX}Change-VQA response (mock). Your question about detected changes: \"{query}\". "
-        "Observed signal summary (template-level): built-up area shows moderate increase across the "
-        "northeastern quadrant; vegetation signals decline correspondingly. "
-        "Area/percentage statistics are representative placeholders, not derived from a model run."
-    )
+def _make_change_vqa_result(query: str, mode: AnalysisMode, **context: Any) -> Dict[str, Any]:
+    # Try to use real pixel stats if the orchestrator passes them
+    changed_pct = context.get("changed_pixel_pct")
+    severity = context.get("severity", "unknown")
+    exec_mode = context.get("execution_mode", "unknown")
+
+    if changed_pct is not None:
+        # We have real pixel stats — use them for a contextual (but still mock) answer
+        answer = (
+            f"[Contextual summary — real pixel statistics used, natural language requires a Change-VQA model] "
+            f"The bi-temporal analysis measured **{changed_pct:.1f}%** of the scene as changed "
+            f"(severity: {severity}). "
+            f"The image pair shows a {severity}-level change signature. "
+            f"Change detection was performed by: {exec_mode}. "
+            f"Your specific question (\"{query}\") requires a Vision-Language model trained on "
+            f"change-detection tasks to answer precisely — e.g., identifying *what* changed "
+            f"(buildings, vegetation, roads) or *how* it changed. That model is not yet deployed."
+        )
+    else:
+        answer = (
+            f"{MOCK_PREFIX}Change-VQA response (mock). Your question about detected changes: \"{query}\". "
+            "No pixel statistics available from this run. "
+            "A real Change-VQA model is required to answer specific natural-language questions "
+            "about what changed between the two images."
+        )
     return {
         "answer": answer,
-        "confidence": 0.68,
+        "confidence": None,  # No calibrated confidence without a real model
         "evidence": [
-            "Change-VQA answer synthesized from template, not from change mask + LM inference.",
+            "Change-VQA answer is descriptive only — no Vision-Language model was run.",
+            "Pixel statistics (if shown) are from real change detection, not fabricated.",
         ],
     }
 
 
-def _make_optical_sar_result(query: str, mode: AnalysisMode) -> Dict[str, Any]:
+def _make_optical_sar_result(query: str, mode: AnalysisMode, **kwargs: Any) -> Dict[str, Any]:
     boxes: List[BoundingBox] = [
         BoundingBox(x=0.15, y=0.25, width=0.09, height=0.07, label="SAR-only: Sub-canopy Structure", confidence=0.72),
         BoundingBox(x=0.55, y=0.40, width=0.10, height=0.08, label="Flooded Parcel (SAR-confirmed)", confidence=0.80),
@@ -132,7 +151,7 @@ def _make_optical_sar_result(query: str, mode: AnalysisMode) -> Dict[str, Any]:
     }
 
 
-def _make_spatial_analyzer_result(query: str, mode: AnalysisMode) -> Dict[str, Any]:
+def _make_spatial_analyzer_result(query: str, mode: AnalysisMode, **kwargs: Any) -> Dict[str, Any]:
     answer = (
         f"{MOCK_PREFIX}Spatial analysis (mock): bounding box union area, road-network proximity, "
         "and zonal statistics are illustrative placeholders. Real spatial calculations will be "
@@ -164,7 +183,7 @@ def run_tool(tool_id: str, query: str, mode: AnalysisMode, **kwargs: Any) -> Dic
     if runner is None:
         raise ValueError(f"Unknown tool id: {tool_id}")
     logger.info(f"Running mock tool: {tool_id} for mode={mode}")
-    result = runner(query, mode)
+    result = runner(query, mode, **kwargs)
     result["tool_id"] = tool_id
     result["is_mock"] = True
     return result

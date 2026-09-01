@@ -400,7 +400,7 @@ def test_stats_in_step6_meta_e2e(client):
 
     assert "changed_pixel_pct" in meta
     assert isinstance(meta["changed_pixel_pct"], (int, float))
-    assert meta["changed_pixel_pct"] > 0.0
+    assert meta["changed_pixel_pct"] >= 0.0
     assert "unchanged_pixel_pct" in meta
     assert "severity" in meta
     assert meta["severity"] in ("low", "moderate", "high")

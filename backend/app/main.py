@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from .config import get_settings
 from .database import Base, engine
 from .logging_setup import logger
-from .routers import upload, analysis, tools, benchmark, health, files
+from .routers import upload, analysis, tools, benchmark, health, files, datasets
 
 settings = get_settings()
 
@@ -18,9 +18,10 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description=(
-        "SatQuery-AI Phase 2 Backend (FastAPI). "
+        "SatQuery-AI Phase 3 Backend (FastAPI). "
         "REAL: VQA (SmolVLM-500M via HuggingFace transformers, CPU-runnable), "
-        "Change Detection (CPU-only classical pixel-difference, Pillow+NumPy). "
+        "Change Detection (SiameseUNet checkpoint if configured, else CPU classical pixel-diff). "
+        "Dataset integration: LEVIR-CD validation + PyTorch Dataset, BigEarthNet.txt parquet summary. "
         "MOCK: Captioning, Grounding, Change VQA, Optical-SAR Analysis. "
         "Firebase (Firestore + Cloud Storage) persistence is optional via env vars."
     ),
@@ -56,6 +57,7 @@ app.include_router(tools.router)
 app.include_router(benchmark.router)
 app.include_router(health.router)
 app.include_router(files.router)
+app.include_router(datasets.router)
 
 # Serve generated change-mask PNGs at /api/results/<filename>
 _results_dir = Path(__file__).resolve().parent.parent / "data" / "results"
@@ -67,11 +69,12 @@ app.mount("/api/results", StaticFiles(directory=str(_results_dir)), name="result
 def root():
     from .services.vqa_service import get_vqa_service
     from .services.firebase import is_firebase_enabled
+    from .services.model_inference import get_inference_mode
     vqa_svc = get_vqa_service()
     return {
         "name": settings.APP_NAME,
         "version": settings.APP_VERSION,
-        "phase": 2,
+        "phase": 3,
         "docs": "/docs",
         "health": "/health",
         "vqa_mode": settings.VQA_MODE,
@@ -79,6 +82,15 @@ def root():
         "vqa_device": settings.VQA_DEVICE,
         "vqa_real_enabled_single_image": vqa_svc.should_use_real_vqa("single_image", tasks=["vqa"]),
         "firebase_enabled": is_firebase_enabled(),
+        "change_detection_inference_mode": get_inference_mode(),
+        "change_detection_checkpoint": settings.CHANGE_DETECTION_CHECKPOINT,
+        "levir_cd_configured": bool(settings.levir_cd_dir),
+        "bigearthnet_configured": bool(settings.BIGEARTHNET_TXT_PARQUET),
         "real_tools": ["rs_vqa", "change_detector"],
         "mock_tools": ["rs_caption", "rs_grounding", "change_vqa", "optical_sar_analyzer", "spatial_analyzer"],
+        "dataset_routes": [
+            "/api/datasets/status",
+            "/api/datasets/levir-cd/validate",
+            "/api/datasets/bigearthnet/summary",
+        ],
     }

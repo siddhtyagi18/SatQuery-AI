@@ -329,71 +329,110 @@ Test coverage (Phase 1):
 | `test_analysis.py` | 10    | single_image, bi_temporal, optical_sar, trace, history, validation, delete |
 | **Total**          | **18**|                                                      |
 
-## What's Next — Phase 2
+## Phase 3 — Real Dataset Integration & Change Detection Pipeline
 
-This backend is designed so each mock specialist can be swapped **independently**
-for a real implementation. The orchestrator, classifier, tool registry,
-database, and execution trace do NOT need to change.
+SatQuery-AI connects real remote sensing datasets and model pipelines without requiring large local GPU hardware for development.
 
-**Phase 2 checklist:**
+### Supported Datasets
 
-1. **Real RS-VQA / Captioning model** — replace `_make_vqa_result` +
-   `_make_caption_result` in `services/mock_specialists.py` with calls to a
-   deployed model (e.g. RSVQA-HR fine-tune, LLaVA-RS adapter). Keep the same
-   `(query, mode) -> {answer, confidence, evidence}` signature.
+#### 1. LEVIR-CD (Bi-Temporal Building Change Detection)
+Extracted dataset directory containing train/val/test splits with 1024×1024 optical RGB images:
+```
+<LEVIR_CD_ROOT>/
+├── train/
+│   ├── A/      # 445 pre-change RGB images (PNG)
+│   ├── B/      # 445 post-change RGB images (PNG)
+│   └── label/  # 445 binary change masks (PNG, 0=no change, 255=change)
+├── val/
+│   ├── A/      # 64 pre-change RGB images
+│   ├── B/      # 64 post-change RGB images
+│   └── label/  # 64 binary change masks
+└── test/
+    ├── A/      # 128 pre-change RGB images
+    ├── B/      # 128 post-change RGB images
+    └── label/  # 128 binary change masks
+```
+- **Validator**: `validate_levir_cd(root)` verifies directory structure, file counts, matching filenames, sample readable formats, and binary masks {0, 255} without loading all images into RAM.
+- **PyTorch Dataset**: `LEVIRDataset` (`app.services.datasets.levir_cd.py`) loads images lazily, crops to configurable patch sizes (e.g. 256×256), normalizes masks to {0.0, 1.0}, and applies data augmentations during training.
 
-2. **Real Grounding detector** — replace `_make_grounding_result` with a
-   Grounding DINO / RS-DINO variant producing actual bboxes on the image
-   raster; return the same `{answer, confidence, bounding_boxes, evidence}` shape.
+#### 2. BigEarthNet (VQA & Land Cover Annotations)
+- `BigEarthNet.txt.parquet`: 9,553,962 rows of VQA-style question-answer text annotations across 13 columns (`ID`, `patch_id`, `s1_name`, `input`, `output`, `type`, `category`, `split`, `country`, `season`, `climate_zone`, `latitude`, `longitude`).
+- `metadata.parquet`: 480,038 rows of patch-level metadata including multi-label land-cover classifications.
+- **Important**: These parquet files contain text annotations and metadata, **NOT** image pixel rasters. The service uses `pyarrow` to inspect schema, row counts, and summary distributions memory-efficiently.
 
-3. **Real Bi-temporal Change Detection** — plug in CVA + deep change model
-   (e.g. BIT, SNUNet, ChangeFormer). Produce a per-pixel mask PNG and save it
-   to disk so `changeMap.overlayUrl` can point at it.
+### Dataset Environment Configuration
 
-4. **Change-VQA head** — run change mask + image pair through a VLM to answer
-   the user's natural-language questions about change.
+Configure your dataset and model paths in `backend/.env`:
+```env
+# Path to extracted LEVIR-CD directory (or set LEVIR_CD_ROOT)
+LEVIR_CD_DATASET_PATH=/path/to/LEVIR-CD
 
-5. **Optical+SAR Fusion** — real phase-correlation co-registration, weighted
-   stack fusion, SAR-unique backscatter feature extraction.
+# Parquet annotation and metadata files (optional)
+BIGEARTHNET_TXT_PARQUET=/path/to/BigEarthNet.txt.parquet
+BIGEARTHNET_METADATA_PARQUET=/path/to/metadata.parquet
 
-6. **Spatial Analyzer** — shapely + rasterio zonal stats producing real area,
-   perimeter, proximity numbers from bboxes/masks.
+DATASET_CACHE_DIR=./data/cache
+CHECKPOINT_DIR=./checkpoints
 
-7. **Swap tool `status`** in `tool_registry.py` from `"mock"` → `"available"`
-   as each specialist is implemented (frontend's `ToolRegistry` page will
-   render the badge colour change).
+# Path to trained SiameseUNet checkpoint for real change detection inference:
+CHANGE_DETECTION_CHECKPOINT=./checkpoints/best_model.pt
+```
 
-8. **Populate benchmark** — once real specialists exist, run each one against
-   public RS datasets (RSVQA-HR, RSITMD, DIOR-RSVG, LEVIR-CD, xBD) and fill
-   the `value` + `evaluatedAt` fields in `routers/benchmark.py`.
+### Dataset API Endpoints
 
-9. **Asynchronous execution** — Phase 1 runs the whole pipeline inline in
-   `POST /api/analysis`. Phase 2 should enqueue the work (TaskIQ, RQ, or
-   FastAPI BackgroundTasks + a worker) and stream trace updates via SSE to
-   match the frontend's `streamExecutionTrace` interface.
+- `GET /api/datasets/status` — Quick status check of dataset and checkpoint configurations.
+- `GET /api/datasets/levir-cd/validate` — Validates LEVIR-CD split file alignment and format integrity.
+- `GET /api/datasets/bigearthnet/summary` — Memory-safe summary of BigEarthNet VQA annotations & metadata schema.
 
-10. **Authentication + rate limiting** before any public deployment.
+### Siamese U-Net Model & Trained Checkpoints
 
-11. **Persistent object storage** — replace the local `UPLOAD_DIR` with S3 /
-    MinIO once upload volume exceeds a single disk.
+- **Model**: `SiameseUNet` (`app.services.models.siamese_unet.py`)
+- **Inputs**: 6-channel concatenated RGB image pair `[img_A, img_B]` of shape `(B, 6, H, W)`.
+- **Architecture**: 3-level encoder with skip connections + upsampling decoder + 1-channel logit head (~490K trainable parameters, ~1.48 MB checkpoint size).
+- **Loss**: Differentiable BCE + Dice combined loss for class-imbalanced change detection.
+- **Trained Checkpoint Status (50 Epochs Complete)**:
+  - `checkpoints/best_model.pt`: **Best checkpoint from Epoch 48** (Val IoU: `0.4875`, F1: `0.5429`, Precision: `0.9691`, Accuracy: `97.63%`).
+  - `checkpoints/last_model.pt`: **Epoch 50 checkpoint** with complete optimizer and scheduler state for training continuation.
+  - `checkpoints/training_log.json`: Complete 50-epoch training history log.
+- **Inference Mode Dispatcher**:
+  - If `CHANGE_DETECTION_CHECKPOINT` is configured → runs model tiled sliding-window inference with 32px overlap averaging.
+  - If unset or missing → transparently falls back to the CPU classical pixel-difference baseline.
+  - Results are never fabricated; execution mode is explicitly declared in evidence and stats.
 
-12. **Geospatial metadata enrichment** — parse additional GeoTIFF / GML tags
-    (`TIFFTAG_DATETIME`, RPCs, sensor band descriptions) when available.
+### Running the CPU Smoke Test
 
-## Key Design Choices
+To verify the training and inference pipeline end-to-end on CPU with zero GPU requirements:
+```powershell
+python scripts/train_change_detector.py --smoke-test
+```
 
-- **Flat monolith** (no microservices) — keeps Phase 1 / 2 transitions simple;
-  split into services later only if deployment requires it.
-- **Frontend contract is the source of truth.** Pydantic schemas mirror
-  `analysis.ts` exactly. Swapping the API mode in `lib/config.ts` to `live`
-  should be a zero-code change on the UI.
-- **Tool runners are pure functions.** They accept `(tool_id, query, mode, …)`
-  and return `dict`. Easy to unit-test, easy to replace for ML-backed ones.
-- **No fake science.** All answers, confidence scores, and bounding boxes are
-  explicitly labelled MOCK. Benchmark metrics are `null` (not placeholder
-  numbers) so the UI says "Not evaluated yet".
-- **Trace-first design.** Every pipeline step is a persisted row in
-  `execution_steps` so streaming animation (Phase 2 SSE) just needs to push
-  row updates — not recompute history.
-- **SQLite is the right choice** for Phase 1 (single-node, zero ops). Upgrade
-  to Postgres only when concurrent writes / multi-node deployments happen.
+### Continuing / Resuming Model Training
+
+To resume training from the 50-epoch checkpoint on a GPU/cloud machine (Colab, Kaggle, Cloud VM):
+```powershell
+python scripts/train_change_detector.py `
+    --data-root "/path/to/LEVIR-CD" `
+    --resume ./checkpoints/last_model.pt `
+    --epochs 100 `
+    --batch-size 4 `
+    --img-size 256 `
+    --lr 0.001 `
+    --checkpoint-dir ./checkpoints
+```
+
+### Evaluating Trained Checkpoint
+
+To evaluate the best checkpoint on validation and test splits without training:
+```powershell
+python scripts/train_change_detector.py `
+    --data-root "/path/to/LEVIR-CD" `
+    --resume ./checkpoints/best_model.pt `
+    --eval-only
+```
+
+### Running Test Suite
+
+```powershell
+pytest tests/ -v
+```
+All 88 unit and integration tests run on CPU in under 10 seconds.
