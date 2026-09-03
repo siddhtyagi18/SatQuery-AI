@@ -362,8 +362,8 @@ class LEVIRDataset(Dataset):
 
         # --- Crop ---
         if self.split == "train" and self.augment:
-            # Random crop
-            i, j, h, w = self._get_random_crop_params(img_a, self.img_size)
+            # Change-aware balanced crop (60% focused on change regions if present, 40% uniform)
+            i, j, h, w = self._get_change_aware_crop_params(label, self.img_size, pos_prob=0.60)
         else:
             # Centre crop
             W, H = img_a.size
@@ -378,6 +378,14 @@ class LEVIRDataset(Dataset):
 
         # --- Augmentation (train only) ---
         if self.augment and self.split == "train":
+            # Synchronized 90-degree rotations (0, 90, 180, 270 deg)
+            rot_choice = random.choice([0, 90, 180, 270])
+            if rot_choice != 0:
+                img_a = TF.rotate(img_a, rot_choice)
+                img_b = TF.rotate(img_b, rot_choice)
+                label = TF.rotate(label, rot_choice)
+
+            # Synchronized Flips
             if random.random() > 0.5:
                 img_a = TF.hflip(img_a)
                 img_b = TF.hflip(img_b)
@@ -386,6 +394,20 @@ class LEVIRDataset(Dataset):
                 img_a = TF.vflip(img_a)
                 img_b = TF.vflip(img_b)
                 label = TF.vflip(label)
+
+            # Mild independent photometric jitter on A & B (simulates bi-temporal illumination shift)
+            if random.random() > 0.5:
+                b_factor = random.uniform(0.90, 1.10)
+                img_a = TF.adjust_brightness(img_a, b_factor)
+            if random.random() > 0.5:
+                b_factor = random.uniform(0.90, 1.10)
+                img_b = TF.adjust_brightness(img_b, b_factor)
+            if random.random() > 0.5:
+                c_factor = random.uniform(0.90, 1.10)
+                img_a = TF.adjust_contrast(img_a, c_factor)
+            if random.random() > 0.5:
+                c_factor = random.uniform(0.90, 1.10)
+                img_b = TF.adjust_contrast(img_b, c_factor)
 
         # --- To tensor ---
         # Images: [0, 255] uint8 → [0.0, 1.0] float32, shape (3, H, W)
@@ -410,3 +432,33 @@ class LEVIRDataset(Dataset):
         i = random.randint(0, H - crop_size)
         j = random.randint(0, W - crop_size)
         return i, j, crop_size, crop_size
+
+    @staticmethod
+    def _get_change_aware_crop_params(
+        label_img: Image.Image,
+        crop_size: int,
+        pos_prob: float = 0.60,
+    ) -> Tuple[int, int, int, int]:
+        """
+        Sample crop coordinates, with `pos_prob` chance of centering on change pixels.
+        """
+        import numpy as np
+        W, H = label_img.size
+        if H < crop_size or W < crop_size:
+            return 0, 0, min(H, crop_size), min(W, crop_size)
+
+        if random.random() < pos_prob:
+            lbl_arr = np.array(label_img)
+            pos_indices = np.argwhere(lbl_arr > 127)
+            if len(pos_indices) > 0:
+                center_y, center_x = pos_indices[random.randint(0, len(pos_indices) - 1)]
+                jitter_y = random.randint(-crop_size // 4, crop_size // 4)
+                jitter_x = random.randint(-crop_size // 4, crop_size // 4)
+                i = int(np.clip(center_y - crop_size // 2 + jitter_y, 0, H - crop_size))
+                j = int(np.clip(center_x - crop_size // 2 + jitter_x, 0, W - crop_size))
+                return i, j, crop_size, crop_size
+
+        i = random.randint(0, H - crop_size)
+        j = random.randint(0, W - crop_size)
+        return i, j, crop_size, crop_size
+

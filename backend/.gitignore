@@ -28,6 +28,7 @@ test_satquery*.db*
 
 # Uploads and results
 uploads/
+outputs/
 test_uploads/
 test_uploads_p2/
 data/results/*.png

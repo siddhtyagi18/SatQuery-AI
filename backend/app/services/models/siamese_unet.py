@@ -258,6 +258,81 @@ def dice_loss(
     return 1.0 - dice_coeff.mean()
 
 
+def tversky_loss(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    alpha: float = 0.3,
+    beta: float = 0.7,
+    smooth: float = 1.0,
+) -> torch.Tensor:
+    """
+    Differentiable Tversky loss for binary segmentation with class imbalance.
+
+    When beta > alpha (e.g. alpha=0.3, beta=0.7), false negatives are penalized
+    more heavily than false positives, which boosts minority class recall.
+
+    Parameters
+    ----------
+    pred   : (B, 1, H, W) probability map (after sigmoid), values in [0, 1].
+    target : (B, 1, H, W) binary mask {0.0, 1.0}.
+    alpha  : Weight for False Positives (FP).
+    beta   : Weight for False Negatives (FN).
+    smooth : Laplace smoothing constant.
+    """
+    pred_flat = pred.view(pred.size(0), -1)
+    target_flat = target.view(target.size(0), -1)
+
+    tp = (pred_flat * target_flat).sum(dim=1)
+    fp = (pred_flat * (1.0 - target_flat)).sum(dim=1)
+    fn = ((1.0 - pred_flat) * target_flat).sum(dim=1)
+
+    tversky_index = (tp + smooth) / (tp + alpha * fp + beta * fn + smooth)
+    return 1.0 - tversky_index.mean()
+
+
+def focal_loss(
+    logits: torch.Tensor,
+    target: torch.Tensor,
+    alpha: float = 0.25,
+    gamma: float = 2.0,
+) -> torch.Tensor:
+    """
+    Binary Focal Loss with logits input.
+
+    Downweights well-classified background pixels, focusing gradients on
+    hard-to-classify change boundaries.
+    """
+    bce = F.binary_cross_entropy_with_logits(logits, target, reduction="none")
+    prob = torch.sigmoid(logits)
+    p_t = target * prob + (1.0 - target) * (1.0 - prob)
+    alpha_t = target * alpha + (1.0 - target) * (1.0 - alpha)
+    focal = alpha_t * ((1.0 - p_t) ** gamma) * bce
+    return focal.mean()
+
+
+def hybrid_imbalance_loss(
+    logits: torch.Tensor,
+    target: torch.Tensor,
+    pos_weight: Optional[torch.Tensor] = None,
+    bce_weight: float = 0.35,
+    tversky_weight: float = 0.45,
+    focal_weight: float = 0.20,
+    tversky_alpha: float = 0.3,
+    tversky_beta: float = 0.7,
+) -> torch.Tensor:
+    """
+    Hybrid loss engineered for extreme class-imbalanced change detection:
+    1. Weighted BCE: provides strong positive gradient pull.
+    2. Tversky (alpha=0.3, beta=0.7): penalizes false negatives (recall booster).
+    3. Focal Loss: focuses on hard boundary examples.
+    """
+    bce = F.binary_cross_entropy_with_logits(logits, target, pos_weight=pos_weight)
+    prob = torch.sigmoid(logits)
+    tversky = tversky_loss(prob, target, alpha=tversky_alpha, beta=tversky_beta)
+    focal = focal_loss(logits, target, alpha=0.25, gamma=2.0)
+    return bce_weight * bce + tversky_weight * tversky + focal_weight * focal
+
+
 def combined_loss(
     logits: torch.Tensor,
     target: torch.Tensor,
@@ -267,25 +342,13 @@ def combined_loss(
 ) -> torch.Tensor:
     """
     Combined BCE + Dice loss (standard for binary segmentation).
-
-    Parameters
-    ----------
-    logits     : (B, 1, H, W) raw logits (before sigmoid).
-    target     : (B, 1, H, W) binary mask {0.0, 1.0}.
-    bce_weight : Weight for BCE term.
-    dice_weight: Weight for Dice term.
-    pos_weight : Optional class-imbalance weight for BCE.
-
-    Returns
-    -------
-    Scalar combined loss.
     """
-    from typing import Optional as _Optional
     bce = F.binary_cross_entropy_with_logits(logits, target, pos_weight=pos_weight)
     prob = torch.sigmoid(logits)
     dice = dice_loss(prob, target)
     return bce_weight * bce + dice_weight * dice
 
 
-# Make Optional importable at module level for combined_loss signature
+# Make Optional importable at module level for type signatures
 from typing import Optional
+

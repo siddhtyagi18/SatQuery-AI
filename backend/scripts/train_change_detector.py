@@ -415,8 +415,8 @@ def main():
     )
     parser.add_argument("--data-root", type=Path, default=None,
                         help="Path to LEVIR-CD root directory")
-    parser.add_argument("--checkpoint-dir", type=Path, default=Path("./checkpoints"),
-                        help="Directory to save checkpoints (default: ./checkpoints)")
+    parser.add_argument("--checkpoint-dir", type=Path, default=Path("./checkpoints/experiment_01"),
+                        help="Directory to save checkpoints (default: ./checkpoints/experiment_01)")
     parser.add_argument("--resume", type=Path, default=None,
                         help="Path to checkpoint to resume from")
     parser.add_argument("--epochs", type=int, default=50,
@@ -424,13 +424,23 @@ def main():
     parser.add_argument("--batch-size", type=int, default=4,
                         help="Batch size (default: 4; use 2 if low VRAM)")
     parser.add_argument("--img-size", type=int, default=256,
-                        help="Random crop size for training images (default: 256)")
-    parser.add_argument("--lr", type=float, default=1e-3,
-                        help="Learning rate (default: 1e-3; Adam optimiser)")
+                        help="Crop size for training images (default: 256)")
+    parser.add_argument("--lr", type=float, default=8e-4,
+                        help="Learning rate (default: 8e-4 with AdamW)")
+    parser.add_argument("--weight-decay", type=float, default=1e-4,
+                        help="Weight decay for optimizer (default: 1e-4)")
+    parser.add_argument("--loss-type", type=str, default="hybrid",
+                        choices=["hybrid", "weighted_bce_dice", "focal_tversky", "bce_dice"],
+                        help="Loss function type for class imbalance (default: hybrid)")
+    parser.add_argument("--pos-weight", type=float, default=3.0,
+                        help="Positive class weight for BCE in imbalanced loss (default: 3.0)")
+    parser.add_argument("--scheduler", type=str, default="cosine",
+                        choices=["cosine", "plateau"],
+                        help="Learning rate scheduler (default: cosine)")
     parser.add_argument("--workers", type=int, default=0,
                         help="DataLoader workers (default: 0 = main thread, safe on Windows)")
     parser.add_argument("--base-filters", type=int, default=16,
-                        help="Base filter count for SiameseUNet (default: 16 → ~490K params)")
+                        help="Base filter count for SiameseUNet (default: 16)")
     parser.add_argument("--smoke-test", action="store_true",
                         help="Run a tiny CPU smoke test instead of full training")
     parser.add_argument("--eval-only", action="store_true",
@@ -447,20 +457,30 @@ def main():
         env_val = os.getenv("LEVIR_CD_DATASET_PATH") or os.getenv("LEVIR_CD_ROOT")
         if env_val:
             data_root = Path(env_val)
+        else:
+            candidates = [
+                Path("C:/Users/Lenovo/Downloads/LEVIR-CD"),
+                Path("./data/LEVIR-CD"),
+                Path("../data/LEVIR-CD"),
+            ]
+            for c in candidates:
+                if c.exists():
+                    data_root = c
+                    break
 
     # ------------------------------------------------------------------
-    # Smoke test mode (CPU-safe, no real dataset needed)
+    # Smoke test mode
     # ------------------------------------------------------------------
     if args.smoke_test:
-        success = run_smoke_test(data_root or Path("."), img_size=args.img_size)
+        success = run_smoke_test(data_root or Path("."), img_size=64)
         sys.exit(0 if success else 1)
 
     # ------------------------------------------------------------------
-    # Full training / eval mode
+    # Validate data root
     # ------------------------------------------------------------------
-    if data_root is None:
-        print("ERROR: LEVIR-CD data path not provided.")
-        print("Please provide --data-root /path/to/LEVIR-CD or set LEVIR_CD_DATASET_PATH (or LEVIR_CD_ROOT) in your .env.")
+    if data_root is None or not data_root.exists():
+        print("ERROR: LEVIR-CD data path not provided or does not exist.")
+        print("Please provide --data-root /path/to/LEVIR-CD or set LEVIR_CD_DATASET_PATH in your .env.")
         parser.print_help()
         sys.exit(1)
 
@@ -469,32 +489,41 @@ def main():
 
     try:
         from app.services.datasets.levir_cd import LEVIRDataset
-        from app.services.models.siamese_unet import SiameseUNet, combined_loss
+        from app.services.models.siamese_unet import (
+            SiameseUNet,
+            combined_loss,
+            hybrid_imbalance_loss,
+            tversky_loss,
+            focal_loss,
+        )
     except ImportError as e:
         print(f"ERROR: Cannot import required modules: {e}")
         print("Run from the backend/ directory: python scripts/train_change_detector.py ...")
         sys.exit(1)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"\n{'=' * 60}")
-    print(f"SatQuery-AI SiameseUNet Change Detector Training")
-    print(f"{'=' * 60}")
-    print(f"  Device:        {device}")
-    print(f"  Data root:     {data_root}")
-    print(f"  Checkpoint dir:{args.checkpoint_dir}")
-    print(f"  Epochs:        {args.epochs}")
-    print(f"  Batch size:    {args.batch_size}")
-    print(f"  Image size:    {args.img_size}×{args.img_size}")
-    print(f"  Learning rate: {args.lr}")
-    print(f"  Base filters:  {args.base_filters}")
-    print()
+    print(f"\n{'=' * 75}")
+    print(f"SatQuery-AI SiameseUNet Change Detector: Controlled Training Experiment")
+    print(f"{'=' * 75}")
+    print(f"  Device:         {device} (CUDA: {device.type == 'cuda'})")
+    print(f"  Data Root:      {data_root}")
+    print(f"  Checkpoint Dir: {args.checkpoint_dir}")
+    print(f"  Epochs:         {args.epochs}")
+    print(f"  Batch Size:     {args.batch_size}")
+    print(f"  Image Size:     {args.img_size}×{args.img_size}")
+    print(f"  Learning Rate:  {args.lr}")
+    print(f"  Optimizer:      AdamW (weight_decay={args.weight_decay})")
+    print(f"  Scheduler:      {args.scheduler}")
+    print(f"  Loss Type:      {args.loss_type} (pos_weight={args.pos_weight})")
+    print(f"  Base Filters:   {args.base_filters}")
+    print(f"{'=' * 75}\n")
 
     # Datasets
     print("Loading datasets...")
     train_ds = LEVIRDataset(data_root, split="train", img_size=args.img_size, augment=True)
     val_ds = LEVIRDataset(data_root, split="val", img_size=args.img_size, augment=False)
-    print(f"  Train: {len(train_ds)} samples")
-    print(f"  Val:   {len(val_ds)} samples")
+    print(f"  Train: {len(train_ds)} samples (with change-aware sampling + full augmentations)")
+    print(f"  Val:   {len(val_ds)} samples (centre cropped, deterministic)")
 
     train_loader = _DataLoader(
         train_ds, batch_size=args.batch_size, shuffle=True,
@@ -510,18 +539,40 @@ def main():
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"\nModel: SiameseUNet | trainable parameters: {total_params:,}")
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-4)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="max", factor=0.5, patience=5
-    )
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
-    loss_fn = lambda logits, target: combined_loss(logits, target, bce_weight=0.5, dice_weight=0.5)
+    if args.scheduler == "cosine":
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=1e-6)
+    else:
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode="max", factor=0.5, patience=5
+        )
+
+    # Loss function selection
+    if args.loss_type == "hybrid":
+        pos_w_tensor = torch.tensor([args.pos_weight], device=device)
+        loss_fn = lambda logits, target: hybrid_imbalance_loss(
+            logits, target, pos_weight=pos_w_tensor, bce_weight=0.35, tversky_weight=0.45, focal_weight=0.20
+        )
+    elif args.loss_type == "weighted_bce_dice":
+        pos_w_tensor = torch.tensor([args.pos_weight], device=device)
+        loss_fn = lambda logits, target: combined_loss(
+            logits, target, bce_weight=0.5, dice_weight=0.5, pos_weight=pos_w_tensor
+        )
+    elif args.loss_type == "focal_tversky":
+        loss_fn = lambda logits, target: 0.5 * tversky_loss(
+            torch.sigmoid(logits), target, alpha=0.3, beta=0.7
+        ) + 0.5 * focal_loss(logits, target, alpha=0.25, gamma=2.0)
+    else:
+        loss_fn = lambda logits, target: combined_loss(logits, target, bce_weight=0.5, dice_weight=0.5)
 
     # Checkpoint resume
     start_epoch = 1
-    best_iou = 0.0
+    best_val_f1 = 0.0
+    best_val_iou = 0.0
     history: List[Dict] = []
 
+    args.checkpoint_dir.mkdir(parents=True, exist_ok=True)
     log_path = args.log_file or (args.checkpoint_dir / "training_log.json")
     if log_path.exists():
         try:
@@ -531,12 +582,31 @@ def main():
         except Exception:
             history = []
 
+    # Save experiment config
+    config_dict = {
+        "experiment_dir": str(args.checkpoint_dir),
+        "epochs": args.epochs,
+        "batch_size": args.batch_size,
+        "img_size": args.img_size,
+        "lr": args.lr,
+        "weight_decay": args.weight_decay,
+        "loss_type": args.loss_type,
+        "pos_weight": args.pos_weight,
+        "scheduler": args.scheduler,
+        "train_samples": len(train_ds),
+        "val_samples": len(val_ds),
+        "total_parameters": total_params,
+    }
+    with open(args.checkpoint_dir / "experiment_config.json", "w") as f:
+        json.dump(config_dict, f, indent=2)
+
     if args.resume and args.resume.exists():
         start_epoch, best_metrics_ckpt = load_checkpoint_for_training(
             model, optimizer, args.resume, scheduler=scheduler
         )
-        best_iou = best_metrics_ckpt.iou
-        print(f"Resumed from {args.resume} at next epoch {start_epoch}, best_iou={best_iou:.4f}")
+        best_val_iou = best_metrics_ckpt.iou
+        best_val_f1 = best_metrics_ckpt.f1
+        print(f"Resumed from {args.resume} at next epoch {start_epoch}, best_val_iou={best_val_iou:.4f}")
 
     # Eval only mode
     if args.eval_only:
@@ -544,27 +614,16 @@ def main():
         val_loss, val_metrics = evaluate(model, val_loader, device, loss_fn)
         print(f"Val   | loss={val_loss:.4f} | iou={val_metrics.iou:.4f} f1={val_metrics.f1:.4f} "
               f"precision={val_metrics.precision:.4f} recall={val_metrics.recall:.4f}")
-
-        try:
-            test_ds = LEVIRDataset(data_root, split="test", img_size=args.img_size, augment=False)
-            test_loader = _DataLoader(test_ds, batch_size=args.batch_size, shuffle=False, num_workers=args.workers)
-            test_loss, test_metrics = evaluate(model, test_loader, device, loss_fn)
-            print(f"Test  | loss={test_loss:.4f} | iou={test_metrics.iou:.4f} f1={test_metrics.f1:.4f} "
-                  f"precision={test_metrics.precision:.4f} recall={test_metrics.recall:.4f}")
-        except Exception as e:
-            print(f"Test eval skipped: {e}")
         return
 
     # Check if target epochs already reached
     if start_epoch > args.epochs:
         print(f"\n[INFO] Checkpoint is already at epoch {start_epoch - 1}, which has reached or exceeded the requested target --epochs {args.epochs}.")
-        print(f"       To continue training further, specify a higher --epochs value (e.g. --epochs {start_epoch + 10} or --epochs 100).")
         return
 
     # Training loop
     print(f"\nStarting training from epoch {start_epoch} to {args.epochs}...")
-    print("NOTE: Without GPU, each epoch on full LEVIR-CD (445 samples) will be slow.")
-    print("      Recommend training on GPU/cloud (Colab, Kaggle, etc.).\n")
+    training_start_time = time.time()
 
     for epoch in range(start_epoch, args.epochs + 1):
         t_epoch_start = time.time()
@@ -573,29 +632,23 @@ def main():
         val_loss, val_metrics = evaluate(model, val_loader, device, loss_fn)
 
         t_epoch = time.time() - t_epoch_start
-        scheduler.step(val_metrics.iou)
+
+        if args.scheduler == "cosine":
+            scheduler.step()
+        else:
+            scheduler.step(val_metrics.iou)
+
+        current_lr = optimizer.param_groups[0]["lr"]
 
         print(
-            f"Epoch {epoch:3d}/{args.epochs} | {t_epoch:.1f}s | "
+            f"Epoch {epoch:3d}/{args.epochs} | {t_epoch:.1f}s | lr={current_lr:.6f} | "
             f"Train loss={train_loss:.4f} iou={train_metrics.iou:.4f} f1={train_metrics.f1:.4f} | "
-            f"Val   loss={val_loss:.4f}  iou={val_metrics.iou:.4f}  f1={val_metrics.f1:.4f}"
+            f"Val loss={val_loss:.4f} iou={val_metrics.iou:.4f} f1={val_metrics.f1:.4f} "
+            f"prec={val_metrics.precision:.4f} rec={val_metrics.recall:.4f}"
         )
-
-        # Save last checkpoint every epoch
-        save_checkpoint(
-            model, optimizer, epoch, val_metrics, args.checkpoint_dir, "last_model.pt", scheduler=scheduler
-        )
-
-        # Save best checkpoint when val IoU improves
-        if val_metrics.iou > best_iou:
-            best_iou = val_metrics.iou
-            best_path = save_checkpoint(
-                model, optimizer, epoch, val_metrics, args.checkpoint_dir, "best_model.pt", scheduler=scheduler
-            )
-            print(f"  [*] New best IoU: {best_iou:.4f} -- checkpoint saved to {best_path}")
 
         # Record history
-        history.append({
+        record = {
             "epoch": epoch,
             "train_loss": round(train_loss, 4),
             "train_iou": train_metrics.iou,
@@ -605,20 +658,55 @@ def main():
             "val_f1": val_metrics.f1,
             "val_precision": val_metrics.precision,
             "val_recall": val_metrics.recall,
-            "elapsed_s": round(t_epoch, 1),
-        })
+            "val_accuracy": val_metrics.accuracy,
+            "lr": current_lr,
+            "time_sec": round(t_epoch, 2),
+        }
+        history.append(record)
 
-    print(f"\nTraining complete. Best Val IoU: {best_iou:.4f}")
-    print(f"Checkpoints saved to: {args.checkpoint_dir}")
-    print(f"\nTo use this checkpoint for inference, set in .env:")
-    print(f"  CHANGE_DETECTION_CHECKPOINT={args.checkpoint_dir / 'best_model.pt'}")
+        # Save checkpoint based strictly on validation F1/IoU
+        is_best = val_metrics.f1 > best_val_f1 or (val_metrics.f1 == best_val_f1 and val_metrics.iou > best_val_iou)
+        if is_best:
+            best_val_f1 = val_metrics.f1
+            best_val_iou = val_metrics.iou
+            save_checkpoint(
+                model=model,
+                optimizer=optimizer,
+                epoch=epoch,
+                metrics=val_metrics,
+                path=args.checkpoint_dir / "best_model.pt",
+                scheduler=scheduler,
+            )
+            print(f"  [*] New best validation checkpoint saved! (Val F1={best_val_f1:.4f}, IoU={best_val_iou:.4f})")
 
-    # Save training log
-    if args.log_file:
-        args.log_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(args.log_file, "w") as f:
-            json.dump(history, f, indent=2)
-        print(f"Training log saved to: {args.log_file}")
+        # Save latest checkpoint every 5 epochs
+        if epoch % 5 == 0 or epoch == args.epochs:
+            save_checkpoint(
+                model=model,
+                optimizer=optimizer,
+                epoch=epoch,
+                metrics=val_metrics,
+                path=args.checkpoint_dir / "last_model.pt",
+                scheduler=scheduler,
+            )
+
+        # Write log
+        try:
+            with open(log_path, "w") as f:
+                json.dump(history, f, indent=2)
+        except Exception as e:
+            logger.warning(f"Could not write log: {e}")
+
+    total_training_time = time.time() - training_start_time
+    print("\n" + "=" * 75)
+    print("EXPERIMENT TRAINING COMPLETE")
+    print("=" * 75)
+    print(f"  Total Training Time:    {total_training_time / 60:.2f} minutes ({total_training_time:.1f}s)")
+    print(f"  Best Validation F1:     {best_val_f1:.4f}")
+    print(f"  Best Validation IoU:    {best_val_iou:.4f}")
+    print(f"  Best Checkpoint Path:   {args.checkpoint_dir / 'best_model.pt'}")
+    print(f"  Training Log Path:      {log_path}")
+    print("=" * 75 + "\n")
 
 
 if __name__ == "__main__":

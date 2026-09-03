@@ -63,6 +63,8 @@ backend/*.db*
 # Uploads & Runtime Generated Results
 uploads/
 backend/uploads/
+outputs/
+backend/outputs/
 backend/data/results/*.png
 backend/data/results/*.jpg
 backend/data/cache/
