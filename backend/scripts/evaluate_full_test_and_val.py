@@ -512,12 +512,12 @@ def main():
     ckpt_epoch = ckpt_info.get("epoch", 48) if isinstance(ckpt_info, dict) else 48
 
     # -----------------------------------------------------------------------
-    # 1. Full 128-sample Test Split Evaluation (at threshold 0.5)
+    # 1. Full 128-sample Test Split Evaluation (at threshold args.threshold)
     # -----------------------------------------------------------------------
     test_dir = data_root / "test"
     test_triplets = get_split_triplets(test_dir)
     print(f"[Phase 1] Loaded {len(test_triplets)} triplets from {test_dir}")
-    print(f"          Evaluating default threshold {args.threshold} across ALL {len(test_triplets)} test samples...")
+    print(f"          Evaluating threshold {args.threshold:.2f} across ALL {len(test_triplets)} test samples...")
 
     test_predictions_dir = args.output_dir / "test_full_predictions"
     test_summary, _ = evaluate_split(
@@ -552,7 +552,7 @@ def main():
     cm = test_summary["confusion_matrix"]
 
     print("\n" + "-" * 75)
-    print("OFFICIAL TEST SPLIT METRICS (128 SAMPLES @ THRESHOLD 0.50):")
+    print(f"OFFICIAL TEST SPLIT METRICS (128 SAMPLES @ THRESHOLD {args.threshold:.2f}):")
     print("-" * 75)
     print(f"  Confusion Matrix:        TP = {cm['tp']:,}  |  FP = {cm['fp']:,}  |  FN = {cm['fn']:,}  |  TN = {cm['tn']:,}")
     print(f"  Pixel Counts:            GT Changed = {cm['gt_changed_pixels']:,}  |  Pred Changed = {cm['pred_changed_pixels']:,}")
