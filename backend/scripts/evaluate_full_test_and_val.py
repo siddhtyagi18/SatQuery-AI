@@ -491,7 +491,8 @@ def main():
             data_root = Path(env_root)
         else:
             default_candidates = [
-                Path("C:/Users/Lenovo/Downloads/LEVIR-CD"),
+                Path("./data/LEVIR-CD"),
+                Path("../data/LEVIR-CD"),
             ]
             for d in default_candidates:
                 if d.exists():

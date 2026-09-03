@@ -7,11 +7,11 @@ Training, evaluation, and checkpointing script for the SiameseUNet change detect
 Usage examples
 --------------
 # CPU smoke test (verifies code runs, 2 mini-batches, tiny 64×64 images):
-python scripts/train_change_detector.py --smoke-test --data-root C:/path/to/LEVIR-CD
+python scripts/train_change_detector.py --smoke-test --data-root /path/to/LEVIR-CD
 
 # Full training (do NOT run locally without GPU — set this up on cloud/Colab):
 python scripts/train_change_detector.py \\
-    --data-root C:/path/to/LEVIR-CD \\
+    --data-root /path/to/LEVIR-CD \\
     --epochs 50 \\
     --batch-size 4 \\
     --img-size 256 \\
@@ -19,12 +19,12 @@ python scripts/train_change_detector.py \\
 
 # Resume training from a checkpoint:
 python scripts/train_change_detector.py \\
-    --data-root C:/path/to/LEVIR-CD \\
+    --data-root /path/to/LEVIR-CD \\
     --resume ./checkpoints/last_model.pt
 
 # Evaluate only (no training):
 python scripts/train_change_detector.py \\
-    --data-root C:/path/to/LEVIR-CD \\
+    --data-root /path/to/LEVIR-CD \\
     --resume ./checkpoints/best_model.pt \\
     --eval-only
 
@@ -459,7 +459,6 @@ def main():
             data_root = Path(env_val)
         else:
             candidates = [
-                Path("C:/Users/Lenovo/Downloads/LEVIR-CD"),
                 Path("./data/LEVIR-CD"),
                 Path("../data/LEVIR-CD"),
             ]

@@ -1,35 +1,37 @@
-# SatQuery-AI Backend — Phase 1
+# SatQuery-AI Backend — Phase 3 (Real ML Models & Dataset Pipeline)
 
-FastAPI backend for SatQuery-AI (SIH project). This is Phase 1: a CPU-only
-foundation with mock specialist services, ready to plug in real ML models in
-Phase 2.
+FastAPI backend for SatQuery-AI (SIH project). Features real bi-temporal change detection (trained Siamese U-Net on LEVIR-CD), SmolVLM VQA adapter, geospatial metadata extraction, and structured deterministic execution tracing.
 
-## Architecture
+## Architecture & Real ML Dispatch
 
 ```
 Frontend (Next.js)
     │  HTTP / JSON (contracts in lib/types/analysis.ts)
     ▼
 FastAPI (app/main.py)
-    │  endpoints: upload, analysis, tools, benchmark, health
+    │  endpoints: upload, analysis, datasets, tools, benchmark, health
     ▼
 Orchestrator (app/services/orchestrator.py)
     ├─ Task Classifier  → keyword-based deterministic routing
-    ├─ Tool Registry    → 7 replaceable specialist tool definitions
+    ├─ Tool Registry    → 7 specialist tool definitions
     └─ Tool Selection   → mode-aware mapping tasks → tool ids
     ▼
-Specialist Services (app/services/mock_specialists.py)
-    • RS_VQA              RS_CAPTION
-    • RS_GROUNDING        CHANGE_DETECTOR
-    • CHANGE_VQA          OPTICAL_SAR_ANALYZER
-    • SPATIAL_ANALYZER
+Inference & Specialist Services
+    • CHANGE_DETECTOR     → Real SiameseUNet (`checkpoints/best_model.pt`) with sliding window
+    • RS_VQA              → Real SmolVLM adapter (`vqa_service.py`) / fallback
+    • RS_GROUNDING        → Structured mock service
+    • RS_CAPTION          → Structured mock service
+    • CHANGE_VQA          → Structured mock service
+    • OPTICAL_SAR_ANALYZER→ Structured mock service
+    • SPATIAL_ANALYZER    → Structured mock service
     ▼
-Storage: SQLite (SQLAlchemy) + local filesystem for uploads
+Storage: SQLite (SQLAlchemy) + local filesystem uploads + optional Firebase Firestore/Storage
 ```
 
-All specialist tools in Phase 1 return structured **mock** results clearly
-marked with a `[MOCK — Phase 1, not real inference]` prefix. Confidence scores
-are fixed placeholders, never fabricated scientific results.
+### Real vs Mock Distinction
+- **Real ML Change Detection**: When `CHANGE_DETECTION_CHECKPOINT=./checkpoints/best_model.pt` is present, bi-temporal analysis executes the trained Siamese U-Net across full-resolution imagery via 256×256 sliding windows with 32px overlap smoothing.
+- **Classical Difference Fallback**: If checkpoint is missing, gracefully runs CPU perceptual differencing.
+- **Mock Specialists**: Unimplemented tools explicitly output structured mock results labeled `[MOCK]` to ensure scientific validity without fabricating fake confidence values.
 
 ## Project Structure
 
@@ -390,10 +392,19 @@ CHANGE_DETECTION_CHECKPOINT=./checkpoints/best_model.pt
 - **Inputs**: 6-channel concatenated RGB image pair `[img_A, img_B]` of shape `(B, 6, H, W)`.
 - **Architecture**: 3-level encoder with skip connections + upsampling decoder + 1-channel logit head (~490K trainable parameters, ~1.48 MB checkpoint size).
 - **Loss**: Differentiable BCE + Dice combined loss for class-imbalanced change detection.
-- **Trained Checkpoint Status (50 Epochs Complete)**:
-  - `checkpoints/best_model.pt`: **Best checkpoint from Epoch 48** (Val IoU: `0.4875`, F1: `0.5429`, Precision: `0.9691`, Accuracy: `97.63%`).
-  - `checkpoints/last_model.pt`: **Epoch 50 checkpoint** with complete optimizer and scheduler state for training continuation.
-  - `checkpoints/training_log.json`: Complete 50-epoch training history log.
+- **Trained Experiments Summary**:
+  - **Baseline (50 Epochs)**: Best checkpoint at Epoch 48 (Val IoU: `0.4875`, Val F1: `0.5429`, Precision: `0.9691`, Accuracy: `97.63%`).
+  - **Experiment 01 (Hybrid Imbalance Loss, 50 Epochs)**: Best Validation F1 = `0.6245`, Best Validation IoU = `0.4638`.
+  - **Experiment 01 Final Test Split Evaluation (128 samples, threshold 0.70)**:
+    - **Test Micro IoU**: `58.06%` (`0.5806`)
+    - **Test Micro F1/Dice**: `73.47%` (`0.7347`)
+    - **Test Precision**: `73.62%` (`0.7362`)
+    - **Test Recall**: `73.32%` (`0.7332`)
+    - **Test Pixel Accuracy**: `97.34%` (`0.9734`)
+  - Checkpoint files:
+    - `checkpoints/best_model.pt`: Best model weights (~1.48 MB).
+    - `checkpoints/last_model.pt`: Epoch 50 weights with optimizer & scheduler state (~1.48 MB).
+    - `checkpoints/training_log.json`: 50-epoch loss and evaluation history.
 - **Inference Mode Dispatcher**:
   - If `CHANGE_DETECTION_CHECKPOINT` is configured → runs model tiled sliding-window inference with 32px overlap averaging.
   - If unset or missing → transparently falls back to the CPU classical pixel-difference baseline.

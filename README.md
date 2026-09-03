@@ -1,148 +1,209 @@
 # SatQuery-AI 🌍🛰️
 
-An AI-powered satellite imagery query and analysis platform (SIH Project).
-
-## Status: Phase 3 In Progress (Trained Model Checkpoint Ready) 🚀
-
-| Phase | Status | Description |
-|-------|--------|-------------|
-| **Phase 1** | ✅ Completed | Full-stack foundation with Next.js frontend + FastAPI backend, mock specialist services, SQLite persistence, test suite, execution trace pipeline, 7-tool registry |
-| **Phase 2** | ✅ Completed | Real VQA service via Model Adapter architecture, Firebase Firestore + Storage integration, Rasterio/PyProj/Pillow geospatial preprocessing, Model Manager caching |
-| **Phase 3** | 🔄 In Progress | Real Change Detection Siamese U-Net model (**50 epochs trained on LEVIR-CD, best checkpoint at Epoch 48 with IoU 0.4875**), tiled sliding-window inference dispatcher, dataset validators, resume training pipeline, BigEarthNet metadata schema analysis |
+An AI-powered satellite imagery query and multi-temporal analysis platform for the Smart India Hackathon (SIH).
 
 ---
 
-## Project Structure
+## 🚀 Project Status & Real ML Milestones
+
+SatQuery-AI features an end-to-end pipeline spanning geospatial pre-processing, deterministic task routing, deep learning change detection, multi-modal VQA adapters, and interactive Next.js visualization.
+
+### Real Training Experiments (LEVIR-CD Dataset)
+
+We have completed two full real training experiments on the LEVIR-CD building change detection benchmark:
+
+| Metric / Parameter | Experiment 00 (Baseline) | Experiment 01 (Hybrid Imbalance Loss) |
+|---|---|---|
+| **Architecture** | Siamese U-Net (6-channel bitemporal) | Siamese U-Net (6-channel bitemporal) |
+| **Parameters** | 490,561 (~1.48 MB) | 490,561 (~1.48 MB) |
+| **Epochs** | 50 (Best Checkpoint: Epoch 48) | 50 (Best Validation Checkpoint: Epoch 48/50) |
+| **Loss Formulation** | BCE + Dice Loss | Hybrid Weighted BCE + Soft Dice + Boundary Loss |
+| **Best Validation F1** | 0.5429 | **0.6245** |
+| **Best Validation IoU** | 0.4875 | **0.4638** |
+
+### Official Test Evaluation Benchmark (Experiment 01)
+
+Evaluated across the full 128-sample LEVIR-CD test split using the validation-selected optimal threshold **0.70**:
+
+- **Test Micro IoU (Jaccard Index)**: **`58.06%`** (`0.5806`)
+- **Test Micro F1 / Dice Score**: **`73.47%`** (`0.7347`)
+- **Test Precision**: **`73.62%`** (`0.7362`)
+- **Test Recall**: **`73.32%`** (`0.7332`)
+- **Test Pixel Accuracy**: **`97.34%`** (`0.9734`)
+
+Full evaluation logs and per-sample benchmark tables are available in [`evaluation_results/`](./evaluation_results/).
+
+---
+
+## 🔍 Real vs. Mock Specialist Capabilities
+
+To ensure scientific honesty and prevent fabricated metrics ("no fake science"), all backend services clearly delineate real ML capabilities from mock tools:
+
+| Specialist Tool / Capability | Status | Execution Engine | Output Guarantee |
+|---|---|---|---|
+| **Change Detection (Bi-temporal)** | 🟢 **REAL ML** | Trained Siamese U-Net (`checkpoints/best_model.pt`) with tiled 256×256 sliding-window inference + 32px overlap smoothing. | Real binary change mask, percentage changed, pixel confusion stats. |
+| **Classical Difference (Fallback)** | 🟢 **REAL ALG** | CPU perceptual luminance difference + adaptive thresholding. | Active if checkpoint is unconfigured. |
+| **Geospatial Preprocessing** | 🟢 **REAL** | Pillow + Rasterio/PyProj GeoTIFF bounds, CRS, dimensions, and band normalization. | Real metadata extraction. |
+| **VQA Adapter Pipeline** | 🟢 **REAL** | HuggingFace `SmolVLM-500M-Instruct` adapter with dynamic device fallback (CUDA/CPU) & model caching. | Real text synthesis when enabled (`VQA_MODE=real/auto`). |
+| **Dataset Validators** | 🟢 **REAL** | LEVIR-CD directory layout & file alignment validator; BigEarthNet parquet schema validator. | Real split checks & patch count summaries. |
+| **RS Captioning / Grounding** | 🟡 *Mock* | Structured mock specialist service (clearly marked `[MOCK]`). | Bounding boxes/coords return `null` when unverified. |
+| **Optical / SAR Fusion** | 🟡 *Mock* | Structured mock specialist service. | Delineated mock summary. |
+
+---
+
+## 📂 Repository Structure
 
 ```
 SatQuery-AI/
-├── app/                          # Next.js Frontend (App Router)
-│   ├── analysis/                 # Analysis flows (new, history, detail)
-│   ├── benchmark/                # Benchmark metrics page
-│   ├── registry/                 # Tool registry page
-│   ├── layout.tsx                # Root layout
-│   └── page.tsx                  # Landing page
-├── backend/                      # FastAPI Backend
+├── app/                              # Next.js 15 Frontend (App Router, Tailwind CSS, Dark Mode)
+│   ├── analysis/                     # Analysis flows ([id] details, history, new submission)
+│   ├── benchmark/                    # Benchmark metrics dashboard
+│   ├── registry/                     # Specialist tool registry inspection page
+│   ├── login/                        # Authentication guard & access
+│   ├── layout.tsx                    # Root layout with theme provider & header
+│   └── page.tsx                      # Landing page & quick launch
+├── backend/                          # FastAPI Backend
 │   ├── app/
-│   │   ├── routers/              # API endpoints (upload, analysis, datasets, tools, benchmark, health)
-│   │   ├── services/             # Core services (orchestrator, model_inference, datasets, vqa_service,
-│   │   │                         #               preprocessing, firebase, metadata, models, trace)
-│   │   ├── main.py               # FastAPI app entry
-│   │   ├── config.py             # Configurable settings via .env (no hardcoded paths)
-│   │   ├── models.py             # SQLAlchemy models + DB schema
-│   │   └── schemas.py            # Pydantic schemas matching frontend contracts
-│   ├── checkpoints/              # Trained PyTorch weights (~1.48 MB each)
-│   │   ├── best_model.pt         # Best checkpoint (Epoch 48, IoU: 0.4875)
-│   │   ├── last_model.pt         # Epoch 50 checkpoint (ready for resume training)
-│   │   └── training_log.json     # Full 50-epoch training history log
-│   ├── scripts/
-│   │   └── train_change_detector.py # Training, resume training & evaluation script
-│   ├── tests/                    # 88 unit & integration tests
-│   ├── requirements.txt          # Python dependencies
-│   └── README.md                 # Detailed backend docs
-├── components/                   # React UI components (SatelliteViewer, ChangeStatsPanel, Trace UI, etc.)
-├── lib/                          # API client + TypeScript contracts
-├── public/                       # Static demo imagery
-├── .env.example                  # Frontend environment configuration template
-└── README.md                     # Root project documentation
+│   │   ├── routers/                  # API endpoints (upload, analysis, datasets, tools, benchmark, health)
+│   │   ├── services/                 # Core services (orchestrator, model_inference, datasets, vqa_service,
+│   │   │                             #               preprocessing, firebase, metadata, models, trace)
+│   │   ├── main.py                   # FastAPI app entry + CORS + error handlers
+│   │   ├── config.py                 # Pydantic Settings (LEVIR_CD_DATASET_PATH, CHECKPOINT_DIR, etc.)
+│   │   ├── models.py                 # SQLAlchemy SQLite models
+│   │   └── schemas.py                # Pydantic validation schemas matching TypeScript contracts
+│   ├── checkpoints/                  # Model weights (1.48 MB each, versioned in Git)
+│   │   ├── best_model.pt             # Best checkpoint (Epoch 48 weights)
+│   │   ├── last_model.pt             # Epoch 50 checkpoint (ready for resume training)
+│   │   ├── training_log.json         # 50-epoch loss and evaluation curves
+│   │   └── experiment_01/            # Experiment 01 directory copy for automated tooling
+│   ├── scripts/                      # Standalone CLI tools for training & evaluation
+│   │   ├── train_change_detector.py  # Full training, resume training, and smoke-test CLI
+│   │   ├── evaluate_full_test_and_val.py # Full 128-test split evaluation & threshold sweeps
+│   │   └── visualize_change_predictions.py # 6-panel qualitative visual evaluation generator
+│   ├── tests/                        # 88 automated unit & integration tests
+│   ├── requirements.txt              # Backend dependencies
+│   └── .env.example                  # Backend environment variable template
+├── components/                       # React UI components (SatelliteViewer, ChangeStatsPanel, Trace UI, etc.)
+├── evaluation_results/               # Quantitative benchmark metrics & JSON validation sweeps
+│   ├── EXPERIMENT_01_RESULTS.md      # Detailed experiment logs & benchmark comparison
+│   ├── test_full_results.json        # Full 128-sample test evaluation metrics
+│   └── val_threshold_sweep.json      # Validation threshold sweep metrics [0.30 - 0.70]
+├── lib/                              # API client (`liveApi.ts`, `mockApi.ts`) & TypeScript interfaces
+├── public/                           # Static demo assets & sample imagery
+├── .env.example                      # Frontend environment variable template
+└── README.md                         # Project documentation
 ```
 
 ---
 
-## Model & Checkpoints Summary
+## 👥 Team Setup & Quickstart Guide
 
-- **Architecture**: Siamese U-Net with 6-channel input `[Image_A, Image_B]`, 3-level skip connections, ~490K parameters (~1.48 MB).
-- **Dataset**: Trained on LEVIR-CD bi-temporal building change detection dataset.
-- **Checkpoints**:
-  - `backend/checkpoints/best_model.pt` — Best model checkpoint (Epoch 48: IoU `0.4875`, F1 `0.5429`, Precision `0.9691`, Accuracy `97.63%`).
-  - `backend/checkpoints/last_model.pt` — Epoch 50 checkpoint with full model, optimizer, and scheduler states for seamless resume training.
-  - `backend/checkpoints/training_log.json` — 50-epoch loss and evaluation history.
-- **Inference**: High-resolution 1024×1024 images are processed via 256×256 tiled sliding windows with 32px overlap averaging.
-
----
-
-## Team Setup & Quick Start
-
-### 1. Frontend Setup (Next.js)
+### 1. Clone & Frontend Setup
 ```bash
-# In repository root:
+# Clone the repository
+git clone https://github.com/siddhtyagi18/SatQuery-AI.git
+cd SatQuery-AI
+
+# Configure frontend environment
 cp .env.example .env.local
+
+# Install dependencies and start development server
 npm install
 npm run dev
-# → http://localhost:3000
+# Frontend is now running at: http://localhost:3000
 ```
 
-### 2. Backend Setup (FastAPI)
+### 2. Backend Setup
 ```bash
+# In a new terminal, navigate to backend:
 cd backend
+
+# Create and activate Python virtual environment (Python 3.11+ recommended)
 python -m venv .venv
+
 # On Windows PowerShell:
 .\.venv\Scripts\Activate.ps1
 # On Linux/macOS:
 # source .venv/bin/activate
 
+# Install dependencies
 pip install -r requirements.txt
+
+# Configure environment
 cp .env.example .env
-
-# Run FastAPI dev server:
-uvicorn app.main:app --reload --port 8000
-# → http://localhost:8000/docs (Interactive Swagger UI)
 ```
 
-### 3. Change Detection Model Configuration (.env)
-To enable the trained change detection model for inference, configure in `backend/.env`:
+### 3. Local Dataset & Checkpoint Configuration
+
+Edit `backend/.env` with your local paths:
+
 ```env
+# Path to trained SiameseUNet checkpoint file (included in repository)
 CHANGE_DETECTION_CHECKPOINT=./checkpoints/best_model.pt
+
+# Optional: Path to local LEVIR-CD dataset (if validating or running training/eval scripts)
+# Do NOT commit your local dataset path into version control
 LEVIR_CD_DATASET_PATH=/path/to/LEVIR-CD
+
+# Storage & VQA configuration
+STORAGE_BACKEND=local
+VQA_MODE=auto
 ```
 
-### 4. Resuming Training
-To continue training beyond Epoch 50:
+### 4. Run Backend Server
+```bash
+uvicorn app.main:app --reload --port 8000
+# Backend API & Interactive Docs: http://localhost:8000/docs
+```
+
+### 5. Run Automated Test Suite
+```bash
+cd backend
+pytest tests/ -v
+# All 88 tests execute locally in under 15 seconds
+```
+
+---
+
+## 🏋️ Training & Evaluation CLI Commands
+
+### Run Full Test Split Evaluation
+```bash
+cd backend
+python scripts/evaluate_full_test_and_val.py \
+    --checkpoint ./checkpoints/best_model.pt \
+    --data-root /path/to/LEVIR-CD \
+    --threshold 0.70
+```
+
+### Generate 6-Panel Prediction Visualizations
+```bash
+cd backend
+python scripts/visualize_change_predictions.py \
+    --checkpoint ./checkpoints/best_model.pt \
+    --data-root /path/to/LEVIR-CD \
+    --num-samples 10 \
+    --threshold 0.70
+```
+
+### Continue / Resume Training
 ```bash
 cd backend
 python scripts/train_change_detector.py \
-    --data-root "/path/to/LEVIR-CD" \
+    --data-root /path/to/LEVIR-CD \
     --resume ./checkpoints/last_model.pt \
     --epochs 100 \
     --batch-size 4
 ```
 
-### 5. Running Tests
-```bash
-cd backend
-pytest tests/ -v
-```
-All 88 unit & integration tests execute locally in under 10 seconds.
+---
+
+## 💾 Model Weights & Git Storage Strategy
+
+- **Current Checkpoints**: The Siamese U-Net weights (`best_model.pt` and `last_model.pt`) are **~1.48 MB** each. Because they are well below GitHub's 50 MB / 100 MB limits, they are versioned directly in Git under `backend/checkpoints/` for zero-friction team onboarding.
+- **Large Transformer Models**: If larger foundational models or Vision-Language Transformers (>50 MB) are added in future iterations, they should be stored via **Git LFS** (`git lfs track "*.pt"`), **GitHub Releases**, or a shared cloud storage bucket (e.g. Google Cloud Storage / Hugging Face Model Hub).
+- **Datasets**: The LEVIR-CD dataset (~5-10 GB) and BigEarthNet parquet files are strictly excluded from git via `.gitignore`. Each teammate configures their local dataset path via `LEVIR_CD_DATASET_PATH` in `.env`.
 
 ---
 
-## API Quick Reference
-
-| Endpoint | Method | Phase | Description |
-|----------|--------|-------|-------------|
-| `/health` | GET | 1 | Health check + version |
-| `/api/upload` | POST | 1+2 | Upload satellite image (PNG/JPG/GeoTIFF) |
-| `/api/analysis` | POST | 1+2 | Submit analysis request |
-| `/api/analysis` | GET | 1+2 | List analysis history (paginated, filtered) |
-| `/api/analysis/{id}` | GET | 1+2 | Get full analysis result |
-| `/api/analysis/{id}/trace` | GET | 1+2 | Get execution trace only |
-| `/api/analysis/{id}` | DELETE | 1+2 | Delete analysis record |
-| `/api/datasets/status` | GET | 3 | Status of configured datasets & checkpoints |
-| `/api/datasets/levir-cd/validate` | GET | 3 | Validate LEVIR-CD directory splits & file alignment |
-| `/api/datasets/bigearthnet/summary` | GET | 3 | Schema & statistics summary for BigEarthNet annotations |
-| `/api/tools` | GET | 1+2 | List specialist tools + status |
-| `/api/benchmark` | GET | 1+2 | 12 benchmark metric rows |
-| `/api/files/{id}` | GET | 1+2 | Serve uploaded file preview |
-
----
-
-## Design Principles
-
-- **No Fake Science** — All mock outputs are explicitly labelled; confidence/coords/masks return `null` when unreliable.
-- **Frontend Contract as Source of Truth** — Pydantic schemas mirror `lib/types/analysis.ts` exactly.
-- **Deterministic Routing & Full Tracing** — Per-request multi-step execution traces for auditable workflows.
-- **Lightweight Checkpoints** — Trained model weights (~1.48 MB) fit cleanly into git for immediate team collaboration without large LFS overhead.
-
----
-
-*SatQuery-AI — SIH Project*
+*SatQuery-AI — Smart India Hackathon (SIH) Project*

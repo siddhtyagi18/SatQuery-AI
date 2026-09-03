@@ -30,7 +30,7 @@ python scripts/visualize_change_predictions.py --num-samples 10 --threshold 0.5
 # Specify custom checkpoint, dataset root, output directory:
 python scripts/visualize_change_predictions.py \\
     --checkpoint ./checkpoints/best_model.pt \\
-    --data-root C:/Users/Lenovo/Downloads/LEVIR-CD \\
+    --data-root /path/to/LEVIR-CD \\
     --output-dir outputs/change_detection/test_predictions \\
     --num-samples 10 \\
     --threshold 0.5
@@ -418,7 +418,6 @@ def main():
             data_root = Path(env_root)
         else:
             default_candidates = [
-                Path("C:/Users/Lenovo/Downloads/LEVIR-CD"),
                 Path("./data/LEVIR-CD"),
                 Path("../data/LEVIR-CD"),
             ]
