@@ -328,9 +328,14 @@ def evaluate(
 # Smoke test
 # ---------------------------------------------------------------------------
 
-def run_smoke_test(data_root: Path, img_size: int = 64) -> bool:
+def run_smoke_test(
+    data_root: Path,
+    img_size: int = 64,
+    loss_type: str = "hybrid_v2",
+    pos_weight: float = 2.5,
+) -> bool:
     """
-    Run a tiny CPU smoke test to verify the full training pipeline works.
+    Run a tiny CPU smoke test to verify the full training pipeline and loss function work.
 
     Creates a minimal synthetic dataset (4 random images, 64×64) and runs
     2 training batches + 1 validation batch. Does NOT use real LEVIR-CD images.
@@ -342,11 +347,18 @@ def run_smoke_test(data_root: Path, img_size: int = 64) -> bool:
     from torch.utils.data import TensorDataset, DataLoader
 
     print("\n" + "=" * 60)
-    print("SMOKE TEST: Verifying training pipeline on CPU with synthetic data")
+    print(f"SMOKE TEST: Verifying training pipeline on CPU (loss_type={loss_type})")
     print("=" * 60)
 
     try:
-        from app.services.models.siamese_unet import SiameseUNet, combined_loss
+        from app.services.models.siamese_unet import (
+            SiameseUNet,
+            combined_loss,
+            hybrid_imbalance_loss,
+            enhanced_hybrid_loss,
+            tversky_loss,
+            focal_loss,
+        )
 
         # Create 4 synthetic samples (64×64)
         B, C, H, W = 4, 3, img_size, img_size
@@ -364,7 +376,32 @@ def run_smoke_test(data_root: Path, img_size: int = 64) -> bool:
 
         device = torch.device("cpu")
         model = model.to(device)
-        optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=5e-4)
+
+        # Build loss function
+        if loss_type in ("hybrid_v2", "combo"):
+            pos_w_tensor = torch.tensor([pos_weight], device=device)
+            loss_fn = lambda logits, target: enhanced_hybrid_loss(
+                logits, target, pos_weight=pos_w_tensor,
+                bce_weight=0.25, dice_weight=0.30, tversky_weight=0.30, focal_weight=0.15,
+                tversky_alpha=0.3, tversky_beta=0.7
+            )
+        elif loss_type == "hybrid":
+            pos_w_tensor = torch.tensor([pos_weight], device=device)
+            loss_fn = lambda logits, target: hybrid_imbalance_loss(
+                logits, target, pos_weight=pos_w_tensor, bce_weight=0.35, tversky_weight=0.45, focal_weight=0.20
+            )
+        elif loss_type == "weighted_bce_dice":
+            pos_w_tensor = torch.tensor([pos_weight], device=device)
+            loss_fn = lambda logits, target: combined_loss(
+                logits, target, bce_weight=0.5, dice_weight=0.5, pos_weight=pos_w_tensor
+            )
+        elif loss_type == "focal_tversky":
+            loss_fn = lambda logits, target: 0.5 * tversky_loss(
+                torch.sigmoid(logits), target, alpha=0.3, beta=0.7
+            ) + 0.5 * focal_loss(logits, target, alpha=0.25, gamma=2.0)
+        else:
+            loss_fn = lambda logits, target: combined_loss(logits, target, bce_weight=0.5, dice_weight=0.5)
 
         # 2 training batches
         model.train()
@@ -372,7 +409,7 @@ def run_smoke_test(data_root: Path, img_size: int = 64) -> bool:
             a, b, lbl = a.to(device), b.to(device), lbl.to(device)
             inp = torch.cat([a, b], dim=1)
             logits = model(inp)
-            loss = combined_loss(logits, lbl)
+            loss = loss_fn(logits, lbl)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -394,8 +431,8 @@ def run_smoke_test(data_root: Path, img_size: int = 64) -> bool:
         assert logits.shape == (2, 1, img_size, img_size), f"Unexpected output shape: {logits.shape}"
         assert prob.min() >= 0.0 and prob.max() <= 1.0, "Probability out of [0, 1] range"
 
-        print("\n[PASS] SMOKE TEST PASSED - training pipeline is functional on CPU.")
-        print("       Next step: run full training on GPU/cloud with real LEVIR-CD data.")
+        print(f"\n[PASS] SMOKE TEST PASSED - loss_type='{loss_type}' with enhanced_hybrid_loss is verified on CPU.")
+        print("       Ready for full training on GPU/cloud with real LEVIR-CD data.")
         return True
 
     except Exception as e:
@@ -415,25 +452,25 @@ def main():
     )
     parser.add_argument("--data-root", type=Path, default=None,
                         help="Path to LEVIR-CD root directory")
-    parser.add_argument("--checkpoint-dir", type=Path, default=Path("./checkpoints/experiment_01"),
-                        help="Directory to save checkpoints (default: ./checkpoints/experiment_01)")
+    parser.add_argument("--checkpoint-dir", type=Path, default=Path("./checkpoints/experiment_02"),
+                        help="Directory to save checkpoints (default: ./checkpoints/experiment_02)")
     parser.add_argument("--resume", type=Path, default=None,
                         help="Path to checkpoint to resume from")
     parser.add_argument("--epochs", type=int, default=50,
                         help="Number of training epochs (default: 50)")
-    parser.add_argument("--batch-size", type=int, default=4,
-                        help="Batch size (default: 4; use 2 if low VRAM)")
+    parser.add_argument("--batch-size", type=int, default=8,
+                        help="Batch size (default: 8; use 4 if low VRAM)")
     parser.add_argument("--img-size", type=int, default=256,
                         help="Crop size for training images (default: 256)")
-    parser.add_argument("--lr", type=float, default=8e-4,
-                        help="Learning rate (default: 8e-4 with AdamW)")
+    parser.add_argument("--lr", type=float, default=5e-4,
+                        help="Learning rate (default: 5e-4 with AdamW)")
     parser.add_argument("--weight-decay", type=float, default=1e-4,
                         help="Weight decay for optimizer (default: 1e-4)")
-    parser.add_argument("--loss-type", type=str, default="hybrid",
-                        choices=["hybrid", "weighted_bce_dice", "focal_tversky", "bce_dice"],
-                        help="Loss function type for class imbalance (default: hybrid)")
-    parser.add_argument("--pos-weight", type=float, default=3.0,
-                        help="Positive class weight for BCE in imbalanced loss (default: 3.0)")
+    parser.add_argument("--loss-type", type=str, default="hybrid_v2",
+                        choices=["hybrid_v2", "combo", "hybrid", "weighted_bce_dice", "focal_tversky", "bce_dice"],
+                        help="Loss function type for class imbalance (default: hybrid_v2)")
+    parser.add_argument("--pos-weight", type=float, default=2.5,
+                        help="Positive class weight for BCE in imbalanced loss (default: 2.5)")
     parser.add_argument("--scheduler", type=str, default="cosine",
                         choices=["cosine", "plateau"],
                         help="Learning rate scheduler (default: cosine)")
@@ -471,7 +508,12 @@ def main():
     # Smoke test mode
     # ------------------------------------------------------------------
     if args.smoke_test:
-        success = run_smoke_test(data_root or Path("."), img_size=64)
+        success = run_smoke_test(
+            data_root or Path("."),
+            img_size=64,
+            loss_type=args.loss_type,
+            pos_weight=args.pos_weight,
+        )
         sys.exit(0 if success else 1)
 
     # ------------------------------------------------------------------
@@ -492,6 +534,7 @@ def main():
             SiameseUNet,
             combined_loss,
             hybrid_imbalance_loss,
+            enhanced_hybrid_loss,
             tversky_loss,
             focal_loss,
         )
@@ -548,7 +591,14 @@ def main():
         )
 
     # Loss function selection
-    if args.loss_type == "hybrid":
+    if args.loss_type in ("hybrid_v2", "combo"):
+        pos_w_tensor = torch.tensor([args.pos_weight], device=device)
+        loss_fn = lambda logits, target: enhanced_hybrid_loss(
+            logits, target, pos_weight=pos_w_tensor,
+            bce_weight=0.25, dice_weight=0.30, tversky_weight=0.30, focal_weight=0.15,
+            tversky_alpha=0.3, tversky_beta=0.7
+        )
+    elif args.loss_type == "hybrid":
         pos_w_tensor = torch.tensor([args.pos_weight], device=device)
         loss_fn = lambda logits, target: hybrid_imbalance_loss(
             logits, target, pos_weight=pos_w_tensor, bce_weight=0.35, tversky_weight=0.45, focal_weight=0.20

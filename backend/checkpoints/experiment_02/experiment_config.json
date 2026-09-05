@@ -1,0 +1,17 @@
+{
+  "experiment_id": "experiment_02",
+  "model": "SiameseUNet",
+  "in_channels": 6,
+  "base_filters": 16,
+  "epochs": 50,
+  "batch_size": 8,
+  "img_size": 256,
+  "lr": 0.0005,
+  "weight_decay": 0.0001,
+  "loss_type": "hybrid_v2",
+  "loss_formulation": "0.25*BCE(pos_weight=2.5) + 0.30*Dice + 0.30*Tversky(alpha=0.3, beta=0.7) + 0.15*Focal(gamma=2.0)",
+  "pos_weight": 2.5,
+  "scheduler": "cosine",
+  "dataset": "LEVIR-CD",
+  "objective": "Improve IoU, F1/Dice, and Recall over Experiment 01 while maintaining precision"
+}

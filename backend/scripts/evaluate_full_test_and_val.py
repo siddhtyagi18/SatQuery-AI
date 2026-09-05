@@ -506,6 +506,7 @@ def main():
     print(f"  Checkpoint:       {checkpoint_path}")
     print(f"  Dataset Root:     {data_root}")
     print(f"  Evaluation Crop:  {args.img_size}×{args.img_size}")
+    print(f"  Test Threshold:   {args.threshold:.2f}")
     print(f"  Base Output Dir:  {args.output_dir}")
     print("=" * 80 + "\n")
 
@@ -534,7 +535,7 @@ def main():
     test_summary["checkpoint"] = {
         "path": str(checkpoint_path),
         "epoch": ckpt_epoch,
-        "note": "Best validation checkpoint from Epoch 48",
+        "note": f"Best validation checkpoint from Epoch {ckpt_epoch}",
     }
     test_summary["evaluation_split"] = "test"
 

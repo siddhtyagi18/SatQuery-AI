@@ -349,6 +349,32 @@ def combined_loss(
     return bce_weight * bce + dice_weight * dice
 
 
+def enhanced_hybrid_loss(
+    logits: torch.Tensor,
+    target: torch.Tensor,
+    pos_weight: Optional[torch.Tensor] = None,
+    bce_weight: float = 0.25,
+    dice_weight: float = 0.30,
+    tversky_weight: float = 0.30,
+    focal_weight: float = 0.15,
+    tversky_alpha: float = 0.3,
+    tversky_beta: float = 0.7,
+) -> torch.Tensor:
+    """
+    Enhanced 4-component hybrid loss engineered for Experiment 02:
+    1. Weighted BCE (0.25): provides calibrated pixel supervision & positive pull.
+    2. Soft Dice Loss (0.30): directly optimizes global region IoU/F1 overlap.
+    3. Asymmetric Tversky (0.30, alpha=0.3, beta=0.7): penalizes false negatives to boost change recall.
+    4. Focal Loss (0.15, gamma=2.0): focuses on hard edge boundaries.
+    """
+    bce = F.binary_cross_entropy_with_logits(logits, target, pos_weight=pos_weight)
+    prob = torch.sigmoid(logits)
+    dice = dice_loss(prob, target)
+    tversky = tversky_loss(prob, target, alpha=tversky_alpha, beta=tversky_beta)
+    focal = focal_loss(logits, target, alpha=0.25, gamma=2.0)
+    return bce_weight * bce + dice_weight * dice + tversky_weight * tversky + focal_weight * focal
+
+
 # Make Optional importable at module level for type signatures
 from typing import Optional
 

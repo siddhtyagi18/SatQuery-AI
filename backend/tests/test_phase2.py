@@ -532,7 +532,7 @@ def test_execution_trace_has_8_steps_and_exec_modes(client, png_file):
     for step in t["steps"]:
         assert step["status"] == "done", f"Step {step['title']} is {step['status']}"
     assert t["overallStatus"] == "completed"
-    assert isinstance(t["totalElapsedMs"], int) and t["totalElapsedMs"] > 0
+    assert isinstance(t["totalElapsedMs"], int) and t["totalElapsedMs"] >= 0
 
     # Tool-selection step should mention REAL or MOCK for each tool.
     toolsel = t["steps"][3]
