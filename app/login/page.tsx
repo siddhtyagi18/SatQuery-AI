@@ -12,16 +12,22 @@ import {
   EyeOff,
   ArrowRight,
   Radio,
+  UserPlus,
+  LogIn,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { signIn, signUp } from '@/lib/authService';
 
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -37,12 +43,53 @@ export default function LoginPage() {
       toast.error('Please enter both email and password');
       return;
     }
+    if (mode === 'signup') {
+      if (password.length < 6) {
+        toast.error('Password must be at least 6 characters');
+        return;
+      }
+      if (password !== confirmPassword) {
+        toast.error('Passwords do not match');
+        return;
+      }
+    }
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 900));
-    login(email);
-    setSubmitting(false);
-    toast.success('Authentication successful. Redirecting to mission control…');
-    setTimeout(() => router.push('/'), 400);
+    try {
+      if (mode === 'login') {
+        const { session } = await signIn(email, password);
+        if (!session) {
+          throw new Error('No session returned');
+        }
+        toast.success('Authentication successful. Redirecting to mission control…');
+        router.replace('/');
+      } else {
+        const { session, needsEmailConfirmation } = await signUp(email, password);
+        if (needsEmailConfirmation) {
+          toast.success(
+            'Sign up requested. Please check your email for a confirmation link, then sign in.',
+            { duration: 8000 }
+          );
+          setMode('login');
+          setPassword('');
+          setConfirmPassword('');
+          return;
+        }
+        if (!session) {
+          toast.success('Account created. Please sign in.');
+          setMode('login');
+          setPassword('');
+          setConfirmPassword('');
+          return;
+        }
+        toast.success('Account created. Welcome to mission control…');
+        router.replace('/');
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Authentication failed';
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -225,14 +272,15 @@ export default function LoginPage() {
                   backgroundSize: '200% 200%',
                 }}
               >
-                Welcome back,
+                {mode === 'login' ? 'Welcome back,' : 'Onboard new,'}
               </span>
               <br />
-              Mission Controller.
+              {mode === 'login' ? 'Mission Controller.' : 'Ground-Station Operator.'}
             </h1>
             <p className="text-sm leading-relaxed max-w-sm" style={{ color: 'var(--text-muted)' }}>
-              Authenticate to access the multimodal satellite intelligence console.
-              All ground-station telemetry is encrypted in transit & at rest.
+              {mode === 'login'
+                ? 'Authenticate to access the multimodal satellite intelligence console. All ground-station telemetry is encrypted in transit & at rest.'
+                : 'Create your ground-station credentials to access the multimodal satellite intelligence console. Operator access is governed by station security policy.'}
             </p>
           </div>
 
@@ -258,11 +306,58 @@ export default function LoginPage() {
               >
                 AUTH · GATEWAY-01
               </span>
+              <div
+                className="flex items-center rounded overflow-hidden"
+                style={{
+                  background: 'var(--surface-1)',
+                  border: '1px solid var(--border-hairline)',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('login');
+                    setConfirmPassword('');
+                  }}
+                  className="px-2 py-0.5 font-mono text-[0.58rem] font-semibold tracking-wider uppercase transition-all flex items-center gap-1 cursor-pointer"
+                  style={{
+                    color: mode === 'login' ? '#05070D' : 'var(--text-muted)',
+                    background:
+                      mode === 'login'
+                        ? 'linear-gradient(135deg, var(--cyan) 0%, color-mix(in srgb, var(--cyan) 70%, var(--magenta)) 100%)'
+                        : 'transparent',
+                  }}
+                  aria-label="Switch to sign-in mode"
+                >
+                  <LogIn className="w-3 h-3" />
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('signup');
+                  }}
+                  className="px-2 py-0.5 font-mono text-[0.58rem] font-semibold tracking-wider uppercase transition-all flex items-center gap-1 cursor-pointer"
+                  style={{
+                    color: mode === 'signup' ? '#05070D' : 'var(--text-muted)',
+                    background:
+                      mode === 'signup'
+                        ? 'linear-gradient(135deg, var(--cyan) 0%, color-mix(in srgb, var(--cyan) 70%, var(--magenta)) 100%)'
+                        : 'transparent',
+                  }}
+                  aria-label="Switch to sign-up mode"
+                >
+                  <UserPlus className="w-3 h-3" />
+                  Sign Up
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={() => {
+                  setMode('login');
                   setEmail('controller@isro.gov.in');
                   setPassword('ISRO-SatQuery-2026');
+                  setConfirmPassword('');
                   toast.info('Loaded demo mission controller credentials');
                 }}
                 className="px-2 py-0.5 rounded font-mono text-[0.58rem] font-semibold tracking-wider uppercase transition-all bg-[var(--cyan)]/15 border border-[var(--cyan)]/40 text-[var(--cyan)] hover:bg-[var(--cyan)]/25 cursor-pointer shadow-sm"
@@ -405,6 +500,63 @@ export default function LoginPage() {
                   </div>
                 </div>
 
+                {mode === 'signup' && (
+                  <div
+                    className={cn(
+                      'transition-all duration-500 ease-out delay-[560ms]',
+                      mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="hud-label">Confirm Clearance · Password</label>
+                    </div>
+                    <div className="group relative">
+                      <Lock
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors pointer-events-none"
+                        style={{ color: 'var(--text-faint)' }}
+                      />
+                      <input
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="••••••••••••"
+                        className="w-full pl-11 pr-12 py-3 rounded-md text-sm font-medium transition-all outline-none"
+                        style={{
+                          background: 'var(--surface-0)',
+                          color: 'var(--text-primary)',
+                          border: '1px solid var(--border-hairline)',
+                          fontFamily: 'var(--font-mono)',
+                          letterSpacing: '0.08em',
+                        }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = 'var(--cyan)';
+                          e.currentTarget.style.boxShadow =
+                            '0 0 0 3px color-mix(in srgb, var(--cyan) 15%, transparent), 0 0 24px -8px color-mix(in srgb, var(--cyan) 50%, transparent)';
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = 'var(--border-hairline)';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword((s) => !s)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded transition-colors"
+                        style={{ color: 'var(--text-faint)' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--cyan)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-faint)')}
+                        aria-label={showConfirmPassword ? 'Hide password confirmation' : 'Show password confirmation'}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="w-4 h-4" strokeWidth={1.8} />
+                        ) : (
+                          <Eye className="w-4 h-4" strokeWidth={1.8} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Remember me + status */}
                 <div
                   className={cn(
@@ -500,11 +652,11 @@ export default function LoginPage() {
                             className="w-4 h-4"
                             style={{ animation: 'satellite-drift 1.2s ease-in-out infinite' }}
                           />
-                          AUTHENTICATING…
+                          {mode === 'login' ? 'AUTHENTICATING…' : 'PROVISIONING ACCOUNT…'}
                         </>
                       ) : (
                         <>
-                          ENTER MISSION CONTROL
+                          {mode === 'login' ? 'ENTER MISSION CONTROL' : 'REQUEST GROUND-STATION ACCESS'}
                           <ArrowRight className="w-4 h-4 arrow-slide" />
                         </>
                       )}
@@ -552,7 +704,7 @@ export default function LoginPage() {
                     onLogin={() => {
                       login('google.operator@isro.gov.in');
                       toast.success('Authenticated via Google ISRO SSO. Entering mission control…');
-                      setTimeout(() => router.push('/'), 400);
+                      router.replace('/');
                     }}
                   />
                   <OAuthButton
@@ -562,7 +714,7 @@ export default function LoginPage() {
                     onLogin={() => {
                       login('github.specialist@isro.gov.in');
                       toast.success('Authenticated via GitHub Enterprise. Entering mission control…');
-                      setTimeout(() => router.push('/'), 400);
+                      router.replace('/');
                     }}
                   />
                 </div>
@@ -577,19 +729,37 @@ export default function LoginPage() {
               )}
               style={{ color: 'var(--text-muted)' }}
             >
-              New operator?{' '}
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('controller@isro.gov.in');
-                  setPassword('ISRO-SatQuery-2026');
-                  toast.info('Instant demo access configured. Click Enter Mission Control.');
-                }}
-                className="font-semibold transition-colors hover:underline underline-offset-2 cursor-pointer"
-                style={{ color: 'var(--cyan)' }}
-              >
-                Request ground-station access →
-              </button>
+              {mode === 'login' ? (
+                <>
+                  New operator?{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode('signup');
+                      setConfirmPassword('');
+                    }}
+                    className="font-semibold transition-colors hover:underline underline-offset-2 cursor-pointer"
+                    style={{ color: 'var(--cyan)' }}
+                  >
+                    Request ground-station access →
+                  </button>
+                </>
+              ) : (
+                <>
+                  Already provisioned?{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode('login');
+                      setConfirmPassword('');
+                    }}
+                    className="font-semibold transition-colors hover:underline underline-offset-2 cursor-pointer"
+                    style={{ color: 'var(--cyan)' }}
+                  >
+                    ← Return to sign-in portal
+                  </button>
+                </>
+              )}
             </p>
           </div>
         </div>

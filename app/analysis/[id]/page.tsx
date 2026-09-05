@@ -23,6 +23,8 @@ import { OpticalSarViewer } from '@/components/OpticalSarViewer';
 import { ChangeStatsPanel } from '@/components/ChangeStatsPanel';
 import { Download, RotateCcw, ArrowLeft, Cpu, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabaseAnalysisService, SUPABASE_PERSISTENCE_ENABLED } from '@/lib/supabase/services';
+import { getCurrentUserId } from '@/lib/authService';
 
 const MODE_DOMAIN: Record<AnalysisResult['mode'], 'cyan' | 'magenta' | 'amber'> = {
   single_image: 'cyan',
@@ -86,6 +88,23 @@ export default function AnalysisResultPage() {
     a.download = `SatQuery_${result.id}_report.json`;
     a.click();
     toast.success('Downloaded complete analysis telemetry report (JSON)');
+
+    if (SUPABASE_PERSISTENCE_ENABLED) {
+      (async () => {
+        try {
+          const uid = await getCurrentUserId();
+          if (!uid) return;
+          await supabaseAnalysisService.uploadResultBlob({
+            userId: uid,
+            analysisId: result.id,
+            blobName: `SatQuery_${result.id}_report.json`,
+            blob,
+          });
+        } catch (err) {
+          console.warn('[analysis-detail] report archive failed (silent):', err);
+        }
+      })();
+    }
   };
 
   if (loading) {

@@ -34,6 +34,7 @@ import type {
 import { API_MODE } from '@/lib/config';
 import { mockApi } from './mock/mockApi';
 import { liveApi } from './liveApi';
+import { createPersistedApi } from '@/lib/persistenceBridge';
 
 export interface SatQueryApi {
   uploadImage(file: File, role: UploadedImage['role']): Promise<UploadedImage>;
@@ -48,5 +49,8 @@ export interface SatQueryApi {
 }
 
 // Automatically uses liveApi when API_MODE === 'live', mock otherwise.
-export const api: SatQueryApi = API_MODE === 'live' ? liveApi : mockApi;
+// Persistence bridge adds Supabase persistence side-effects (when Supabase + !DEMO_MODE) without
+// changing call signatures or existing behaviour.
+const baseApi: SatQueryApi = API_MODE === 'live' ? liveApi : mockApi;
+export const api: SatQueryApi = createPersistedApi(baseApi);
 
