@@ -1,0 +1,16 @@
+[
+  {
+    "epoch": 51,
+    "train_loss": 0.4328,
+    "train_iou": 0.4891,
+    "train_f1": 0.6452,
+    "val_loss": 0.301,
+    "val_iou": 0.4604,
+    "val_f1": 0.6278,
+    "val_precision": 0.5783,
+    "val_recall": 0.7115,
+    "val_accuracy": 0.9746,
+    "lr": 7.992508148511326e-05,
+    "time_sec": 114.46
+  }
+]

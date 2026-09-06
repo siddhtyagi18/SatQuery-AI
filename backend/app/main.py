@@ -56,6 +56,7 @@ app.include_router(analysis.router)
 app.include_router(tools.router)
 app.include_router(benchmark.router)
 app.include_router(health.router)
+app.include_router(health.router, prefix="/api")
 app.include_router(files.router)
 app.include_router(datasets.router)
 

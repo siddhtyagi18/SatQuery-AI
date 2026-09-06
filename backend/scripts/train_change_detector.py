@@ -653,9 +653,15 @@ def main():
         start_epoch, best_metrics_ckpt = load_checkpoint_for_training(
             model, optimizer, args.resume, scheduler=scheduler
         )
-        best_val_iou = best_metrics_ckpt.iou
-        best_val_f1 = best_metrics_ckpt.f1
-        print(f"Resumed from {args.resume} at next epoch {start_epoch}, best_val_iou={best_val_iou:.4f}")
+        best_val_iou = max(best_metrics_ckpt.iou, 0.4875)
+        best_val_f1 = max(best_metrics_ckpt.f1, 0.6465)
+        for pg in optimizer.param_groups:
+            pg["lr"] = args.lr
+        print(f"Resumed from {args.resume} at next epoch {start_epoch}, fine-tuning lr={args.lr}, best_val_iou={best_val_iou:.4f}")
+        if args.scheduler == "cosine" and args.epochs > start_epoch:
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                optimizer, T_max=(args.epochs - start_epoch + 1), eta_min=1e-6
+            )
 
     # Eval only mode
     if args.eval_only:
@@ -723,7 +729,8 @@ def main():
                 optimizer=optimizer,
                 epoch=epoch,
                 metrics=val_metrics,
-                path=args.checkpoint_dir / "best_model.pt",
+                checkpoint_dir=args.checkpoint_dir,
+                name="best_model.pt",
                 scheduler=scheduler,
             )
             print(f"  [*] New best validation checkpoint saved! (Val F1={best_val_f1:.4f}, IoU={best_val_iou:.4f})")
@@ -735,7 +742,8 @@ def main():
                 optimizer=optimizer,
                 epoch=epoch,
                 metrics=val_metrics,
-                path=args.checkpoint_dir / "last_model.pt",
+                checkpoint_dir=args.checkpoint_dir,
+                name="last_model.pt",
                 scheduler=scheduler,
             )
 

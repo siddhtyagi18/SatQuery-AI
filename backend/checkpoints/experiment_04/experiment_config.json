@@ -1,0 +1,14 @@
+{
+  "experiment_dir": "backend\\checkpoints\\experiment_04",
+  "epochs": 75,
+  "batch_size": 8,
+  "img_size": 256,
+  "lr": 4e-05,
+  "weight_decay": 0.0001,
+  "loss_type": "hybrid_v2",
+  "pos_weight": 2.5,
+  "scheduler": "cosine",
+  "train_samples": 445,
+  "val_samples": 64,
+  "total_parameters": 119025
+}
