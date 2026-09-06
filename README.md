@@ -10,28 +10,40 @@ SatQuery-AI features an end-to-end pipeline spanning geospatial pre-processing, 
 
 ### Real Training Experiments (LEVIR-CD Dataset)
 
-We have completed two full real training experiments on the LEVIR-CD building change detection benchmark:
+We have completed **7 training experiments** on the LEVIR-CD building change detection benchmark using a progressively refined Siamese U-Net architecture (119,025–490,561 parameters):
 
-| Metric / Parameter | Experiment 00 (Baseline) | Experiment 01 (Hybrid Imbalance Loss) |
-|---|---|---|
-| **Architecture** | Siamese U-Net (6-channel bitemporal) | Siamese U-Net (6-channel bitemporal) |
-| **Parameters** | 490,561 (~1.48 MB) | 490,561 (~1.48 MB) |
-| **Epochs** | 50 (Best Checkpoint: Epoch 48) | 50 (Best Validation Checkpoint: Epoch 48/50) |
-| **Loss Formulation** | BCE + Dice Loss | Hybrid Weighted BCE + Soft Dice + Boundary Loss |
-| **Best Validation F1** | 0.5429 | **0.6245** |
-| **Best Validation IoU** | 0.4875 | **0.4638** |
+| Experiment | Architecture | Params | Target Epochs | Actual Epochs | Loss | Best Val F1 | Best Val IoU | Status |
+|---|---|---|---|---|---|---|---|---|
+| **Baseline / Root** | Siamese U-Net | 490,561 | 50 | 50 | BCE + Dice | 0.5429 (E48) | 0.4875 (E48) | ✅ Complete |
+| **experiment_01** | Siamese U-Net | 490,561 | 50 | 50 | Hybrid Imbalance | 0.6245 | 0.4638 | ✅ Complete |
+| **experiment_02** | Siamese U-Net (base=16) | 119,025 | 5 | 5 | hybrid_v2 | 0.4116 (E4) | 0.2651 (E4) | ✅ Complete |
+| **experiment_03** | Siamese U-Net (base=16) | 119,025 | 60 | 60 | hybrid_v2 | **0.6435** (E60) | **0.4776** (E60) | ✅ Complete 🏆 |
+| **experiment_04** | Siamese U-Net (base=16) | 119,025 | 75 | 75 | hybrid_v2 | 0.6401 (E75) | 0.4738 (E75) | ✅ Complete |
+| **experiment_A_mini** | Siamese U-Net (base=16) | 119,025 | — | — | — | — | — | ✅ Checkpoints present |
+| **experiment_controlled** | Siamese U-Net (base=16) | 119,025 | 51 | 51 | hybrid_v2 | 0.6278 (E51) | 0.4604 (E51) | ✅ Complete |
 
-### Official Test Evaluation Benchmark (Experiment 01)
+**🏆 Best Model**: experiment_03 — Val F1 = **0.6435**, Val IoU = **0.4776** at epoch 60.
 
-Evaluated across the full 128-sample LEVIR-CD test split using the validation-selected optimal threshold **0.70**:
+### Official Test Evaluation Benchmarks
 
+#### Baseline Run (Root Checkpoint)
+Evaluated across the full 128-sample LEVIR-CD test split using the validation-selected optimal threshold:
 - **Test Micro IoU (Jaccard Index)**: **`58.06%`** (`0.5806`)
 - **Test Micro F1 / Dice Score**: **`73.47%`** (`0.7347`)
 - **Test Precision**: **`73.62%`** (`0.7362`)
 - **Test Recall**: **`73.32%`** (`0.7332`)
 - **Test Pixel Accuracy**: **`97.34%`** (`0.9734`)
 
-Full evaluation logs and per-sample benchmark tables are available in [`evaluation_results/`](./evaluation_results/).
+#### experiment_03 Full Test Eval
+Full 128-sample test split evaluation with threshold sweep is available in [`evaluation_results/experiment_03_eval/`](./evaluation_results/experiment_03_eval/).
+
+#### experiment_04 Full Test Eval
+Full 128-sample test split evaluation with threshold sweep is available in [`evaluation_results/experiment_04_eval/`](./evaluation_results/experiment_04_eval/).
+
+Full evaluation logs, per-sample qualitative prediction PNGs, and JSON validation sweeps are available in [`evaluation_results/`](./evaluation_results/):
+- [`EXPERIMENT_01_RESULTS.md`](./evaluation_results/EXPERIMENT_01_RESULTS.md)
+- [`EXPERIMENT_03_RESULTS.md`](./evaluation_results/EXPERIMENT_03_RESULTS.md)
+- [`EXPERIMENT_04_RESULTS.md`](./evaluation_results/EXPERIMENT_04_RESULTS.md)
 
 ---
 
@@ -60,35 +72,55 @@ SatQuery-AI/
 │   ├── benchmark/                    # Benchmark metrics dashboard
 │   ├── registry/                     # Specialist tool registry inspection page
 │   ├── login/                        # Authentication guard & access
-│   ├── layout.tsx                    # Root layout with theme provider & header
-│   └── page.tsx                      # Landing page & quick launch
+│   ├── analysis/                     # (see above) Analysis workflow pages
+│   ├── page.tsx                      # Landing page & quick launch
+│   └── layout.tsx                    # Root layout with theme provider & header
 ├── backend/                          # FastAPI Backend
 │   ├── app/
-│   │   ├── routers/                  # API endpoints (upload, analysis, datasets, tools, benchmark, health)
+│   │   ├── routers/                  # API endpoints (upload, analysis, datasets, tools, benchmark, health, files)
 │   │   ├── services/                 # Core services (orchestrator, model_inference, datasets, vqa_service,
-│   │   │                             #               preprocessing, firebase, metadata, models, trace)
+│   │   │                             #               preprocessing, firebase, metadata, models, trace,
+│   │   │                             #               change_detection, model_manager)
 │   │   ├── main.py                   # FastAPI app entry + CORS + error handlers
 │   │   ├── config.py                 # Pydantic Settings (LEVIR_CD_DATASET_PATH, CHECKPOINT_DIR, etc.)
 │   │   ├── models.py                 # SQLAlchemy SQLite models
 │   │   └── schemas.py                # Pydantic validation schemas matching TypeScript contracts
-│   ├── checkpoints/                  # Model weights (1.48 MB each, versioned in Git)
-│   │   ├── best_model.pt             # Best checkpoint (Epoch 48 weights)
-│   │   ├── last_model.pt             # Epoch 50 checkpoint (ready for resume training)
-│   │   ├── training_log.json         # 50-epoch loss and evaluation curves
-│   │   └── experiment_01/            # Experiment 01 directory copy for automated tooling
+│   ├── checkpoints/                  # Model weights (versioned in Git, ~1 MB each)
+│   │   ├── best_model.pt             # Baseline best checkpoint (Epoch 48, F1=0.5429)
+│   │   ├── last_model.pt             # Baseline Epoch 50 (resume-ready)
+│   │   ├── baseline_epoch48_best_model.pt  # Explicit epoch-48 baseline copy
+│   │   ├── training_log.json         # Baseline 50-epoch training curves
+│   │   ├── experiment_01/            # Hybrid Loss (F1=0.6245) — best_model.pt / last_model.pt / log / config
+│   │   ├── experiment_02/            # 5-epoch quick run (F1=0.4116) — best_model.pt / last_model.pt / log / config
+│   │   ├── experiment_03/            # 🏆 Best — 60 epochs (F1=0.6435) — best_model.pt / last_model.pt / log / config
+│   │   ├── experiment_04/            # 75 epochs (F1=0.6401) — best_model.pt / last_model.pt / log / config
+│   │   ├── experiment_A_mini/        # Lightweight experiment — best_model.pt / last_model.pt
+│   │   └── experiment_controlled/    # Controlled 51-epoch run (F1=0.6278) — best/last/log/config
 │   ├── scripts/                      # Standalone CLI tools for training & evaluation
-│   │   ├── train_change_detector.py  # Full training, resume training, and smoke-test CLI
-│   │   ├── evaluate_full_test_and_val.py # Full 128-test split evaluation & threshold sweeps
-│   │   └── visualize_change_predictions.py # 6-panel qualitative visual evaluation generator
-│   ├── tests/                        # 88 automated unit & integration tests
+│   │   ├── train_change_detector.py  # Full training, resume training, smoke-test, eval-only CLI
+│   │   ├── evaluate_full_test_and_val.py  # Full 128-test split evaluation & threshold sweeps
+│   │   ├── visualize_change_predictions.py  # 6-panel qualitative visual evaluation generator
+│   │   ├── _baseline_eval.py         # Baseline checkpoint full-split evaluation (standalone)
+│   │   ├── _baseline_fullres.py      # Full-resolution 1024×1024 evaluation script
+│   │   ├── _estimate_time.py         # Epoch time estimator for training planning
+│   │   ├── _inspect_ckpt.py          # Checkpoint inspector (state dict, sizes, epoch metadata)
+│   │   └── _train_expAmini.py        # Short A_mini experiment launch script
+│   ├── evaluation_results/           # Per-experiment quantitative & qualitative evaluation artifacts
+│   │   ├── baseline_run/             # Baseline test split metrics + per-sample PNG visuals
+│   │   ├── experiment_03_eval/       # experiment_03 full test split eval + threshold sweep
+│   │   ├── experiment_04_eval/       # experiment_04 full test split eval + threshold sweep
+│   │   └── visuals/                  # Shared 6-panel prediction PNGs
+│   ├── tests/                        # Automated unit & integration tests
 │   ├── requirements.txt              # Backend dependencies
 │   └── .env.example                  # Backend environment variable template
 ├── components/                       # React UI components (SatelliteViewer, ChangeStatsPanel, Trace UI, etc.)
-├── evaluation_results/               # Quantitative benchmark metrics & JSON validation sweeps
-│   ├── EXPERIMENT_01_RESULTS.md      # Detailed experiment logs & benchmark comparison
+├── evaluation_results/               # Top-level evaluation reports (root)
+│   ├── EXPERIMENT_01_RESULTS.md      # Detailed experiment 01 logs & benchmark comparison
+│   ├── EXPERIMENT_03_RESULTS.md      # Detailed experiment 03 logs & benchmark comparison
+│   ├── EXPERIMENT_04_RESULTS.md      # Detailed experiment 04 logs & benchmark comparison
 │   ├── test_full_results.json        # Full 128-sample test evaluation metrics
 │   └── val_threshold_sweep.json      # Validation threshold sweep metrics [0.30 - 0.70]
-├── lib/                              # API client (`liveApi.ts`, `mockApi.ts`) & TypeScript interfaces
+├── lib/                              # API client (`liveApi.ts`, `mockApi.ts`) & TypeScript interfaces + config.ts
 ├── public/                           # Static demo assets & sample imagery
 ├── .env.example                      # Frontend environment variable template
 └── README.md                         # Project documentation
@@ -139,6 +171,11 @@ Edit `backend/.env` with your local paths:
 
 ```env
 # Path to trained SiameseUNet checkpoint file (included in repository)
+# Default: baseline checkpoint (Val F1=0.5429)
+# For BEST PERFORMANCE, use experiment_03 (Val F1=0.6435):
+# CHANGE_DETECTION_CHECKPOINT=./checkpoints/experiment_03/best_model.pt
+# Or experiment_04 (Val F1=0.6401):
+# CHANGE_DETECTION_CHECKPOINT=./checkpoints/experiment_04/best_model.pt
 CHANGE_DETECTION_CHECKPOINT=./checkpoints/best_model.pt
 
 # Optional: Path to local LEVIR-CD dataset (if validating or running training/eval scripts)
@@ -147,7 +184,7 @@ LEVIR_CD_DATASET_PATH=/path/to/LEVIR-CD
 
 # Storage & VQA configuration
 STORAGE_BACKEND=local
-VQA_MODE=auto
+VQA_MODE=auto   # "mock" (fast), "real" (SmolVLM 500M), "auto" (hybrid)
 ```
 
 ### 4. Run Backend Server

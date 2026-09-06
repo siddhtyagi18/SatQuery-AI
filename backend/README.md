@@ -390,25 +390,89 @@ CHANGE_DETECTION_CHECKPOINT=./checkpoints/best_model.pt
 
 - **Model**: `SiameseUNet` (`app.services.models.siamese_unet.py`)
 - **Inputs**: 6-channel concatenated RGB image pair `[img_A, img_B]` of shape `(B, 6, H, W)`.
-- **Architecture**: 3-level encoder with skip connections + upsampling decoder + 1-channel logit head (~490K trainable parameters, ~1.48 MB checkpoint size).
-- **Loss**: Differentiable BCE + Dice combined loss for class-imbalanced change detection.
-- **Trained Experiments Summary**:
-  - **Baseline (50 Epochs)**: Best checkpoint at Epoch 48 (Val IoU: `0.4875`, Val F1: `0.5429`, Precision: `0.9691`, Accuracy: `97.63%`).
-  - **Experiment 01 (Hybrid Imbalance Loss, 50 Epochs)**: Best Validation F1 = `0.6245`, Best Validation IoU = `0.4638`.
-  - **Experiment 01 Final Test Split Evaluation (128 samples, threshold 0.70)**:
-    - **Test Micro IoU**: `58.06%` (`0.5806`)
-    - **Test Micro F1/Dice**: `73.47%` (`0.7347`)
-    - **Test Precision**: `73.62%` (`0.7362`)
-    - **Test Recall**: `73.32%` (`0.7332`)
-    - **Test Pixel Accuracy**: `97.34%` (`0.9734`)
-  - Checkpoint files:
-    - `checkpoints/best_model.pt`: Best model weights (~1.48 MB).
-    - `checkpoints/last_model.pt`: Epoch 50 weights with optimizer & scheduler state (~1.48 MB).
-    - `checkpoints/training_log.json`: 50-epoch loss and evaluation history.
-- **Inference Mode Dispatcher**:
-  - If `CHANGE_DETECTION_CHECKPOINT` is configured → runs model tiled sliding-window inference with 32px overlap averaging.
-  - If unset or missing → transparently falls back to the CPU classical pixel-difference baseline.
-  - Results are never fabricated; execution mode is explicitly declared in evidence and stats.
+- **Architecture**: 3-level encoder with skip connections + upsampling decoder + 1-channel logit head. Two variants:
+  - **base_filters=32**: ~490K trainable parameters (used in Baseline & experiment_01, ~1.48 MB ckpt)
+  - **base_filters=16**: 119,025 trainable parameters (used in experiments 02–04, A_mini, controlled — lighter, faster)
+- **Loss Functions Supported** (via `--loss-type`):
+  - `bce_dice`, `combo`, `hybrid`, `hybrid_v2` (default), `weighted_bce_dice`, `focal_tversky`
+  - Pos-weight tunable via `--pos-weight` (default 2.5 for class imbalance)
+- **Training Schedulers** (via `--scheduler`): `cosine` (default) or `plateau`
+
+### Trained Experiments — Complete Status
+
+| Experiment | Base | Params | Epochs | Loss | Best Val F1 | Best Val IoU | Checkpoint Files |
+|---|---|---|---|---|---|---|---|
+| **Baseline (Root)** | 32 | 490,561 | 50 | BCE+Dice | 0.5429 (E48) | 0.4875 (E48) | best_model.pt, last_model.pt, training_log.json |
+| **experiment_01** | 32 | 490,561 | 50 | Hybrid Imbalance | 0.6245 | 0.4638 | experiment_01/best_model.pt, last_model.pt, training_log.json |
+| **experiment_02** | 16 | 119,025 | 5 | hybrid_v2 | 0.4116 (E4) | 0.2651 (E4) | experiment_02/{best,last}_model.pt, log, config |
+| **experiment_03** | 16 | 119,025 | 60 | hybrid_v2 | **0.6435 (E60)** | **0.4776 (E60)** | experiment_03/{best,last}_model.pt, log, config |
+| **experiment_04** | 16 | 119,025 | 75 | hybrid_v2 | 0.6401 (E75) | 0.4738 (E75) | experiment_04/{best,last}_model.pt, log, config |
+| **experiment_A_mini** | 16 | 119,025 | — | — | — | — | experiment_A_mini/{best,last}_model.pt |
+| **experiment_controlled** | 16 | 119,025 | 51 | hybrid_v2 | 0.6278 (E51) | 0.4604 (E51) | experiment_controlled/{best,last}_model.pt, log, config |
+
+**🏆 Best Overall Model**: `checkpoints/experiment_03/best_model.pt` — Val F1 = 0.6435, Val IoU = 0.4776 at Epoch 60.
+
+### Evaluation Results Directories
+
+Full test-split evaluation runs (per-sample JSON, threshold sweeps, 6-panel PNG visuals) are stored under `backend/evaluation_results/`:
+- `baseline_run/` — Baseline checkpoint evaluated on full test split
+- `experiment_03_eval/` — experiment_03 full test split eval + threshold sweep
+- `experiment_04_eval/` — experiment_04 full test split eval + threshold sweep
+- `visuals/` — Shared qualitative prediction PNGs
+
+### Experiment_01 Final Test Split (128 samples, threshold 0.70)
+- **Test Micro IoU**: `58.06%` (`0.5806`)
+- **Test Micro F1/Dice**: `73.47%` (`0.7347`)
+- **Test Precision**: `73.62%` (`0.7362`)
+- **Test Recall**: `73.32%` (`0.7332`)
+- **Test Pixel Accuracy**: `97.34%` (`0.9734`)
+
+### Inference Mode Dispatcher
+- If `CHANGE_DETECTION_CHECKPOINT` is configured → runs model tiled sliding-window inference with 32px overlap averaging (256×256 tiles).
+- If unset or missing → transparently falls back to the CPU classical pixel-difference baseline (`app/services/change_detection.py`).
+- Results are never fabricated; execution mode is explicitly declared in evidence and stats.
+
+### Model Manager Service
+The `app/services/model_manager.py` service exposes a unified model status API (`GET /health` includes `models` block) reporting:
+- Each configured checkpoint: path, exists, size, state dict keys, parameter count.
+- VQA adapter status, mode, and supported model ID.
+- Resolve paths: `resolve_experiment_best(name)` returns absolute path to an experiment's `best_model.pt`.
+
+### Available CLI Scripts (backend/scripts/)
+
+| Script | Purpose |
+|---|---|
+| `train_change_detector.py` | Full training pipeline: train / resume / eval-only / smoke-test (main script) |
+| `evaluate_full_test_and_val.py` | Full 128-sample test split evaluation + threshold sweep |
+| `visualize_change_predictions.py` | 6-panel qualitative prediction PNG generator |
+| `_baseline_eval.py` | Standalone baseline checkpoint full-split evaluation |
+| `_baseline_fullres.py` | Full-resolution (1024×1024) evaluation script |
+| `_estimate_time.py` | Epoch time estimator (for planning training runs) |
+| `_inspect_ckpt.py` | Checkpoint inspector: state dict, sizes, epoch metadata |
+| `_train_expAmini.py` | Short helper launcher for experiment_A_mini |
+
+### Training Script — Full Argument Reference
+
+`python scripts/train_change_detector.py [FLAGS]`:
+
+| Flag | Default | Description |
+|---|---|---|
+| `--data-root` | (from .env) | Path to LEVIR-CD root directory |
+| `--checkpoint-dir` | `./checkpoints/experiment_02` | Directory to save `best_model.pt`, `last_model.pt`, `training_log.json`, `experiment_config.json` |
+| `--resume` | None | Path to checkpoint `.pt` to resume training or run eval-only |
+| `--epochs` | `50` | Total target epochs |
+| `--batch-size` | `8` | Batch size (use 4 if low RAM / VRAM) |
+| `--img-size` | `256` | Random crop size for training |
+| `--lr` | `5e-4` | AdamW base learning rate |
+| `--weight-decay` | `1e-4` | AdamW weight decay |
+| `--loss-type` | `hybrid_v2` | One of: `hybrid_v2, combo, hybrid, weighted_bce_dice, focal_tversky, bce_dice` |
+| `--pos-weight` | `2.5` | Positive class weight for BCE in imbalance losses |
+| `--scheduler` | `cosine` | `cosine` or `plateau` |
+| `--workers` | `0` | DataLoader workers (0 = main thread, safe on Windows) |
+| `--base-filters` | `16` | SiameseUNet width: 16 = 119K params, 32 = 490K params |
+| `--smoke-test` | off | Run a tiny 2-sample × 2-epoch CPU sanity check |
+| `--eval-only` | off | Skip training, evaluate `--resume` checkpoint on val + test splits only |
+| `--log-file` | None | Optional custom path for JSON training log |
 
 ### Running the CPU Smoke Test
 
@@ -417,28 +481,63 @@ To verify the training and inference pipeline end-to-end on CPU with zero GPU re
 python scripts/train_change_detector.py --smoke-test
 ```
 
-### Continuing / Resuming Model Training
+### Starting a New Training Experiment
 
-To resume training from the 50-epoch checkpoint on a GPU/cloud machine (Colab, Kaggle, Cloud VM):
+Launch a new 60-epoch run saving into a dedicated directory:
 ```powershell
 python scripts/train_change_detector.py `
-    --data-root "/path/to/LEVIR-CD" `
-    --resume ./checkpoints/last_model.pt `
-    --epochs 100 `
-    --batch-size 4 `
-    --img-size 256 `
-    --lr 0.001 `
-    --checkpoint-dir ./checkpoints
+    --data-root "C:/Users/nihar/LEVIR-CD" `
+    --checkpoint-dir ./checkpoints/experiment_03 `
+    --epochs 60 `
+    --batch-size 8 `
+    --base-filters 16 `
+    --loss-type hybrid_v2 `
+    --scheduler cosine
 ```
 
-### Evaluating Trained Checkpoint
+### Continuing / Resuming Model Training
+
+To resume training from a checkpoint (appends epochs to existing `training_log.json`):
+```powershell
+python scripts/train_change_detector.py `
+    --data-root "C:/Users/nihar/LEVIR-CD" `
+    --checkpoint-dir ./checkpoints/experiment_03 `
+    --resume ./checkpoints/experiment_03/last_model.pt `
+    --epochs 100 `
+    --batch-size 8
+```
+
+### Evaluating a Trained Checkpoint (Eval-Only)
 
 To evaluate the best checkpoint on validation and test splits without training:
 ```powershell
 python scripts/train_change_detector.py `
-    --data-root "/path/to/LEVIR-CD" `
-    --resume ./checkpoints/best_model.pt `
+    --data-root "C:/Users/nihar/LEVIR-CD" `
+    --resume ./checkpoints/experiment_03/best_model.pt `
     --eval-only
+```
+
+### Inspecting a Checkpoint File
+
+```powershell
+python scripts/_inspect_ckpt.py ./checkpoints/experiment_03/best_model.pt
+# Prints: model state dict keys, tensor sizes, total params, epoch metadata
+```
+
+### Estimating Training Duration (Before Launching)
+
+```powershell
+python scripts/_estimate_time.py
+# Predicts total wall-clock time for N epochs × N batches based on device
+```
+
+### Running the Full Test Split + Threshold Sweep
+
+```powershell
+python scripts/evaluate_full_test_and_val.py `
+    --checkpoint ./checkpoints/experiment_03/best_model.pt `
+    --data-root "C:/Users/nihar/LEVIR-CD" `
+    --threshold 0.50
 ```
 
 ### Running Test Suite
