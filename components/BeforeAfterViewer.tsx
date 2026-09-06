@@ -40,7 +40,7 @@ export function BeforeAfterViewer({
 
   return (
     <CornerFrame label="BI-TEMPORAL VISUAL COMPARISON" domain="magenta" className={cn('w-full', className)}>
-      <div className="panel overflow-hidden flex flex-col bg-[var(--bg-base)]">
+      <div className="panel overflow-hidden flex flex-col bg-[var(--bg-base)] transition-all duration-300 hover:border-[var(--magenta)]/35 hover:shadow-lg">
         {/* Header toolbar */}
         <div className="flex items-center justify-between px-4 py-2.5 bg-[var(--bg-panel)] border-b border-[var(--border-hairline)] text-xs">
           <div className="flex items-center gap-4 text-[0.68rem] font-mono">

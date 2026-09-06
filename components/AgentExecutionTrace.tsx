@@ -70,8 +70,8 @@ function StepRow({ step, isLast }: { step: ExecutionStep; isLast: boolean }) {
   return (
     <li
       className={cn(
-        'flex gap-3 animate-trace-step transition-all duration-300',
-        isActive && 'bg-[var(--surface-2)]/70 border border-[var(--amber)]/30 p-2.5 rounded -mx-2 shadow-[0_0_16px_rgba(255,176,32,0.08)]',
+        'flex gap-3 animate-trace-step transition-all duration-300 p-2 rounded hover:bg-[var(--surface-2)]/60',
+        isActive && 'bg-[var(--surface-2)]/80 border border-[var(--amber)]/40 p-2.5 rounded shadow-[0_0_16px_rgba(251,191,36,0.1)]',
         isPending ? 'opacity-40' : 'opacity-100'
       )}
       aria-current={isActive ? 'step' : undefined}
@@ -108,7 +108,7 @@ function StepRow({ step, isLast }: { step: ExecutionStep; isLast: boolean }) {
                 : isError ? 'var(--accent-danger)'
                 : isDone ? 'var(--text-primary)'
                 : 'var(--text-faint)',
-              textShadow: isActive ? '0 0 10px rgba(255,176,32,0.3)' : undefined,
+              textShadow: isActive ? '0 0 10px rgba(251,191,36,0.3)' : undefined,
             }}
           >
             {step.title}
@@ -130,7 +130,7 @@ function StepRow({ step, isLast }: { step: ExecutionStep; isLast: boolean }) {
         {step.detail && !isPending && (
           <p
             className="text-xs font-mono leading-relaxed break-words"
-            style={{ color: isActive ? 'var(--text-primary)' : isError ? 'rgba(255,92,92,0.85)' : 'var(--text-muted)' }}
+            style={{ color: isActive ? 'var(--text-primary)' : isError ? 'rgba(239,68,68,0.9)' : 'var(--text-muted)' }}
           >
             {step.detail}
           </p>
@@ -138,12 +138,15 @@ function StepRow({ step, isLast }: { step: ExecutionStep; isLast: boolean }) {
 
         {/* Key-value meta */}
         {step.meta && Object.keys(step.meta).length > 0 && (
-          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+          <div className="flex flex-wrap gap-1.5 mt-1.5">
             {Object.entries(step.meta).map(([k, v]) => (
-              <span key={k} className="text-xs font-mono" style={{ color: 'var(--text-faint)' }}>
-                <span style={{ color: 'var(--accent-signal)', opacity: 0.9 }}>{k}</span>
-                {' = '}
-                <span style={{ color: 'var(--text-muted)' }}>{String(v)}</span>
+              <span
+                key={k}
+                className="text-[0.68rem] font-mono inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[var(--surface-2)] border border-[var(--border-hairline)] transition-colors hover:border-[var(--cyan)]/30"
+              >
+                <span className="font-semibold text-[var(--cyan)]">{k}</span>
+                <span className="text-[var(--text-faint)]">=</span>
+                <span className="text-[var(--text-primary)] font-medium">{String(v)}</span>
               </span>
             ))}
           </div>

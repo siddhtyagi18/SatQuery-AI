@@ -10,6 +10,7 @@ import {
   History,
   Award,
   Cpu,
+  User,
   ChevronLeft,
   ChevronRight,
   Satellite,
@@ -28,6 +29,7 @@ const NAV_ITEMS: NavItem[] = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard, exact: true },
   { name: 'New Analysis', href: '/analysis/new', icon: PlusCircle },
   { name: 'Analysis History', href: '/analysis/history', icon: History },
+  { name: 'Operator Profile', href: '/profile', icon: User },
   { name: 'Benchmark & Eval', href: '/benchmark', icon: Award },
   { name: 'Specialist Registry', href: '/registry', icon: Cpu },
 ];
@@ -85,10 +87,10 @@ export function Sidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-md text-xs font-medium transition-all group relative',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-md text-xs font-medium transition-all duration-200 group relative',
                   isActive
-                    ? 'bg-[var(--accent-signal)]/10 text-[var(--accent-signal)] border border-[var(--accent-signal)]/30 font-semibold'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-panel-hover)] border border-transparent'
+                    ? 'bg-[var(--accent-signal)]/12 text-[var(--accent-signal)] border border-[var(--accent-signal)]/30 font-semibold shadow-sm'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-panel-hover)] hover:translate-x-1 border border-transparent'
                 )}
                 title={collapsed ? item.name : undefined}
               >

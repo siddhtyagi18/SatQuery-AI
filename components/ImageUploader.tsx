@@ -1,35 +1,69 @@
 // components/ImageUploader.tsx
-// Drag-and-drop image uploader — Mode-aware slot rendering.
-// "Sensor Intake" aesthetic: CornerFrame reticle brackets,
-// satellite/downlink glyph, animated dashed border ONLY on drag,
-// mono CRS/format spec readout.
+// Drag-and-drop image uploader — Mode-aware slot rendering with clear role labeling and "Choose Image" button.
 'use client';
 
 import { useRef, useState, useCallback } from 'react';
 import { cn, formatBytes } from '@/lib/utils';
 import type { AnalysisMode, UploadedImage } from '@/lib/types/analysis';
 import {
-  X, FileImage, AlertCircle, CheckCircle2, Loader2,
-  Satellite, Download,
+  X,
+  FileImage,
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  UploadCloud,
 } from 'lucide-react';
-import { CornerFrame } from '@/components/ui/CornerFrame';
 
-const MODE_SLOTS: Record<AnalysisMode, {
-  role: UploadedImage['role'];
-  label: string;
-  hint: string;
-  domain: 'cyan' | 'magenta' | 'amber';
-}[]> = {
+const MODE_SLOTS: Record<
+  AnalysisMode,
+  {
+    role: UploadedImage['role'];
+    label: string;
+    badge: string;
+    hint: string;
+    domain: 'cyan' | 'magenta' | 'amber';
+  }[]
+> = {
   single_image: [
-    { role: 'single', label: 'Satellite Image', hint: 'GeoTIFF (primary) or PNG/JPEG (demo)', domain: 'cyan' },
+    {
+      role: 'single',
+      label: 'Single Satellite Scene',
+      badge: 'OPTICAL / SAR PAYLOAD',
+      hint: 'High-resolution GeoTIFF (EPSG geospatial) or PNG / JPEG image',
+      domain: 'cyan',
+    },
   ],
   bi_temporal: [
-    { role: 'before', label: 'Before (T1)', hint: 'Earlier acquisition — GeoTIFF or PNG/JPEG', domain: 'magenta' },
-    { role: 'after',  label: 'After (T2)',  hint: 'Later acquisition — GeoTIFF or PNG/JPEG',   domain: 'magenta' },
+    {
+      role: 'before',
+      label: 'Image 1 · Earlier Acquisition (T1)',
+      badge: 'PRE-CHANGE BASELINE',
+      hint: 'Earlier temporal satellite tile (GeoTIFF, PNG, JPG)',
+      domain: 'magenta',
+    },
+    {
+      role: 'after',
+      label: 'Image 2 · Later Acquisition (T2)',
+      badge: 'POST-CHANGE TARGET',
+      hint: 'Later temporal satellite tile (GeoTIFF, PNG, JPG)',
+      domain: 'magenta',
+    },
   ],
   optical_sar: [
-    { role: 'optical', label: 'Optical / MSI', hint: 'Optical or multispectral GeoTIFF or PNG/JPEG', domain: 'cyan' },
-    { role: 'sar',     label: 'SAR Image',     hint: 'SAR (C/L/X-band) GeoTIFF or PNG/JPEG',        domain: 'amber' },
+    {
+      role: 'optical',
+      label: 'Sensor 1 · Optical / Multispectral',
+      badge: 'REFLECTANCE SPECTRUM',
+      hint: 'Optical or multispectral GeoTIFF / PNG (RGB / NIR bands)',
+      domain: 'cyan',
+    },
+    {
+      role: 'sar',
+      label: 'Sensor 2 · Synthetic Aperture Radar',
+      badge: 'MICROWAVE BACKSCATTER',
+      hint: 'SAR (C/L/X-band) GeoTIFF or PNG radar amplitude tile',
+      domain: 'amber',
+    },
   ],
 };
 
@@ -37,7 +71,13 @@ const ACCEPTED_TYPES = ['.tif', '.tiff', '.png', '.jpg', '.jpeg'];
 const MAX_SIZE_MB = 500;
 
 interface UploadSlotProps {
-  slot: { role: UploadedImage['role']; label: string; hint: string; domain: 'cyan' | 'magenta' | 'amber' };
+  slot: {
+    role: UploadedImage['role'];
+    label: string;
+    badge: string;
+    hint: string;
+    domain: 'cyan' | 'magenta' | 'amber';
+  };
   uploaded: UploadedImage | null;
   uploading: boolean;
   error: string | null;
@@ -46,17 +86,28 @@ interface UploadSlotProps {
   disabled?: boolean;
 }
 
-function UploadSlot({ slot, uploaded, uploading, error, onFile, onRemove, disabled }: UploadSlotProps) {
+function UploadSlot({
+  slot,
+  uploaded,
+  uploading,
+  error,
+  onFile,
+  onRemove,
+  disabled,
+}: UploadSlotProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setDragging(false);
-    if (disabled) return;
-    const file = e.dataTransfer.files?.[0];
-    if (file) onFile(file, slot.role);
-  }, [disabled, onFile, slot.role]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragging(false);
+      if (disabled) return;
+      const file = e.dataTransfer.files?.[0];
+      if (file) onFile(file, slot.role);
+    },
+    [disabled, onFile, slot.role]
+  );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -64,199 +115,184 @@ function UploadSlot({ slot, uploaded, uploading, error, onFile, onRemove, disabl
     e.target.value = '';
   };
 
-  const isGeoTiff = uploaded?.metadata.fileFormat === 'GeoTIFF' || uploaded?.metadata.fileFormat === 'TIFF';
+  const domainVar = `var(--${slot.domain})`;
   const hasContent = !!uploaded || uploading;
 
   return (
-    <div className="flex flex-col gap-2">
-      <span className="hud-label">{slot.label}</span>
-
-      <CornerFrame
-        domain={slot.domain}
-        intensity={dragging ? 'strong' : 'normal'}
-        bracketSize={14}
-      >
-        <div
-          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={handleDrop}
-          onClick={() => !hasContent && !disabled && inputRef.current?.click()}
-          role="button"
-          tabIndex={0}
-          aria-label={`Upload ${slot.label}`}
-          onKeyDown={(e) => e.key === 'Enter' && !hasContent && !disabled && inputRef.current?.click()}
-          className={cn(
-            'relative flex flex-col items-center justify-center rounded transition-all duration-200 min-h-[168px]',
-            !hasContent && !disabled ? 'cursor-pointer' : '',
-            dragging ? 'dropzone-active' : '',
-          )}
+    <div className="flex flex-col gap-2.5">
+      {/* Slot Header Label & Badge */}
+      <div className="flex items-center justify-between">
+        <span className="font-heading font-semibold text-sm text-[var(--text-primary)]">
+          {slot.label}
+        </span>
+        <span
+          className="font-mono text-[0.6rem] tracking-wider uppercase px-2 py-0.5 rounded font-semibold"
           style={{
-            background: dragging
-              ? 'color-mix(in srgb, var(--cyan) 5%, var(--surface-2))'
-              : 'var(--surface-1)',
-            border: dragging
-              ? '1px solid color-mix(in srgb, var(--cyan) 60%, transparent)'
-              : error
-                ? '1px solid var(--red)'
-                : '1px solid var(--border-hairline)',
+            background: `color-mix(in srgb, ${domainVar} 12%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${domainVar} 30%, transparent)`,
+            color: domainVar,
           }}
         >
-          <input
-            ref={inputRef}
-            type="file"
-            accept={ACCEPTED_TYPES.join(',')}
-            onChange={handleFileChange}
-            className="sr-only"
-            aria-label={`Choose ${slot.label} file`}
-            disabled={disabled}
-          />
+          {slot.badge}
+        </span>
+      </div>
 
-          {uploading ? (
-            <div className="flex flex-col items-center gap-2 p-6">
-              <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--cyan)' }} />
-              <span className="hud-label">Uploading…</span>
-            </div>
-          ) : uploaded ? (
-            <div className="w-full h-full relative">
-              {/* Preview or placeholder */}
-              {uploaded.previewUrl ? (
+      {/* Main Drag and Drop Box */}
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={handleDrop}
+        onClick={() => !hasContent && !disabled && inputRef.current?.click()}
+        role="button"
+        tabIndex={0}
+        aria-label={`Upload ${slot.label}`}
+        onKeyDown={(e) =>
+          e.key === 'Enter' && !hasContent && !disabled && inputRef.current?.click()
+        }
+        className={cn(
+          'relative flex flex-col items-center justify-center rounded-xl transition-all duration-200 min-h-[190px] p-6 text-center border overflow-hidden',
+          !hasContent && !disabled ? 'cursor-pointer hover:border-[var(--text-muted)]' : '',
+          dragging ? 'border-dashed' : 'border-solid'
+        )}
+        style={{
+          background: dragging
+            ? `color-mix(in srgb, ${domainVar} 8%, var(--surface-2))`
+            : 'var(--surface-1)',
+          borderColor: dragging
+            ? domainVar
+            : error
+            ? 'var(--red)'
+            : 'var(--border-hairline)',
+          boxShadow: '0 4px 20px -2px rgba(0,0,0,0.25)',
+        }}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          accept={ACCEPTED_TYPES.join(',')}
+          onChange={handleFileChange}
+          className="sr-only"
+          aria-label={`Choose ${slot.label} file`}
+          disabled={disabled}
+        />
+
+        {uploading ? (
+          <div className="flex flex-col items-center gap-3 py-4">
+            <Loader2 className="w-8 h-8 animate-spin" style={{ color: domainVar }} />
+            <span className="font-mono text-xs text-[var(--text-muted)]">
+              Uploading &amp; Extracting Metadata…
+            </span>
+          </div>
+        ) : uploaded ? (
+          <div className="w-full h-full relative flex flex-col items-center justify-center">
+            {/* Image Preview Thumbnail */}
+            {uploaded.previewUrl ? (
+              <div className="w-full relative rounded-lg overflow-hidden border border-[var(--border-hairline)] max-h-[220px]">
                 <img
                   src={uploaded.previewUrl}
                   alt={`Preview of ${uploaded.metadata.fileName}`}
-                  className="w-full h-full object-cover rounded"
-                  style={{ maxHeight: '200px' }}
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center gap-3 p-6 h-full min-h-[160px]">
-                  <FileImage className="w-8 h-8" style={{ color: 'var(--cyan)', opacity: 0.6 }} />
-                  <div className="flex flex-col items-center gap-1 text-center">
-                    <span className="text-xs font-mono font-medium" style={{ color: 'var(--text-primary)' }}>
-                      {uploaded.metadata.fileName}
-                    </span>
-                    <span className="hud-label" style={{ fontSize: '0.58rem' }}>
-                      Preview unavailable for GeoTIFF — metadata extracted below
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Overlay strip: filename + status */}
-              <div
-                className="absolute bottom-0 left-0 right-0 flex items-center justify-between gap-2 px-3 py-2 rounded-b"
-                style={{
-                  background: 'color-mix(in srgb, var(--surface-0) 85%, transparent)',
-                  backdropFilter: 'blur(4px)',
-                  borderTop: '1px solid var(--border-hairline)',
-                }}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <CheckCircle2
-                    className="w-3.5 h-3.5 flex-shrink-0"
-                    style={{ color: 'var(--green)' }}
-                    aria-hidden
-                  />
-                  <span
-                    className="text-[0.65rem] font-mono truncate"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    {uploaded.metadata.fileName}
-                  </span>
-                </div>
-                <span
-                  className="hud-label flex-shrink-0"
-                  style={{ fontSize: '0.58rem', color: 'var(--text-faint)' }}
-                >
-                  {formatBytes(uploaded.metadata.fileSizeBytes)}
-                </span>
-              </div>
-
-              {/* Remove button */}
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onRemove(); }}
-                className="absolute top-2 right-2 w-6 h-6 rounded flex items-center justify-center transition-colors"
-                style={{
-                  background: 'color-mix(in srgb, var(--surface-0) 80%, transparent)',
-                  border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)',
-                  backdropFilter: 'blur(4px)',
-                }}
-                aria-label={`Remove ${slot.label}`}
-              >
-                <X className="w-3.5 h-3.5" style={{ color: 'var(--red)' }} />
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-3 p-6 text-center">
-              {/* Satellite/downlink glyph — replaces generic upload cloud */}
-              <div
-                className="w-11 h-11 rounded flex items-center justify-center"
-                style={{
-                  background: dragging
-                    ? 'color-mix(in srgb, var(--cyan) 15%, transparent)'
-                    : 'color-mix(in srgb, var(--cyan) 7%, transparent)',
-                  border: `1px solid color-mix(in srgb, var(--cyan) ${dragging ? 35 : 18}%, transparent)`,
-                }}
-                aria-hidden
-              >
-                <Satellite
-                  className="w-5 h-5"
-                  strokeWidth={1.8}
-                  style={{
-                    color: 'var(--cyan)',
-                    opacity: dragging ? 1 : 0.8,
-                    transform: dragging ? 'translateY(-1px)' : 'none',
-                  }}
+                  className="w-full h-full object-cover"
                 />
               </div>
-
-              <div className="flex flex-col gap-1.5">
-                <span
-                  className="text-sm font-medium"
-                  style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-body)' }}
-                >
-                  Drop satellite payload here or{' '}
-                  <span style={{ color: 'var(--cyan)', fontWeight: 600 }}>browse files</span>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-2 py-6">
+                <FileImage className="w-10 h-10" style={{ color: domainVar, opacity: 0.8 }} />
+                <span className="font-mono text-xs text-[var(--text-primary)] font-medium">
+                  {uploaded.metadata.fileName}
                 </span>
-                <span
-                  className="text-xs leading-relaxed"
-                  style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}
-                >
-                  {slot.hint}
+                <span className="text-[0.65rem] text-[var(--text-muted)]">
+                  GeoTIFF Multiband Tile (Preview generated after pipeline ingest)
                 </span>
               </div>
+            )}
 
-              {/* Spec readout line — clean mono format badge */}
-              <div
-                className="mt-1 px-3 py-1.5 rounded flex items-center gap-2"
-                style={{
-                  background: 'var(--surface-2)',
-                  border: '1px dashed var(--border-hairline)',
-                }}
-              >
-                <Download className="w-3.5 h-3.5" style={{ color: 'var(--text-faint)' }} />
-                <span
-                  className="font-mono text-xs"
-                  style={{
-                    color: 'var(--text-faint)',
-                    letterSpacing: '0.04em',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  GeoTIFF (EPSG) · PNG/JPEG · Max {MAX_SIZE_MB}MB
+            {/* Bottom Info Bar */}
+            <div className="w-full mt-3 flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border-hairline)] text-xs font-mono">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[var(--green)] flex-shrink-0" />
+                <span className="truncate text-[var(--text-primary)]">
+                  {uploaded.metadata.fileName}
                 </span>
               </div>
+              <span className="text-[var(--text-faint)] flex-shrink-0 text-[0.65rem]">
+                {formatBytes(uploaded.metadata.fileSizeBytes)}
+              </span>
             </div>
-          )}
-        </div>
-      </CornerFrame>
 
-      {/* Error */}
+            {/* Remove Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove();
+              }}
+              className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center bg-[var(--surface-0)]/90 border border-[var(--red)]/40 hover:bg-[var(--red)]/20 transition-colors shadow-md cursor-pointer"
+              aria-label={`Remove ${slot.label}`}
+              title="Remove this image"
+            >
+              <X className="w-3.5 h-3.5 text-[var(--red)]" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-3">
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform"
+              style={{
+                background: `color-mix(in srgb, ${domainVar} 12%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${domainVar} 25%, transparent)`,
+              }}
+            >
+              <UploadCloud className="w-6 h-6" style={{ color: domainVar }} />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-semibold text-[var(--text-primary)] font-heading">
+                Drag &amp; drop satellite image here
+              </span>
+              <span className="text-xs text-[var(--text-muted)] max-w-xs leading-relaxed">
+                {slot.hint}
+              </span>
+            </div>
+
+            {/* Normal "Choose Image" / "Upload Image" Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                inputRef.current?.click();
+              }}
+              disabled={disabled}
+              className="mt-1 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all shadow-sm cursor-pointer"
+              style={{
+                background: 'var(--surface-2)',
+                border: `1px solid color-mix(in srgb, ${domainVar} 40%, transparent)`,
+                color: domainVar,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = `color-mix(in srgb, ${domainVar} 15%, var(--surface-2))`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'var(--surface-2)';
+              }}
+            >
+              <UploadCloud className="w-3.5 h-3.5" />
+              <span>Choose Image File</span>
+            </button>
+
+            <span className="text-[0.65rem] font-mono text-[var(--text-faint)] mt-1">
+              GeoTIFF · PNG · JPG (Up to {MAX_SIZE_MB}MB)
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Error Message */}
       {error && (
-        <div
-          className="flex items-center gap-1.5 badge badge-red"
-          role="alert"
-        >
-          <AlertCircle className="w-3 h-3 flex-shrink-0" aria-hidden />
+        <div className="flex items-center gap-2 p-2 rounded bg-[var(--red)]/10 border border-[var(--red)]/30 text-xs text-[var(--red)]">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
           <span>{error}</span>
         </div>
       )}
@@ -274,13 +310,25 @@ interface ImageUploaderProps {
   disabled?: boolean;
 }
 
-export function ImageUploader({ mode, uploads, uploading, errors, onFile, onRemove, disabled }: ImageUploaderProps) {
-  const slots = MODE_SLOTS[mode];
+export function ImageUploader({
+  mode,
+  uploads,
+  uploading,
+  errors,
+  onFile,
+  onRemove,
+  disabled,
+}: ImageUploaderProps) {
+  const slots = MODE_SLOTS[mode] ?? MODE_SLOTS.single_image;
 
   return (
-    <div className="flex flex-col gap-3">
-      <span className="hud-label">Image Input · Sensor Downlink Intake</span>
-      <div className={cn('grid gap-4', slots.length === 1 ? 'grid-cols-1 max-w-md' : 'grid-cols-1 sm:grid-cols-2')}>
+    <div className="flex flex-col gap-4">
+      <div
+        className={cn(
+          'grid gap-6',
+          slots.length === 1 ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'
+        )}
+      >
         {slots.map((slot) => (
           <UploadSlot
             key={slot.role}

@@ -8,7 +8,7 @@
 import { useTheme } from 'next-themes';
 import {
   Sun, Moon, Radio, Shield, Satellite,
-  Menu, X, PlusCircle, LayoutDashboard, History, Award, Cpu, LogOut,
+  Menu, X, PlusCircle, LayoutDashboard, History, Award, Cpu, LogOut, User as UserIcon,
 } from 'lucide-react';
 import { DEMO_BADGE_TEXT } from '@/lib/config';
 import { useState, useEffect } from 'react';
@@ -133,7 +133,7 @@ export function TopBar() {
               <button
                 type="button"
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="p-1.5 rounded transition-colors hover:bg-[var(--surface-2-hover)]"
+                className="p-1.5 rounded transition-all hover:scale-110 hover:bg-[var(--surface-2-hover)]"
                 title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
                 aria-label="Toggle theme"
                 style={{ color: 'var(--text-muted)' }}
@@ -153,39 +153,45 @@ export function TopBar() {
             />
 
             {/* Mission operator identity + Logout */}
-            <div className="hidden sm:flex items-center gap-2 pl-1 pr-1">
-              <div
-                className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0"
-                style={{
-                  background: 'color-mix(in srgb, var(--cyan) 12%, transparent)',
-                  border: '1px solid color-mix(in srgb, var(--cyan) 25%, transparent)',
-                }}
+            <div className="hidden sm:flex items-center gap-1 pl-1 pr-1">
+              <Link
+                href="/profile"
+                className="flex items-center gap-2 p-1 rounded hover:bg-[var(--surface-2-hover)] transition-colors group"
+                title="View Operator Profile & Account"
               >
-                <span
-                  className="font-mono text-[0.6rem] font-bold"
-                  style={{ color: 'var(--cyan)' }}
+                <div
+                  className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0"
+                  style={{
+                    background: 'color-mix(in srgb, var(--cyan) 12%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--cyan) 25%, transparent)',
+                  }}
                 >
-                  ISRO
-                </span>
-              </div>
-              <div className="flex flex-col text-left leading-tight">
-                <span
-                  className="text-[0.65rem] font-semibold truncate max-w-[90px]"
-                  style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}
-                >
-                  {user?.name || 'Operator'}
-                </span>
-                <span className="hud-label" style={{ fontSize: '0.52rem' }}>
-                  L-3 Sci
-                </span>
-              </div>
+                  <span
+                    className="font-mono text-[0.6rem] font-bold group-hover:text-[var(--cyan)]"
+                    style={{ color: 'var(--cyan)' }}
+                  >
+                    ISRO
+                  </span>
+                </div>
+                <div className="flex flex-col text-left leading-tight">
+                  <span
+                    className="text-[0.65rem] font-semibold truncate max-w-[90px] group-hover:text-[var(--cyan)] transition-colors"
+                    style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}
+                  >
+                    {user?.name || 'Operator'}
+                  </span>
+                  <span className="hud-label" style={{ fontSize: '0.52rem' }}>
+                    L-3 Sci
+                  </span>
+                </div>
+              </Link>
 
               <button
                 type="button"
                 onClick={logout}
                 title="Sign out to Login Screen"
                 aria-label="Sign out"
-                className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--accent-danger)] hover:bg-[var(--surface-2-hover)] transition-colors ml-1"
+                className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--accent-danger)] hover:bg-[var(--surface-2-hover)] transition-colors ml-1 cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>
@@ -201,6 +207,7 @@ export function TopBar() {
             { name: 'Dashboard',        href: '/',                icon: LayoutDashboard },
             { name: 'New Analysis',     href: '/analysis/new',    icon: PlusCircle },
             { name: 'Analysis History', href: '/analysis/history', icon: History },
+            { name: 'Operator Profile', href: '/profile',         icon: UserIcon },
             { name: 'Benchmark & Eval', href: '/benchmark',        icon: Award },
             { name: 'Specialist Registry', href: '/registry',      icon: Cpu },
           ].map((item) => {

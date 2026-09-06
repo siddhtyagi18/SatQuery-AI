@@ -37,8 +37,8 @@ export function ConfidenceCard({ score, detectedTasks, breakdown, className }: C
   const tier = getConfidenceTier(score);
 
   return (
-    <CornerFrame label="CONFIDENCE ASSESSMENT" className={className}>
-      <div className="panel p-5 flex flex-col gap-4">
+    <CornerFrame label="CONFIDENCE ASSESSMENT" className={className} domain="green">
+      <div className="panel p-5 flex flex-col gap-4 transition-all duration-300 hover:border-[var(--green)]/40 hover:shadow-lg">
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col gap-1">
             <span className="hud-label">Overall Model Confidence</span>

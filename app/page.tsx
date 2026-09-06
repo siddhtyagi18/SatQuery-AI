@@ -4,7 +4,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { AnalysisResult, ToolDefinition } from '@/lib/types/analysis';
 import { ModeBadge } from '@/components/ui/ModeBadge';
@@ -21,38 +20,41 @@ import {
   ArrowRight,
   Clock,
 } from 'lucide-react';
-import { formatRelativeTime } from '@/lib/utils';
+import { formatRelativeTime, cn } from '@/lib/utils';
 
 const WORKFLOWS = [
   {
-    key: 'single',
-    href: '/analysis/new',
-    label: 'Single Image Analysis',
-    description: 'VQA, captioning, and bounding-box spatial grounding on individual optical or SAR tiles.',
+    key: 'single_image',
+    href: '/analysis/new?mode=single_image',
+    label: 'Single Image',
+    subtitle: 'VQA, Captioning & Grounding',
+    description: 'Query single-scene optical, multispectral, or SAR imagery with natural language. Perform visual Q&A and spatial target grounding.',
     domain: 'cyan' as const,
     Icon: Layers,
-    cta: 'Initialize Workspace',
-    tags: ['Visual Q&A', 'Image Caption', 'Spatial Grounding'],
+    cta: 'Start Analysis',
+    tags: ['Visual Q&A', 'Scene Captioning', 'Spatial Grounding'],
   },
   {
-    key: 'bi',
-    href: '/analysis/new',
-    label: 'Bi-Temporal Change Detection',
-    description: 'Compare multi-year baseline image pairs to detect urban sprawl, deforestation, and water retreat.',
+    key: 'bi_temporal',
+    href: '/analysis/new?mode=bi_temporal',
+    label: 'Bi-Temporal Pair',
+    subtitle: 'Change Detection & Analysis',
+    description: 'Compare multi-temporal baseline image pairs with trained Siamese U-Net models to detect urban sprawl, construction, and environmental changes.',
     domain: 'magenta' as const,
     Icon: GitCompare,
-    cta: 'Initialize Workspace',
+    cta: 'Start Analysis',
     tags: ['Change Detection', 'Change VQA', 'Land-Use Delta'],
   },
   {
-    key: 'sar',
-    href: '/analysis/new',
-    label: 'Optical + SAR Cross-Modal Fusion',
-    description: 'Reconcile optical reflection with radar dielectric backscatter for all-weather feature discovery.',
+    key: 'optical_sar',
+    href: '/analysis/new?mode=optical_sar',
+    label: 'Optical + SAR',
+    subtitle: 'Cross-Modal Sensor Fusion',
+    description: 'Fuse co-registered optical reflection with Synthetic Aperture Radar (SAR) microwave dielectric backscatter for all-weather feature discovery.',
     domain: 'amber' as const,
     Icon: Radar,
-    cta: 'Initialize Workspace',
-    tags: ['Cross-Modal Fusion', 'SAR Feature', 'Multi-Modal VQA'],
+    cta: 'Start Analysis',
+    tags: ['Cross-Modal Fusion', 'Radar Backscatter', 'Multi-Modal VQA'],
   },
 ];
 
@@ -69,7 +71,6 @@ const TAG_DOMAIN: Record<'cyan' | 'magenta' | 'amber', string> = {
 };
 
 export default function DashboardPage() {
-  const router = useRouter();
   const [history, setHistory] = useState<AnalysisResult[]>([]);
   const [tools, setTools] = useState<ToolDefinition[]>([]);
   const [loading, setLoading] = useState(true);
@@ -238,53 +239,83 @@ export default function DashboardPage() {
          Level 1 panels, hexagon icon frames,
          domain-color glow on hover, normalize capability badges.
          ============================================================ */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <span className="hud-label">Select Mission Analysis Workflow</span>
-          <span className="hud-label" style={{ color: 'var(--text-faint)' }}>
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="badge badge-cyan">SPECIALIST PIPELINES</span>
+              <span className="hud-label text-[var(--text-faint)]">3 Active Modes</span>
+            </div>
+            <h2 className="text-2xl font-bold font-heading text-[var(--text-primary)]">
+              Mission Analysis Workflows
+            </h2>
+          </div>
+          <span className="text-xs font-mono text-[var(--text-muted)] self-start sm:self-center">
             Multi-modal Sensor Dispatch
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {WORKFLOWS.map((w, idx) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {WORKFLOWS.map((w) => {
             const IconComp = w.Icon;
-            const floatClass = idx === 0 ? 'animate-float' : idx === 1 ? 'animate-float-d1' : 'animate-float-d2';
             return (
               <Link
                 key={w.key}
                 href={w.href}
-                className={`panel p-5 flex flex-col justify-between gap-4 transition-all duration-200 group relative overflow-hidden ${DOMAIN_HOVER[w.domain]} ${floatClass}`}
+                className={cn(
+                  'panel p-6 flex flex-col justify-between gap-5 transition-all duration-300 group relative rounded-xl overflow-hidden',
+                  DOMAIN_HOVER[w.domain]
+                )}
+                style={{
+                  background: 'var(--surface-1)',
+                  boxShadow: '0 4px 20px -2px rgba(0,0,0,0.25)',
+                }}
               >
-                {/* Subtle top accent tint on hover */}
+                {/* Top accent border line on hover */}
                 <div
-                  className="absolute top-0 inset-x-0 h-0.5 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"
-                  style={{ background: `linear-gradient(90deg, transparent, var(--${w.domain}), transparent)` }}
+                  className="absolute top-0 inset-x-0 h-1 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"
+                  style={{ background: `var(--${w.domain})` }}
                   aria-hidden
                 />
 
                 <div className="flex flex-col gap-4">
-                  {/* Hexagonal icon frame with inner domain glow */}
-                  <div className={`icon-hex icon-hex-outline group-hover:icon-hex`} data-domain={w.domain}>
-                    <IconComp
-                      className="w-5 h-5"
-                      strokeWidth={1.8}
-                      style={{ color: `var(--${w.domain})` }}
-                    />
+                  <div className="flex items-center justify-between">
+                    {/* Hexagonal icon frame */}
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
+                      style={{
+                        background: `color-mix(in srgb, var(--${w.domain}) 14%, transparent)`,
+                        border: `1px solid color-mix(in srgb, var(--${w.domain}) 30%, transparent)`,
+                      }}
+                    >
+                      <IconComp
+                        className="w-6 h-6"
+                        strokeWidth={2}
+                        style={{ color: `var(--${w.domain})` }}
+                      />
+                    </div>
+                    <span
+                      className="text-[0.68rem] font-mono tracking-wider uppercase px-2.5 py-1 rounded"
+                      style={{
+                        background: 'var(--surface-2)',
+                        border: '1px solid var(--border-hairline)',
+                        color: 'var(--text-muted)',
+                      }}
+                    >
+                      {w.subtitle}
+                    </span>
                   </div>
 
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1.5">
                     <h3
-                      className="text-base font-semibold transition-colors"
+                      className="text-lg font-bold transition-colors font-heading"
                       style={{ color: 'var(--text-primary)' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.color = `var(--${w.domain})`)}
-                      onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
                     >
                       {w.label}
                     </h3>
                     <p
-                      className="text-sm leading-relaxed"
-                      style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', fontWeight: 400 }}
+                      className="text-xs leading-relaxed"
+                      style={{ color: 'var(--text-muted)', minHeight: '48px' }}
                     >
                       {w.description}
                     </p>
@@ -296,7 +327,7 @@ export default function DashboardPage() {
                       <span
                         key={t}
                         className={`badge ${TAG_DOMAIN[w.domain]}`}
-                        style={{ opacity: 0.85 }}
+                        style={{ opacity: 0.9, fontSize: '0.62rem' }}
                       >
                         {t}
                       </span>
@@ -305,19 +336,21 @@ export default function DashboardPage() {
                 </div>
 
                 <div
-                  className="flex items-center justify-between pt-3 mt-auto"
+                  className="flex items-center justify-between pt-4 mt-auto"
                   style={{ borderTop: '1px solid var(--border-hairline)' }}
                 >
                   <span
-                    className="text-xs font-mono animate-arrow-hover"
-                    style={{ color: `var(--${w.domain})`, fontWeight: 600, letterSpacing: '0.06em' }}
+                    className="text-xs font-mono font-semibold tracking-wider transition-all group-hover:translate-x-1"
+                    style={{ color: `var(--${w.domain})` }}
                   >
                     {w.cta}
                   </span>
-                  <ArrowRight
-                    className="w-3.5 h-3.5 arrow-slide"
+                  <div
+                    className="w-7 h-7 rounded-full flex items-center justify-center transition-all group-hover:bg-[var(--surface-2)]"
                     style={{ color: `var(--${w.domain})` }}
-                  />
+                  >
+                    <ArrowRight className="w-4 h-4 arrow-slide" />
+                  </div>
                 </div>
               </Link>
             );

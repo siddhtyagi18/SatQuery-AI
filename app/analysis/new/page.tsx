@@ -1,9 +1,9 @@
 // app/analysis/new/page.tsx
-// New Analysis submission flow — highest priority page.
+// New Analysis submission flow — supporting Single Image, Bi-Temporal, and Optical+SAR.
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AnalysisModeSelector } from '@/components/AnalysisModeSelector';
 import { ImageUploader } from '@/components/ImageUploader';
 import { ImageMetadata } from '@/components/ImageMetadata';
@@ -16,10 +16,56 @@ import { singleImageResult, biTemporalResult, opticalSarResult } from '@/lib/api
 import { API_MODE } from '@/lib/config';
 import { toast } from 'sonner';
 
-export default function NewAnalysisPage() {
-  const router = useRouter();
+const WORKFLOW_HEADERS: Record<
+  AnalysisMode,
+  {
+    title: string;
+    badge: string;
+    description: string;
+    domain: 'cyan' | 'magenta' | 'amber';
+  }
+> = {
+  single_image: {
+    title: 'Single Image Analysis',
+    badge: 'VQA & SPATIAL GROUNDING',
+    description:
+      'Query an individual optical, multispectral, or SAR satellite scene with natural language. Perform visual Q&A, scene captioning, and bounding-box spatial target grounding.',
+    domain: 'cyan',
+  },
+  bi_temporal: {
+    title: 'Bi-Temporal Pair Analysis',
+    badge: 'CHANGE DETECTION PIPELINE',
+    description:
+      'Compare multi-temporal baseline image pairs (T1 and T2) with trained Siamese U-Net models to detect building construction, urban sprawl, and water level changes.',
+    domain: 'magenta',
+  },
+  optical_sar: {
+    title: 'Optical + SAR Analysis',
+    badge: 'CROSS-MODAL SENSOR FUSION',
+    description:
+      'Fuse co-registered optical reflectance with Synthetic Aperture Radar (SAR) microwave dielectric backscatter for all-weather feature discovery and verification.',
+    domain: 'amber',
+  },
+};
 
-  const [mode, setMode] = useState<AnalysisMode>('single_image');
+function NewAnalysisContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const initialMode = (searchParams.get('mode') as AnalysisMode) || 'single_image';
+  const [mode, setMode] = useState<AnalysisMode>(
+    ['single_image', 'bi_temporal', 'optical_sar'].includes(initialMode)
+      ? initialMode
+      : 'single_image'
+  );
+
+  useEffect(() => {
+    const qMode = searchParams.get('mode') as AnalysisMode;
+    if (qMode && ['single_image', 'bi_temporal', 'optical_sar'].includes(qMode)) {
+      setMode(qMode);
+    }
+  }, [searchParams]);
+
   const [query, setQuery] = useState('');
   const [uploads, setUploads] = useState<Partial<Record<UploadedImage['role'], UploadedImage>>>({});
   const [uploading, setUploading] = useState<Partial<Record<UploadedImage['role'], boolean>>>({});
@@ -65,8 +111,6 @@ export default function NewAnalysisPage() {
 
   const handleLoadDemoExample = () => {
     if (API_MODE === 'live') {
-      // In live mode, images must be uploaded by the user.
-      // We only pre-fill the query text as a helpful demo starting point.
       if (mode === 'single_image') {
         setQuery(singleImageResult.query);
       } else if (mode === 'bi_temporal') {
@@ -76,7 +120,6 @@ export default function NewAnalysisPage() {
       }
       toast.info(`Demo query loaded — please upload your satellite imagery to run analysis.`);
     } else {
-      // Mock mode: use pre-loaded fixture images so analysis runs immediately
       if (mode === 'single_image') {
         const img = singleImageResult.images[0];
         setUploads({ single: img });
@@ -142,19 +185,34 @@ export default function NewAnalysisPage() {
     }
   };
 
+  const currentHeader = WORKFLOW_HEADERS[mode] ?? WORKFLOW_HEADERS.single_image;
+  const domainVar = `var(--${currentHeader.domain})`;
+
   return (
-    <div className="page-shell relative flex flex-col max-w-5xl mx-auto pb-12 animate-fade-in-up" style={{ gap: '48px' }}>
-      {/* ============================================================
-         HEADER BAR
-         ============================================================ */}
-      <div
-        className="flex items-center justify-between flex-wrap gap-4 pb-5"
-        style={{ borderBottom: '1px solid var(--border-hairline)' }}
-      >
-        <div className="flex flex-col gap-1.5">
-          <h1 className="text-display">Initiate Remote Sensing Analysis</h1>
-          <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-            Configure multi-modal input payloads and prompt the ISRO specialist ensemble.
+    <div className="page-shell max-w-5xl mx-auto pb-16 animate-fade-in-up flex flex-col gap-10">
+      {/* Dynamic Workflow Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[var(--border-hairline)]">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span
+              className="font-mono text-[0.62rem] font-bold tracking-widest uppercase px-2.5 py-0.5 rounded"
+              style={{
+                background: `color-mix(in srgb, ${domainVar} 14%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${domainVar} 30%, transparent)`,
+                color: domainVar,
+              }}
+            >
+              {currentHeader.badge}
+            </span>
+            <span className="text-xs text-[var(--text-faint)] font-mono">
+              Ground Ingest Console
+            </span>
+          </div>
+          <h1 className="text-display-lg text-[var(--text-primary)]">
+            {currentHeader.title}
+          </h1>
+          <p className="text-sm text-[var(--text-muted)] mt-1.5 max-w-2xl leading-relaxed">
+            {currentHeader.description}
           </p>
         </div>
 
@@ -162,26 +220,19 @@ export default function NewAnalysisPage() {
           type="button"
           onClick={handleLoadDemoExample}
           disabled={isSubmitting}
-          className="badge badge-cyan cursor-pointer hover:opacity-90 transition-opacity"
-          style={{ padding: '6px 12px', fontSize: '0.75rem' }}
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-mono font-medium border border-[var(--cyan)]/30 bg-[var(--cyan)]/10 text-[var(--cyan)] hover:bg-[var(--cyan)]/20 transition-all cursor-pointer self-start sm:self-center shadow-sm"
         >
-          <BookmarkCheck className="w-3.5 h-3.5" />
-          Load Demo Preset
+          <BookmarkCheck className="w-4 h-4" />
+          <span>Load Demo Preset</span>
         </button>
       </div>
 
-      {/* ============================================================
-         STEP 1: ANALYSIS MODE
-         ============================================================ */}
+      {/* STEP 1: Analysis Mode Selector */}
       <section className="flex flex-col gap-3">
-        <div className="flex items-center gap-3">
-          <span
-            className="badge badge-cyan"
-          >
-            STEP 01
-          </span>
-          <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
-            Select Analysis Domain &amp; Workflow
+        <div className="flex items-center gap-2">
+          <span className="badge badge-cyan">STEP 01</span>
+          <h2 className="text-sm font-semibold uppercase tracking-wider font-heading text-[var(--text-primary)]">
+            Select Analysis Workflow
           </h2>
         </div>
         <AnalysisModeSelector
@@ -191,25 +242,21 @@ export default function NewAnalysisPage() {
         />
       </section>
 
-      {/* ============================================================
-         STEP 2: IMAGE UPLOAD
-         ============================================================ */}
+      {/* STEP 2: Image Ingest Area */}
       <section className="flex flex-col gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <span
-            className={cn(
-              'badge',
-              mode === 'single_image'
-                ? 'badge-cyan'
-                : mode === 'bi_temporal'
-                  ? 'badge-magenta'
-                  : 'badge-amber'
-            )}
+            className="font-mono text-[0.65rem] font-bold px-2 py-0.5 rounded"
+            style={{
+              background: `color-mix(in srgb, ${domainVar} 15%, transparent)`,
+              color: domainVar,
+              border: `1px solid color-mix(in srgb, ${domainVar} 35%, transparent)`,
+            }}
           >
             STEP 02
           </span>
-          <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
-            Ingest Sensor Payloads (Downlink Imagery)
+          <h2 className="text-sm font-semibold uppercase tracking-wider font-heading text-[var(--text-primary)]">
+            Upload Imagery ({mode === 'single_image' ? '1 Tile' : '2 Tiles Required'})
           </h2>
         </div>
         <ImageUploader
@@ -223,47 +270,35 @@ export default function NewAnalysisPage() {
         />
       </section>
 
-      {/* ============================================================
-         STEP 3: METADATA HUD PANELS
-         ============================================================ */}
+      {/* STEP 3: Extracted Metadata (if uploaded) */}
       {Object.values(uploads).some(Boolean) && (
-        <section className="flex flex-col gap-3">
-          <div className="flex items-center gap-3">
-            <span
-              className="badge badge-green"
-            >
-              STEP 03
-            </span>
-            <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
-              Extracted Telemetry &amp; Format Metadata
+        <section className="flex flex-col gap-3 animate-fade-in-up">
+          <div className="flex items-center gap-2">
+            <span className="badge badge-green">STEP 03</span>
+            <h2 className="text-sm font-semibold uppercase tracking-wider font-heading text-[var(--text-primary)]">
+              Extracted Sensor Metadata &amp; Coordinate System
             </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Object.entries(uploads).map(([role, img]) => (
+            {Object.entries(uploads).map(([role, img]) =>
               img ? (
                 <ImageMetadata
                   key={role}
                   image={img}
-                  label={`${role.toUpperCase()} Input Metadata`}
+                  label={`${role.toUpperCase()} Input Telemetry`}
                 />
               ) : null
-            ))}
+            )}
           </div>
         </section>
       )}
 
-      {/* ============================================================
-         STEP 4: NATURAL LANGUAGE QUERY
-         ============================================================ */}
+      {/* STEP 4: Natural Language Inquiry Console (ChatGPT-style) */}
       <section className="flex flex-col gap-3">
-        <div className="flex items-center gap-3">
-          <span
-            className="badge badge-cyan"
-          >
-            STEP 04
-          </span>
-          <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
-            Issue Natural-Language Inquiry to Agent Ensemble
+        <div className="flex items-center gap-2">
+          <span className="badge badge-cyan">STEP 04</span>
+          <h2 className="text-sm font-semibold uppercase tracking-wider font-heading text-[var(--text-primary)]">
+            Ask Your Analysis Question
           </h2>
         </div>
         <QueryInput
@@ -277,67 +312,49 @@ export default function NewAnalysisPage() {
         />
       </section>
 
-      {/* ============================================================
-         VALIDATION MESSAGE (DISABLED STATE EXPLANATION)
-         ============================================================ */}
+      {/* Validation Message Box if not ready */}
       {!canSubmit && !isSubmitting && (
         <div
-          className="panel p-4 flex items-start gap-2.5"
-          style={{
-            background: 'var(--surface-2)',
-          }}
+          className="p-4 rounded-xl border border-[var(--border-hairline)] flex items-start gap-3 text-xs"
+          style={{ background: 'var(--surface-1)' }}
         >
-          <AlertCircle
-            className="w-4 h-4 flex-shrink-0 mt-0.5"
-            style={{ color: 'var(--amber)' }}
-          />
-          <span
-            className="text-sm leading-relaxed"
-            style={{
-              color: 'var(--text-muted)',
-              fontFamily: 'var(--font-body)',
-              fontWeight: 400,
-            }}
-          >
-            {!hasRequiredImages()
-              ? `Please provide all required image payloads for ${mode.replace('_', ' ')} mode.`
-              : 'Please enter a natural language question or select a suggestion.'}
-          </span>
+          <AlertCircle className="w-4 h-4 text-[var(--amber)] flex-shrink-0 mt-0.5" />
+          <div className="flex flex-col gap-0.5">
+            <span className="font-semibold text-[var(--text-primary)]">
+              Prerequisites for Analysis
+            </span>
+            <span className="text-[var(--text-muted)] leading-relaxed">
+              {!hasRequiredImages()
+                ? `Please provide all required image payloads for ${mode.replace('_', ' ')} mode.`
+                : 'Please type a specific inquiry question or choose one of the suggested questions above.'}
+            </span>
+          </div>
         </div>
       )}
 
-      {/* ============================================================
-         SUBMIT CTA
-         ============================================================ */}
-      <section className="flex items-center justify-end gap-3 pt-1">
+      {/* Submit CTA */}
+      <section className="flex items-center justify-end gap-3 pt-2">
         <button
           type="button"
           onClick={handleSubmit}
           disabled={!canSubmit}
-          className="btn-primary"
+          className="btn-primary flex items-center gap-2 shadow-xl cursor-pointer"
+          style={{ padding: '12px 28px', fontSize: '0.84rem' }}
         >
           <Play className="w-4 h-4 fill-current" />
-          {isSubmitting ? 'Executing Specialist Pipeline…' : 'Run SatQuery Pipeline'}
+          <span>{isSubmitting ? 'Executing Specialist Pipeline…' : 'Run SatQuery Pipeline'}</span>
         </button>
       </section>
 
-      {/* ============================================================
-         LIVE EXECUTION TRACE (DURING SUBMISSION)
-         ============================================================ */}
+      {/* Live Execution Trace Stream during pipeline execution */}
       {isSubmitting && activeTrace && (
         <section
-          className="flex flex-col gap-3 pt-4 animate-fade-in-up"
-          style={{ borderTop: '1px solid var(--border-hairline)' }}
+          className="flex flex-col gap-3 pt-6 animate-fade-in-up border-t border-[var(--border-hairline)]"
         >
-          <div className="flex items-center gap-3">
-            <span
-              className="badge badge-amber"
-              style={{ padding: '2px 8px', fontSize: '0.58rem' }}
-            >
-              LIVE
-            </span>
-            <span className="hud-label" style={{ color: 'var(--amber)' }}>
-              ACTIVE MULTI-AGENT ORCHESTRATION STREAM
+          <div className="flex items-center gap-2">
+            <span className="badge badge-amber animate-pulse">LIVE ORCHESTRATION</span>
+            <span className="hud-label text-[var(--amber)]">
+              Active Multi-Agent Execution Trace Stream
             </span>
           </div>
           <AgentExecutionTrace trace={activeTrace} defaultExpanded={true} />
@@ -347,7 +364,18 @@ export default function NewAnalysisPage() {
   );
 }
 
-// Local cn helper (one-off since we're inside a page module)
-function cn(...c: (string | false | undefined)[]): string {
-  return c.filter(Boolean).join(' ');
+export default function NewAnalysisPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="page-shell max-w-5xl mx-auto py-12 flex items-center justify-center">
+          <span className="font-mono text-xs text-[var(--text-faint)] tracking-widest uppercase animate-pulse">
+            Loading Mission Console…
+          </span>
+        </div>
+      }
+    >
+      <NewAnalysisContent />
+    </Suspense>
+  );
 }

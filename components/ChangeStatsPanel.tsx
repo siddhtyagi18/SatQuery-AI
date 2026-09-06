@@ -88,8 +88,8 @@ export function ChangeStatsPanel({ trace }: ChangeStatsPanelProps) {
 
   return (
     <div
-      className="panel p-4 flex flex-col gap-3"
-      style={{ border: '1px solid rgba(192,132,252,0.22)' }}
+      className="panel p-4 flex flex-col gap-3 transition-all duration-300 hover:border-[var(--magenta)]/40 hover:shadow-md"
+      style={{ border: '1px solid rgba(192,132,252,0.25)' }}
       aria-label="Change Statistics"
     >
       {/* Header */}
@@ -99,7 +99,7 @@ export function ChangeStatsPanel({ trace }: ChangeStatsPanelProps) {
           {/* Execution mode badge */}
           {modeBadge && (
             <span
-              className="text-[0.6rem] font-mono font-bold px-2 py-0.5 rounded"
+              className="text-[0.62rem] font-mono font-bold px-2 py-0.5 rounded transition-transform hover:scale-[1.03]"
               style={{
                 color: modeBadge.color,
                 background: modeBadge.bg,
@@ -117,7 +117,7 @@ export function ChangeStatsPanel({ trace }: ChangeStatsPanelProps) {
           {/* Severity badge */}
           {severityStyle && (
             <span
-              className="text-[0.6rem] font-mono font-bold px-2 py-0.5 rounded"
+              className="text-[0.62rem] font-mono font-bold px-2 py-0.5 rounded"
               style={{ color: severityStyle.color, background: severityStyle.bg }}
             >
               SEVERITY: {severityStyle.label}
@@ -172,8 +172,7 @@ export function ChangeStatsPanel({ trace }: ChangeStatsPanelProps) {
 
       {/* Footer footnote */}
       <p
-        className="text-[0.6rem] font-mono leading-relaxed"
-        style={{ color: 'var(--text-faint)' }}
+        className="text-[0.65rem] font-mono leading-relaxed text-[var(--text-muted)] pt-0.5"
       >
         {algorithmFootnote}
       </p>
@@ -194,12 +193,11 @@ function StatRow({
 }) {
   return (
     <div
-      className="flex flex-col gap-0.5 p-2 rounded"
+      className="flex flex-col gap-0.5 p-2 rounded transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--magenta)]/30 hover:shadow-sm"
       style={{ background: 'var(--surface-2)', border: '1px solid var(--border-hairline)' }}
     >
       <span
-        className="text-[0.58rem] font-mono uppercase tracking-wider"
-        style={{ color: 'var(--text-faint)' }}
+        className="text-[0.62rem] font-mono font-bold uppercase tracking-wider text-[var(--text-muted)]"
       >
         {label}
       </span>

@@ -11,15 +11,15 @@ interface ConfidenceGaugeProps {
 }
 
 function getColor(score: number): string {
-  if (score >= 0.8) return '#3DDC84';
-  if (score >= 0.6) return '#FFB020';
-  return '#FF5C5C';
+  if (score >= 0.8) return 'var(--accent-success)';
+  if (score >= 0.6) return 'var(--accent-warning)';
+  return 'var(--accent-danger)';
 }
 
 const SIZE_CONFIG = {
-  sm: { r: 24, stroke: 5, viewBox: '0 0 60 60', cx: 30, cy: 30, textSize: '10px' },
-  md: { r: 34, stroke: 6, viewBox: '0 0 80 80', cx: 40, cy: 40, textSize: '13px' },
-  lg: { r: 44, stroke: 7, viewBox: '0 0 100 100', cx: 50, cy: 50, textSize: '16px' },
+  sm: { r: 24, stroke: 5, viewBox: '0 0 60 60', cx: 30, cy: 30, textSize: '11px' },
+  md: { r: 34, stroke: 6, viewBox: '0 0 80 80', cx: 40, cy: 40, textSize: '14px' },
+  lg: { r: 44, stroke: 7, viewBox: '0 0 100 100', cx: 50, cy: 50, textSize: '17px' },
 };
 
 export function ConfidenceGauge({ score, size = 'md', className }: ConfidenceGaugeProps) {
@@ -30,10 +30,10 @@ export function ConfidenceGauge({ score, size = 'md', className }: ConfidenceGau
   const arcLen = circumference * 0.75;
   const scoreVal = score ?? 0;
   const filled = arcLen * scoreVal;
-  const color = score != null ? getColor(scoreVal) : '#4A5270';
+  const color = score != null ? getColor(scoreVal) : 'var(--text-faint)';
 
   return (
-    <div className={cn('flex flex-col items-center gap-1', className)}>
+    <div className={cn('flex flex-col items-center gap-1 transition-transform hover:scale-105 duration-200', className)}>
       <svg
         viewBox={viewBox}
         width={size === 'lg' ? 100 : size === 'md' ? 80 : 60}
@@ -46,7 +46,7 @@ export function ConfidenceGauge({ score, size = 'md', className }: ConfidenceGau
         <circle
           cx={cx} cy={cy} r={r}
           fill="none"
-          stroke="rgba(62,208,255,0.08)"
+          stroke="var(--border-hairline)"
           strokeWidth={stroke}
           strokeDasharray={`${arcLen} ${circumference}`}
           strokeLinecap="round"

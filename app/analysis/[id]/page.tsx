@@ -163,12 +163,12 @@ export default function AnalysisResultPage() {
         bracketSize={14}
         intensity="normal"
       >
-        <div className="panel p-5 flex flex-col gap-4">
-          <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="panel p-5 flex flex-col gap-4 transition-all duration-300 hover:border-[var(--cyan)]/35">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/analysis/history')}
-                className="p-1.5 rounded hover:bg-[var(--bg-panel-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors border border-[var(--border-hairline)]"
+                className="p-1.5 rounded hover:bg-[var(--bg-panel-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all hover:scale-105 border border-[var(--border-hairline)]"
                 title="Back to History"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -185,7 +185,7 @@ export default function AnalysisResultPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => router.push('/analysis/new')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono bg-[var(--bg-panel-elevated)] border border-[var(--border-hairline)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono bg-[var(--bg-panel-elevated)] border border-[var(--border-hairline)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-all hover:scale-[1.02]"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 Re-run Query
@@ -193,7 +193,7 @@ export default function AnalysisResultPage() {
 
               <button
                 onClick={handleDownloadReport}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono bg-[var(--accent-signal)]/15 border border-[var(--accent-signal)]/40 text-[var(--accent-signal)] hover:bg-[var(--accent-signal)]/25 transition-colors font-medium"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono bg-[var(--accent-signal)]/15 border border-[var(--accent-signal)]/40 text-[var(--accent-signal)] hover:bg-[var(--accent-signal)]/25 transition-all hover:scale-[1.02] font-medium"
               >
                 <Download className="w-3.5 h-3.5" />
                 Export Report
@@ -203,7 +203,7 @@ export default function AnalysisResultPage() {
 
           {/* User Query Banner — Level-2 elevated surface within the framed header */}
           <div
-            className="p-3.5 rounded flex flex-col gap-1"
+            className="p-3.5 rounded flex flex-col gap-1 transition-colors hover:border-[var(--border-strong)]"
             style={{
               background: 'var(--surface-2)',
               border: '1px solid var(--border-hairline)',
@@ -300,7 +300,7 @@ export default function AnalysisResultPage() {
                 {result.toolInvocations.map((tool) => (
                   <div
                     key={tool.toolId}
-                    className="p-3 rounded flex flex-col gap-2"
+                    className="p-3 rounded flex flex-col gap-2 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--cyan)]/35 hover:shadow-sm"
                     style={{
                       background: 'var(--surface-2)',
                       border: '1px solid var(--border-hairline)',

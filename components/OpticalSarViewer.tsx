@@ -19,7 +19,7 @@ export function OpticalSarViewer({ opticalUrl, sarUrl, className }: OpticalSarVi
 
   return (
     <CornerFrame label="CROSS-MODAL OPTICAL + SAR FUSION" domain="amber" className={cn('w-full', className)}>
-      <div className="panel overflow-hidden flex flex-col bg-[var(--bg-base)]">
+      <div className="panel overflow-hidden flex flex-col bg-[var(--bg-base)] transition-all duration-300 hover:border-[var(--amber)]/35 hover:shadow-lg">
         {/* Controls Toolbar */}
         <div className="flex items-center justify-between px-4 py-2.5 bg-[var(--bg-panel)] border-b border-[var(--border-hairline)] flex-wrap gap-2 text-xs">
           <div className="flex items-center gap-3">
