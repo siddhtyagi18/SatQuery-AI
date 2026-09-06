@@ -102,6 +102,7 @@ class VQAService:
         image_file_paths: List[Path],
         tasks: Optional[List[str]] = None,
         mock_factory: Optional[Callable[[], VQAServiceResult]] = None,
+        tool_id: str = "rs_vqa",
     ) -> VQAServiceResult:
         """Main entry point used by the orchestrator.
 
@@ -123,7 +124,7 @@ class VQAService:
             return res
 
         try:
-            return self._run_real_pipeline(query, mode, image_file_paths, t0)
+            return self._run_real_pipeline(query, mode, image_file_paths, t0, tasks=tasks, tool_id=tool_id)
         except Exception as e:
             logger.exception(f"Real VQA pipeline failed; falling back to mock: {e}")
             force_real = (settings.VQA_MODE or "auto").lower() == "real"
@@ -148,6 +149,8 @@ class VQAService:
         mode: str,
         image_file_paths: List[Path],
         t0: float,
+        tasks: Optional[List[str]] = None,
+        tool_id: str = "rs_vqa",
     ) -> VQAServiceResult:
         ctx = VQARunContext(execution_mode="real")
         model_id = settings.VQA_MODEL_ID
@@ -219,9 +222,17 @@ class VQAService:
         )
 
         # --- Adapter preprocessing ----------------------------------------
+        effective_query = query.strip()
+        if tool_id == "rs_caption" or ("captioning" in (tasks or []) and "vqa" not in (tasks or [])):
+            effective_query = (
+                f"Provide a detailed, comprehensive remote-sensing scene description for this satellite image, "
+                f"identifying dominant land-cover categories, terrain morphology, infrastructure, and visible objects. "
+                f"User request: {query.strip()}"
+            )
+
         inf_input = VQAInferenceInput(
             rgb_image=preproc.rgb_image,
-            query_text=query,
+            query_text=effective_query,
             max_new_tokens=settings.VQA_MAX_NEW_TOKENS,
             temperature=settings.VQA_TEMPERATURE,
         )
@@ -269,7 +280,7 @@ class VQAService:
             answer=answer,
             confidence=inf_output.confidence,
             evidence=list(ctx.evidence),
-            tool_id=self.TOOL_ID,
+            tool_id=tool_id,
             is_mock=False,
             run_context=ctx,
         )

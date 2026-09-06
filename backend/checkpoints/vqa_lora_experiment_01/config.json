@@ -1,0 +1,58 @@
+{
+  "experiment": "vqa_lora_experiment_01",
+  "base_model": "HuggingFaceTB/SmolVLM-500M-Instruct",
+  "lora_r": 8,
+  "lora_alpha": 16,
+  "lora_dropout": 0.05,
+  "target_modules": [
+    "q_proj",
+    "v_proj",
+    "k_proj",
+    "o_proj"
+  ],
+  "trainable_params": 2080768,
+  "total_params": 507482304,
+  "trainable_pct": 0.41,
+  "device": "cpu",
+  "gpu_name": "None (CPU only)",
+  "vram_gb": null,
+  "epochs": 3,
+  "batch_size": 1,
+  "grad_accum": 4,
+  "effective_batch": 4,
+  "learning_rate": 0.0002,
+  "n_train_samples": 197,
+  "n_val_samples": 82,
+  "seed": 42,
+  "training_log": [
+    {
+      "epoch": 1,
+      "train_loss": 4.8742,
+      "val_loss": 1.1098,
+      "duration_sec": 1586.2,
+      "n_train_steps": 197,
+      "n_val_steps": 82,
+      "lr": 0.0002
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.9232,
+      "val_loss": 0.7575,
+      "duration_sec": 1314.2,
+      "n_train_steps": 197,
+      "n_val_steps": 82,
+      "lr": 0.0002
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.6911,
+      "val_loss": 0.6176,
+      "duration_sec": 1303.8,
+      "n_train_steps": 197,
+      "n_val_steps": 82,
+      "lr": 0.0002
+    }
+  ],
+  "best_val_loss": 0.6176,
+  "best_epoch": 3
+}

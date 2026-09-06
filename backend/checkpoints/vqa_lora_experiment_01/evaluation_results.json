@@ -1,0 +1,663 @@
+{
+  "n_evaluated": 82,
+  "exact_match_accuracy": 0.2561,
+  "soft_match_accuracy": 0.2561,
+  "results": [
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Would you identify any broad-leaved forest as lying right beside a mixed forest?",
+      "ground_truth": "yes",
+      "prediction": "no",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Does any coniferous forest touch transitional woodlands or shrubs in the image?",
+      "ground_truth": "no",
+      "prediction": "yes",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Do transitional woodlands or shrubs cover at least 60% of the image?",
+      "ground_truth": "no",
+      "prediction": "yes",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Do broad-leaved forests cover at least 30% of the image?",
+      "ground_truth": "yes",
+      "prediction": "yes",
+      "exact_match": true,
+      "soft_match": true
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Would you say that the scene includes exactly two contiguous regions of transitional woodlands or shrubs?",
+      "ground_truth": "yes",
+      "prediction": "yes",
+      "exact_match": true,
+      "soft_match": true
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Are broad-leaved forests distributed across at least four separate continuous parts of the image?",
+      "ground_truth": "no",
+      "prediction": "yes",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Is the land cover type broad-leaved forest present in the satellite image?",
+      "ground_truth": "yes",
+      "prediction": "yes",
+      "exact_match": true,
+      "soft_match": true
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Is any portion of the image covered by natural grasslands or sparsely vegetated areas?",
+      "ground_truth": "no",
+      "prediction": "yes",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Create a bounding box for the land cover class instance positioned at <point>(0.21, 0.42)</point> in the image.",
+      "ground_truth": "[0.0 0.0, 0.59 0.92]",
+      "prediction": "[0.0 0.0, 0.42 1.0]",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Generate a bounding box enclosing the land cover class instance at <point>(0.79, 0.07)</point> in the satellite image.",
+      "ground_truth": "[0.45 0.0, 1.0 0.16]",
+      "prediction": "[0.0 0.0, 0.79 0.0]",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Provide a bounding box surrounding the land cover class instance positioned at <point>(0.56, 0.86)</point> in the image.",
+      "ground_truth": "[0.0 0.62, 1.0 1.0]",
+      "prediction": "[0.0 0.0, 1.0 1.0]",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Generate a bounding box enclosing the land cover class instance positioned at <point>(0.67, 0.43)</point> in the image.",
+      "ground_truth": "[0.25 0.06, 1.0 0.87]",
+      "prediction": "[0.0 0.0, 1.0 1.0]",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Output a bounding box enclosing the land cover class instance found at <point>(0.87, 0.91)</point> in the satellite image.",
+      "ground_truth": "[0.73 0.8, 1.0 1.0]",
+      "prediction": "[0.0 0.0, 1.0 1.0]",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Can you point out the <ref>smallest contiguous area of broad-leaved forest</ref> in this image?",
+      "ground_truth": "[0.73 0.8, 1.0 1.0]",
+      "prediction": "[0.0 0.0, 0.0 0.0]",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Point out the <ref>largest contiguous area of transitional woodlands or shrubs</ref> in the scene.",
+      "ground_truth": "[0.0 0.62, 1.0 1.0]",
+      "prediction": "[0.0 0.0, 0.5 1.0]",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Show a continuous region of <ref>mixed forest</ref> in the scene.",
+      "ground_truth": "[0.0 0.0, 0.59 0.92]",
+      "prediction": "[0.0 0.0, 0.3 1.0]",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Point out the <ref>largest continuous area of broad-leaved forest</ref> in the scene.",
+      "ground_truth": "[0.25 0.06, 1.0 0.87]",
+      "prediction": "[0.0 0.0, 1.0 1.0]",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Where is the <ref>smallest patch of transitional woodlands or shrubs</ref> located?",
+      "ground_truth": "[0.45 0.0, 1.0 0.16]",
+      "prediction": "[0.0 0.0, 0.2 0.2]",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Provide a detailed description, mentioning the location, seasonal context, and different land covers.",
+      "ground_truth": "This satellite image, captured during the summer in Serbia, showcases a predominantly forested landscape within the \"cold, no dry season, warm summer\" climate zone. The dominant features are broad-leaved forest (576,000 sqm) and mixed forest (522,000 sqm), which share borders with each other. Both are also adjacent to transitional woodland and shrub (343,000 sqm). The broad-leaved forest is comprised of two areas: a larger one covering approximately 512,000 square meters and a smaller marginal area. The transitional woodland and shrub is spread across two smaller areas, totaling 255,000 square meters and 88,000 square meters. The adjacency of these forest and seminatural areas suggests a diverse and complex ecosystem.",
+      "prediction": "[0.0 0.0, 0.0 0.0], [0.0 0.0, 0.0 0.0], [0.0 0.0, 0.0 0.0], [0.0 0.0,",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Select the adjacent classes in the image: a) Broad-leaved forest and Urban fabric, b) Coniferous forest and Mixed forest, c) Arable land and Coastal wetlands, d) Mixed forest and Transitional woodland, shrub",
+      "ground_truth": "d",
+      "prediction": "c",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Select the correct total area for mixed forests: a) 50 to 60%, b) 60 to 100%, c) 0 to 40%, d) 40 to 50%",
+      "ground_truth": "c",
+      "prediction": "c",
+      "exact_match": true,
+      "soft_match": true
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "From the options below, choose the climate zone shown in the satellite image: a) Temperate, no dry season, warm summer, b) Cold, no dry season, warm summer, c) Cold, dry summer, warm summer, d) Temperate, no dry season, cold summer",
+      "ground_truth": "b",
+      "prediction": "c",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "How many separate areas of mixed forest exist? a) 3, b) 1, c) 0, d) 4",
+      "ground_truth": "b",
+      "prediction": "a",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "From the following options, pick the one that corresponds to the country shown in the satellite image: a) Belgium, b) Lithuania, c) Serbia, d) Switzerland",
+      "ground_truth": "c",
+      "prediction": "c",
+      "exact_match": true,
+      "soft_match": true
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Which of the following is present? a) Marine waters, b) Natural grassland and sparsely vegetated areas, c) Transitional woodland, shrub, d) Moors, heathland and sclerophyllous vegetation",
+      "ground_truth": "c",
+      "prediction": "c",
+      "exact_match": true,
+      "soft_match": true
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "question": "Which of the following seasons is depicted in the satellite image? a) Spring, b) Winter, c) Summer, d) Autumn",
+      "ground_truth": "c",
+      "prediction": "a",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Does any arable land meet transitional woodlands or shrubs at its edges in the image?",
+      "ground_truth": "yes",
+      "prediction": "yes",
+      "exact_match": true,
+      "soft_match": true
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Does any broad-leaved forest border pastures in this scene?",
+      "ground_truth": "no",
+      "prediction": "yes",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Do broad-leaved forests extend over the entire image area?",
+      "ground_truth": "no",
+      "prediction": "yes",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Is there some part of the image not covered by broad-leaved forests?",
+      "ground_truth": "yes",
+      "prediction": "yes",
+      "exact_match": true,
+      "soft_match": true
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Is there more than a single connected instance of broad-leaved forests in the image?",
+      "ground_truth": "yes",
+      "prediction": "yes",
+      "exact_match": true,
+      "soft_match": true
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Can you confirm that the image has exactly three contiguous areas of broad-leaved forests?",
+      "ground_truth": "no",
+      "prediction": "yes",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Can you identify arable land in the satellite image?",
+      "ground_truth": "yes",
+      "prediction": "yes",
+      "exact_match": true,
+      "soft_match": true
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Is the land cover type complex cultivation patterns present in the satellite image?",
+      "ground_truth": "no",
+      "prediction": "yes",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Output a bounding box surrounding the land cover class instance positioned at <point>(0.59, 0.22)</point> in the image.",
+      "ground_truth": "[0.15 0.0, 1.0 0.54]",
+      "prediction": "[0.0 0.0, 0.7 0.7]",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Generate a bounding box around the land cover class instance at <point>(0.89, 0.06)</point> in the satellite image.",
+      "ground_truth": "[0.77 0.0, 1.0 0.17]",
+      "prediction": "[0.0 0.0, 1.0 1.0]",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Create a bounding box around the land cover class instance located at <point>(0.09, 0.2)</point> in the image.Provide a bounding box enclosing the land cover class instance found at <point>(0.09, 0.2)</point> in the satellite image.",
+      "ground_truth": "[0.0 0.0, 0.25 0.45]",
+      "prediction": "[0.0 0.0, 0.2 0.0]",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Show a continuous region of <ref>transitional woodlands or shrubs</ref> in the scene.",
+      "ground_truth": "[0.15 0.0, 1.0 0.54]",
+      "prediction": "[0.0 0.0, 0.3 1.0]",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Where is the <ref>smallest patch of broad-leaved forest</ref> located?",
+      "ground_truth": "[0.77 0.0, 1.0 0.17]",
+      "prediction": "[0.0 0.0, 0.3 0.3]",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Indicate the position of a continuous region of <ref>arable land</ref>.",
+      "ground_truth": "[0.0 0.0, 0.25 0.45]",
+      "prediction": "[0.0 0.0, 0.3 1.0]",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Describe the landscape shown in this satellite image, mentioning the region, climate, and land cover classes.",
+      "ground_truth": "This satellite image, captured during the winter season in Austria, showcases a predominantly forested landscape within the \"temperate, no dry season, warm summer\" climate zone. The dominant feature is the expansive broad-leaved forest, covering approximately 896,000 square meters and is distributed over two individual areas, where one is a larger area (~856,000 sqm) and one is a marginal area. It shares borders with transitional woodland and shrub (~438,000 sqm) and arable land (~102,000 sqm). The transitional woodland and shrub area is also adjacent to the arable land. Furthermore, the arable land is next to a marginal area of pastures, which accounts for less than 5% of the total area, specifically 72,000 square meters. The varied landscape presents a mix of forest and seminatural areas, and agricultural areas, highlighting the diverse ecosystems present in this region.",
+      "prediction": "The satellite image shows a predominantly arid region with a few patches of vegetation. The largest patch of vegetation is located in the central part of the image, covering approximately 10% of the land area. The climate is arid, with little to no rainfall.",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Identify which pair is touching: a) Pastures and Transitional woodland, shrub, b) Natural grassland and sparsely vegetated areas and Transitional woodland, shrub, c) Arable land and Pastures, d) Industrial or commercial units and Pastures",
+      "ground_truth": "c",
+      "prediction": "a",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Pick the area covered by broad-leaved forests: a) 90 to 100%, b) 10 to 20%, c) 80 to 90%, d) 50 to 70%",
+      "ground_truth": "d",
+      "prediction": "c",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Which of these climate zones is represented in the satellite image? a) Polar, tundra, b) Temperate, no dry season, hot summer, c) Cold, no dry season, warm summer, d) Temperate, no dry season, warm summer",
+      "ground_truth": "d",
+      "prediction": "a",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Count the distinct regions of arable land: a) 5, b) More than five, c) 3, d) 1",
+      "ground_truth": "d",
+      "prediction": "a",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Choose the country that is shown in the satellite image: a) Austria, b) Belgium, c) Portugal, d) Lithuania",
+      "ground_truth": "a",
+      "prediction": "c",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Which class is visible in the scene? a) Broad-leaved forest, b) Permanent crops, c) Mixed forest, d) Coniferous forest",
+      "ground_truth": "a",
+      "prediction": "a",
+      "exact_match": true,
+      "soft_match": true
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20170831T095029_N9999_R079_T33UXP_15_75",
+      "question": "Select the season shown in this satellite image: a) Spring, b) Autumn, c) Winter, d) Summer",
+      "ground_truth": "c",
+      "prediction": "c",
+      "exact_match": true,
+      "soft_match": true
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20171016T101009_N9999_R022_T34VDM_34_74",
+      "question": "Is any inland water and marine waters adjoining regions in this scene?",
+      "ground_truth": "no",
+      "prediction": "yes",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20171016T101009_N9999_R022_T34VDM_34_74",
+      "question": "Do marine waters cover at least 90% of the image?",
+      "ground_truth": "yes",
+      "prediction": "yes",
+      "exact_match": true,
+      "soft_match": true
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20171016T101009_N9999_R022_T34VDM_34_74",
+      "question": "Is there anything except marine waters in the image?",
+      "ground_truth": "no",
+      "prediction": "no",
+      "exact_match": true,
+      "soft_match": true
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20171016T101009_N9999_R022_T34VDM_34_74",
+      "question": "Does this image include exactly three connected zones of marine waters?",
+      "ground_truth": "no",
+      "prediction": "yes",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20171016T101009_N9999_R022_T34VDM_34_74",
+      "question": "Does the image contain exactly one continuous region of marine waters?",
+      "ground_truth": "yes",
+      "prediction": "yes",
+      "exact_match": true,
+      "soft_match": true
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20171016T101009_N9999_R022_T34VDM_34_74",
+      "question": "Can any marine waters be observed in this image?",
+      "ground_truth": "yes",
+      "prediction": "no",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20171016T101009_N9999_R022_T34VDM_34_74",
+      "question": "Is the land cover type inland waters present in the satellite image?",
+      "ground_truth": "no",
+      "prediction": "yes",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20171016T101009_N9999_R022_T34VDM_34_74",
+      "question": "Give a comprehensive overview of the image, specifying the location, climate, and landscape features.",
+      "ground_truth": "This satellite image, captured during the fall season in Finland, showcases a landscape entirely dominated by marine waters (~1,440,000 sqm). The image presents a vast expanse of water, with no visible landmasses or other features, set within the \"cold, no dry season, warm summer\" climate zone.",
+      "prediction": "[0.0 0.0, 1.0 1.0]",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20171016T101009_N9999_R022_T34VDM_34_74",
+      "question": "How much of the image do marine waters cover? a) 720000 to 864000 square meters, b) 144000 to 432000 square meters, c) 864000 to 1440000 square meters, d) 432000 to 720000 square meters",
+      "ground_truth": "c",
+      "prediction": "c",
+      "exact_match": true,
+      "soft_match": true
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20171016T101009_N9999_R022_T34VDM_34_74",
+      "question": "Which climate zone is shown in the satellite image? a) Cold, no dry season, warm summer, b) Temperate, dry summer, hot summer, c) Temperate, dry summer, warm summer, d) Cold, no dry season, cold summer",
+      "ground_truth": "a",
+      "prediction": "b",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20171016T101009_N9999_R022_T34VDM_34_74",
+      "question": "Count the separate regions of marine waters: a) 5, b) More than five, c) 1, d) 3",
+      "ground_truth": "c",
+      "prediction": "a",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20171016T101009_N9999_R022_T34VDM_34_74",
+      "question": "From the options provided, identify the country shown in the image: a) Belgium, b) Finland, c) Kosovo, d) Switzerland",
+      "ground_truth": "b",
+      "prediction": "c",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20171016T101009_N9999_R022_T34VDM_34_74",
+      "question": "Select the class that can be seen in this satellite image: a) Marine waters, b) Inland waters, c) Arable land, d) Natural grassland and sparsely vegetated areas",
+      "ground_truth": "a",
+      "prediction": "a",
+      "exact_match": true,
+      "soft_match": true
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20171016T101009_N9999_R022_T34VDM_34_74",
+      "question": "Which season is shown in the satellite image? a) Summer, b) Spring, c) Fall, d) Winter",
+      "ground_truth": "c",
+      "prediction": "a",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20180525T094029_N9999_R036_T35VNL_15_75",
+      "question": "Is any inland water directly adjacent to a mixed forest in this image?",
+      "ground_truth": "yes",
+      "prediction": "yes",
+      "exact_match": true,
+      "soft_match": true
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20180525T094029_N9999_R036_T35VNL_15_75",
+      "question": "Is any instance of land principally occupied by agriculture with significant areas of natural vegetation adjacent to the border of pastures?",
+      "ground_truth": "no",
+      "prediction": "yes",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20180525T094029_N9999_R036_T35VNL_15_75",
+      "question": "Would you say that inland waters take up between 0 square meters and 144000 square meters of the image?",
+      "ground_truth": "no",
+      "prediction": "yes",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20180525T094029_N9999_R036_T35VNL_15_75",
+      "question": "Do inland waters cover between 50% and 60% of the image?",
+      "ground_truth": "yes",
+      "prediction": "yes",
+      "exact_match": true,
+      "soft_match": true
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20180525T094029_N9999_R036_T35VNL_15_75",
+      "question": "Does the image illustrate fewer than three connected regions of inland waters?",
+      "ground_truth": "yes",
+      "prediction": "yes",
+      "exact_match": true,
+      "soft_match": true
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20180525T094029_N9999_R036_T35VNL_15_75",
+      "question": "Are inland waters spread across more than three continuous regions in this scene?",
+      "ground_truth": "no",
+      "prediction": "yes",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20180525T094029_N9999_R036_T35VNL_15_75",
+      "question": "Do parts of the image correspond to land principally occupied by agriculture with significant areas of natural vegetation?",
+      "ground_truth": "yes",
+      "prediction": "yes",
+      "exact_match": true,
+      "soft_match": true
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20180525T094029_N9999_R036_T35VNL_15_75",
+      "question": "Does the satellite view capture agro-forestry areas?",
+      "ground_truth": "no",
+      "prediction": "yes",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20180525T094029_N9999_R036_T35VNL_15_75",
+      "question": "Provide a bounding box around the land cover class instance found at <point>(0.89, 0.78)</point> in the satellite image.",
+      "ground_truth": "[0.7 0.42, 1.0 1.0]",
+      "prediction": "[0.0 0.0, 1.0 1.0]",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20180525T094029_N9999_R036_T35VNL_15_75",
+      "question": "Output a bounding box surrounding the land cover class instance positioned at <point>(0.36, 0.78)</point> in the image.",
+      "ground_truth": "[0.0 0.48, 0.85 1.0]",
+      "prediction": "[0.0 0.0, 0.78 1.0]",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20180525T094029_N9999_R036_T35VNL_15_75",
+      "question": "Where can a continuous area of <ref>mixed forest</ref> be found?",
+      "ground_truth": "[0.7 0.42, 1.0 1.0]",
+      "prediction": "[0.0 0.0, 0.3 1.0]",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20180525T094029_N9999_R036_T35VNL_15_75",
+      "question": "Can you identify a contiguous region of <ref>land principally occupied by agriculture with significant areas of natural vegetation</ref> in this scene?",
+      "ground_truth": "[0.0 0.48, 0.85 1.0]",
+      "prediction": "no",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20180525T094029_N9999_R036_T35VNL_15_75",
+      "question": "Provide a detailed description of the image, specifying the geographic region and land cover types.",
+      "ground_truth": "This satellite image, captured during the spring season in Finland, showcases a diverse landscape within the \"cold, no dry season, cold summer\" climate zone. The dominant feature is the inland waters, covering approximately 846,000 square meters, which are distributed across two areas, one of which is a large body of water spanning around 841,000 square meters, and a marginal area. The inland waters border land principally occupied by agriculture with significant areas of natural vegetation (~442,000 sqm) and a smaller patch of mixed forest (~152,000 sqm). Furthermore, the land principally occupied by agriculture with significant areas of natural vegetation is adjacent to the mixed forest, indicating a varied landscape that includes water bodies, agricultural areas, and forest and seminatural areas.",
+      "prediction": "[0.0 0.0, 1.0 1.0]",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20180525T094029_N9999_R036_T35VNL_15_75",
+      "question": "Select the classes sharing a boundary: a) Coniferous forest and Urban fabric, b) Broad-leaved forest and Mixed forest, c) Land principally occupied by agriculture, with significant areas of natural vegetation and Transitional woodland, shrub, d) Land principally occupied by agriculture, with significant areas of natural vegetation and Mixed forest",
+      "ground_truth": "d",
+      "prediction": "c",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20180525T094029_N9999_R036_T35VNL_15_75",
+      "question": "What is the total area of mixed forests? a) 40 to 70%, b) 0 to 30%, c) 70 to 80%, d) 30 to 40%",
+      "ground_truth": "b",
+      "prediction": "a",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20180525T094029_N9999_R036_T35VNL_15_75",
+      "question": "Choose one of the following options that represents the climate zone depicted in the satellite image: a) Cold, no dry season, cold summer, b) Cold, dry summer, warm summer, c) Temperate, dry summer, warm summer, d) Temperate, no dry season, cold summer",
+      "ground_truth": "a",
+      "prediction": "c",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20180525T094029_N9999_R036_T35VNL_15_75",
+      "question": "How many separate patches of land principally occupied by agriculture with significant areas of natural vegetation are visible? a) More than five, b) 1, c) 0, d) 5",
+      "ground_truth": "b",
+      "prediction": "a",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20180525T094029_N9999_R036_T35VNL_15_75",
+      "question": "From the options below, select the country shown in the image: a) Serbia, b) Portugal, c) Finland, d) Ireland",
+      "ground_truth": "c",
+      "prediction": "b",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20180525T094029_N9999_R036_T35VNL_15_75",
+      "question": "Select the land cover class that is present in this image: a) Marine waters, b) Broad-leaved forest, c) Arable land, d) Inland waters",
+      "ground_truth": "d",
+      "prediction": "a",
+      "exact_match": false,
+      "soft_match": false
+    },
+    {
+      "patch_id": "S2B_MSIL2A_20180525T094029_N9999_R036_T35VNL_15_75",
+      "question": "Which season is shown in the satellite image? a) Winter, b) Summer, c) Spring, d) Autumn",
+      "ground_truth": "c",
+      "prediction": "a",
+      "exact_match": false,
+      "soft_match": false
+    }
+  ]
+}

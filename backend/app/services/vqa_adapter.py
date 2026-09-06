@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from PIL import Image
@@ -185,6 +186,35 @@ class SmolVLMHuggingFaceAdapter(VQAModelAdapter):
                 sum(p.numel() for p in model.parameters()) / 1_000_000, 1
             )
             load_meta["device_actual"] = str(model.device)
+
+            # Check for domain-adapted PEFT LoRA checkpoint (e.g., trained on BigEarthNet)
+            lora_path = None
+            if settings.VQA_LORA_CHECKPOINT:
+                p = Path(settings.VQA_LORA_CHECKPOINT)
+                if p.exists() and (p.is_dir() or p.suffix in (".pt", ".safetensors", ".bin")):
+                    lora_path = p
+                else:
+                    backend_p = Path(__file__).resolve().parent.parent.parent / settings.VQA_LORA_CHECKPOINT
+                    if backend_p.exists():
+                        lora_path = backend_p
+
+            if lora_path:
+                try:
+                    from peft import PeftModel
+                    logger.info(f"[VQAAdapter] Applying domain-adapted PEFT LoRA checkpoint from {lora_path} ...")
+                    model = PeftModel.from_pretrained(model, str(lora_path))
+                    model.eval()
+                    load_meta["lora_adapted"] = True
+                    load_meta["lora_checkpoint"] = str(lora_path)
+                    logger.info("[VQAAdapter] PEFT LoRA adapter successfully attached.")
+                except Exception as peft_err:
+                    logger.warning(
+                        f"[VQAAdapter] Could not attach LoRA adapter from {lora_path} ({peft_err}); "
+                        f"falling back to base model."
+                    )
+                    load_meta["lora_adapted"] = False
+            else:
+                load_meta["lora_adapted"] = False
         except Exception as e:
             raise ModelLoadingError(
                 f"Failed to load SmolVLM-style model '{model_id}': {e}"

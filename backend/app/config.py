@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     VQA_INFERENCE_TIMEOUT_SEC: int = 180
     VQA_CACHE_DIR: Optional[str] = None
     VQA_HF_TOKEN: Optional[str] = None
+    VQA_LORA_CHECKPOINT: Optional[str] = "./checkpoints/vqa_lora"
 
     INFERENCE_REQUEST_TIMEOUT_SEC: int = 240
 
@@ -81,9 +82,14 @@ class Settings(BaseSettings):
     CHECKPOINT_DIR: Optional[str] = None
 
     # Path to a specific trained change-detection checkpoint (.pt file).
+    # Default: ./checkpoints/experiment_01/best_model.pt
     # If set and the file exists, inference uses the trained model.
-    # If unset or missing, inference falls back to CPU classical baseline.
-    CHANGE_DETECTION_CHECKPOINT: Optional[str] = None
+    # If unset or missing, inference falls back to candidate paths, then CPU classical baseline.
+    CHANGE_DETECTION_CHECKPOINT: Optional[str] = "./checkpoints/experiment_01/best_model.pt"
+
+    # Inference probability threshold for binary change mask.
+    # Experiment 01 validation-selected optimal threshold = 0.70.
+    CHANGE_DETECTION_THRESHOLD: float = 0.70
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
