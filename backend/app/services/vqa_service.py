@@ -165,7 +165,44 @@ class VQAService:
         except ImageryPreprocessingError as e:
             raise ImageryPreprocessingError(str(e)) from e
 
-        # --- Model loading / cache lookup ----------------------------------
+        # --- Cloud AI Gateway Bridge (OpenRouter + Gemini) ----------------
+        from .ai_provider import get_ai_gateway
+        gateway = get_ai_gateway()
+
+        has_cloud_provider = (
+            gateway.get_provider("openrouter").is_available()
+            or gateway.get_provider("gemini").is_available()
+        )
+
+        if has_cloud_provider:
+            logger.info("[VQAService] Executing cloud vision inference via AIGateway...")
+            gateway_res = gateway.generate(
+                prompt=query,
+                image_path=preproc_path,
+                max_tokens=settings.VQA_MAX_NEW_TOKENS,
+                temperature=settings.VQA_TEMPERATURE,
+            )
+
+            answer = gateway_res.get("answer", "").strip()
+            provider_name = gateway_res.get("provider", "cloud")
+            model_name = gateway_res.get("model", "unknown")
+
+            ctx.model_id = f"{provider_name}:{model_name}"
+            ctx.inference_meta = gateway_res.get("raw_meta") or {}
+            ctx.evidence.extend(gateway_res.get("evidence", []))
+            ctx.evidence.append(f"Cloud VQA executed via {provider_name} ({model_name}).")
+            ctx.total_time_ms = int((time.perf_counter() - t0) * 1000)
+
+            return VQAServiceResult(
+                answer=answer,
+                confidence=gateway_res.get("confidence"),
+                evidence=list(ctx.evidence),
+                tool_id=self.TOOL_ID,
+                is_mock=False,
+                run_context=ctx,
+            )
+
+        # --- Local Model loading / cache lookup (fallback when no cloud keys) --
         try:
             adapter = get_adapter_for_model(model_id)
         except ModelLoadingError:

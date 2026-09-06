@@ -43,6 +43,16 @@ class Settings(BaseSettings):
     INFERENCE_REQUEST_TIMEOUT_SEC: int = 240
 
     # -----------------------------------------------------------------------
+    # AI Provider configuration (Gemini + OpenRouter Gateway)
+    # -----------------------------------------------------------------------
+    AI_PROVIDER: str = os.getenv("AI_PROVIDER", "auto")
+    GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+    OPENROUTER_API_KEY: Optional[str] = os.getenv("OPENROUTER_API_KEY")
+    OPENROUTER_MODEL: str = os.getenv("OPENROUTER_MODEL", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free")
+    OPENROUTER_BASE_URL: str = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+
+    # -----------------------------------------------------------------------
     # Dataset configuration (Phase 3 — real dataset integration)
     # All paths are read from environment variables; no local paths in source.
     # -----------------------------------------------------------------------
