@@ -254,6 +254,7 @@ def _run_analysis_pipeline(db: Session, analysis: Analysis, files, input_data: S
     _SCALAR_STATS_KEYS = {
         "changed_pixel_pct", "unchanged_pixel_pct", "changed_pixel_count",
         "unchanged_pixel_count", "total_pixel_count", "threshold_raw_255",
+        "threshold_used",
         "processing_time_ms", "size_mismatch_corrected", "severity",
         "image_size_str", "overlay_url",
         # Execution provenance — always present from model_inference dispatcher

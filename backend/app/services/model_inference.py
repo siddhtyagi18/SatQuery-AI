@@ -48,14 +48,56 @@ from ..logging_setup import logger
 # Execution mode type
 InferenceMode = Literal["model_checkpoint", "cpu_classical"]
 
+# Backend root path for candidate resolution
+_BACKEND_ROOT = Path(__file__).resolve().parent.parent.parent
+
 # Module-level checkpoint cache (avoids reloading weights on every request)
 _loaded_checkpoint_path: Optional[str] = None
 _loaded_model = None  # SiameseUNet or None
 
 
 # ---------------------------------------------------------------------------
-# Checkpoint loading
+# Checkpoint discovery & loading
 # ---------------------------------------------------------------------------
+
+def _resolve_checkpoint_path() -> Optional[Path]:
+    """
+    Resolve the change detection checkpoint path in priority order:
+    1. settings.CHANGE_DETECTION_CHECKPOINT (if set and exists)
+    2. Repository candidate relative paths:
+       - backend/checkpoints/experiment_01/best_model.pt
+       - backend/checkpoints/best_model.pt
+       - checkpoints/experiment_01/best_model.pt
+       - checkpoints/best_model.pt
+    Returns Path if a valid existing checkpoint is found, else None.
+    """
+    settings = get_settings()
+    ckpt_cfg = settings.CHANGE_DETECTION_CHECKPOINT
+
+    # 1. Check explicit setting
+    if ckpt_cfg:
+        p = Path(ckpt_cfg)
+        if p.exists() and p.is_file():
+            return p
+        p_backend = _BACKEND_ROOT / ckpt_cfg
+        if p_backend.exists() and p_backend.is_file():
+            return p_backend
+
+    # 2. Check candidate repository paths
+    candidates = [
+        _BACKEND_ROOT / "checkpoints" / "experiment_01" / "best_model.pt",
+        _BACKEND_ROOT / "checkpoints" / "best_model.pt",
+        Path("checkpoints/experiment_01/best_model.pt"),
+        Path("checkpoints/best_model.pt"),
+        Path("backend/checkpoints/experiment_01/best_model.pt"),
+        Path("backend/checkpoints/best_model.pt"),
+    ]
+    for c in candidates:
+        if c.exists() and c.is_file():
+            return c
+
+    return None
+
 
 def _try_load_checkpoint(checkpoint_path: Path):
     """
@@ -97,7 +139,7 @@ def _try_load_checkpoint(checkpoint_path: Path):
 
     _loaded_checkpoint_path = ckpt_str
     _loaded_model = model
-    logger.info("[model_inference] Checkpoint loaded successfully.")
+    logger.info("[model_inference] Checkpoint loaded successfully from: %s", checkpoint_path)
     return model
 
 
@@ -214,10 +256,12 @@ def _run_model_inference(
     after_path: Path,
     analysis_id: str,
     checkpoint_path_str: str,
+    threshold: Optional[float] = None,
 ) -> ChangeDetectionResult:
     """Run model-based change detection and return a ChangeDetectionResult."""
-    from pathlib import Path as _Path
-    import time as _time
+    settings = get_settings()
+    if threshold is None:
+        threshold = getattr(settings, "CHANGE_DETECTION_THRESHOLD", 0.70)
 
     # Ensure results dir exists
     from .change_detection import _RESULTS_DIR, _ensure_results_dir
@@ -225,13 +269,13 @@ def _run_model_inference(
 
     t0 = time.perf_counter()
     logger.info(
-        "[model_inference] Running SiameseUNet inference: analysis=%s checkpoint=%s",
-        analysis_id, checkpoint_path_str,
+        "[model_inference] Running SiameseUNet inference: analysis=%s checkpoint=%s threshold=%.2f",
+        analysis_id, checkpoint_path_str, threshold,
     )
 
     binary_mask = _tile_inference(
         model, before_path, after_path,
-        tile_size=_TILE_SIZE, overlap=_TILE_OVERLAP, threshold=0.5,
+        tile_size=_TILE_SIZE, overlap=_TILE_OVERLAP, threshold=threshold,
     )
 
     # Load before image for size reference
@@ -274,12 +318,13 @@ def _run_model_inference(
         f"**Interpretation:** This result reflects the model's learned change representation. "
         f"The model was trained on building-related changes in bi-temporal satellite imagery. "
         f"Results outside that domain may be less reliable.\n\n"
-        f"*Analysis performed by trained SiameseUNet checkpoint: {checkpoint_path_str}*"
+        f"*Analysis performed by trained SiameseUNet checkpoint: {checkpoint_path_str} (threshold: {threshold:.2f})*"
     )
 
     evidence = [
         f"Inference mode: trained SiameseUNet model checkpoint ({checkpoint_path_str}).",
         f"Tile size: {_TILE_SIZE}×{_TILE_SIZE}px with {_TILE_OVERLAP}px overlap (probability averaging).",
+        f"Inference threshold: {threshold:.2f} (calibrated on LEVIR-CD validation split).",
         f"Changed pixels (model prediction): {changed_pixels:,} / {total_pixels:,} ({changed_pct:.2f}%).",
         f"Unchanged pixels: {total_pixels - changed_pixels:,} / {total_pixels:,} ({unchanged_pct:.2f}%).",
         f"Severity label: {severity} (heuristic: low <5%, moderate 5–25%, high >25%).",
@@ -304,8 +349,8 @@ def _run_model_inference(
         "total_pixel_count": total_pixels,
         "image_size_wh": [W, H],
         "image_size_str": f"{W}x{H}",
-        "threshold_used": 0.5,
-        "threshold_raw_255": 128,  # 0.5 × 255
+        "threshold_used": threshold,
+        "threshold_raw_255": int(round(threshold * 255)),
         "processing_time_ms": elapsed_ms,
         "size_mismatch_corrected": False,
         "severity": severity,
@@ -331,12 +376,11 @@ def get_inference_mode() -> InferenceMode:
     """
     Return the current inference mode without running inference.
 
-    Returns "model_checkpoint" if CHANGE_DETECTION_CHECKPOINT is configured
-    and the file exists. Otherwise returns "cpu_classical".
+    Returns "model_checkpoint" if a valid checkpoint is resolved.
+    Otherwise returns "cpu_classical".
     """
-    settings = get_settings()
-    ckpt = settings.CHANGE_DETECTION_CHECKPOINT
-    if ckpt and Path(ckpt).exists():
+    resolved = _resolve_checkpoint_path()
+    if resolved is not None:
         return "model_checkpoint"
     return "cpu_classical"
 
@@ -345,14 +389,14 @@ def run_change_detection(
     before_path: Path,
     after_path: Path,
     analysis_id: str,
-    threshold: float = 35.0 / 255.0,
+    threshold: Optional[float] = None,
 ) -> ChangeDetectionResult:
     """
     Dispatcher: run bi-temporal change detection using the best available method.
 
     Decision tree:
-    1. If CHANGE_DETECTION_CHECKPOINT is set and the file exists:
-       → Load checkpoint and run SiameseUNet tile inference.
+    1. If a valid checkpoint is resolved (via settings or candidate discovery):
+       → Load checkpoint and run SiameseUNet tile inference with configured threshold (default 0.70).
        → On any failure, log the error and fall back to CPU classical.
     2. Otherwise:
        → Run CPU classical pixel-difference (existing change_detection.py).
@@ -365,52 +409,45 @@ def run_change_detection(
     before_path  : Path to the "before" (T1) image.
     after_path   : Path to the "after" (T2) image.
     analysis_id  : Unique ID for naming output files.
-    threshold    : Only used for classical fallback path.
+    threshold    : Optional override for probability/difference threshold.
 
     Returns
     -------
     ChangeDetectionResult — same schema regardless of which path ran.
     """
-    settings = get_settings()
-    ckpt_cfg = settings.CHANGE_DETECTION_CHECKPOINT
+    resolved_ckpt = _resolve_checkpoint_path()
 
-    if ckpt_cfg:
-        ckpt_path = Path(ckpt_cfg)
-        if ckpt_path.exists():
-            try:
-                model = _try_load_checkpoint(ckpt_path)
-                result = _run_model_inference(
-                    model, before_path, after_path, analysis_id, str(ckpt_path)
-                )
-                logger.info(
-                    "[model_inference] Dispatcher: used model_checkpoint path for analysis=%s",
-                    analysis_id,
-                )
-                return result
-            except Exception as exc:
-                logger.warning(
-                    "[model_inference] Checkpoint inference failed (%s: %s). "
-                    "Falling back to CPU classical baseline.",
-                    type(exc).__name__, exc,
-                )
-                # Fall through to classical
-        else:
-            logger.info(
-                "[model_inference] Checkpoint configured (%s) but file does not exist. "
-                "Falling back to CPU classical baseline.",
-                ckpt_cfg,
+    if resolved_ckpt is not None:
+        try:
+            model = _try_load_checkpoint(resolved_ckpt)
+            result = _run_model_inference(
+                model=model,
+                before_path=before_path,
+                after_path=after_path,
+                analysis_id=analysis_id,
+                checkpoint_path_str=str(resolved_ckpt),
+                threshold=threshold,
             )
-    else:
-        logger.debug(
-            "[model_inference] No checkpoint configured. Using CPU classical baseline."
-        )
+            logger.info(
+                "[model_inference] Dispatcher: used model_checkpoint path for analysis=%s",
+                analysis_id,
+            )
+            return result
+        except Exception as exc:
+            logger.warning(
+                "[model_inference] Checkpoint inference failed (%s: %s). "
+                "Falling back to CPU classical baseline.",
+                type(exc).__name__, exc,
+            )
+            # Fall through to classical
 
     # --- CPU classical fallback ---
+    classical_threshold = threshold if threshold is not None else (35.0 / 255.0)
     result = run_cpu_change_detection(
         before_path=before_path,
         after_path=after_path,
         analysis_id=analysis_id,
-        threshold=threshold,
+        threshold=classical_threshold,
     )
     # Tag execution mode in stats
     result.stats["execution_mode"] = "cpu_classical"

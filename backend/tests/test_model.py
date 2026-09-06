@@ -282,36 +282,208 @@ def test_metrics_computation_matches_manual():
 # Model inference module tests
 # ---------------------------------------------------------------------------
 
-def test_get_inference_mode_no_checkpoint(monkeypatch):
+def test_experiment_01_checkpoint_discovery():
     """
-    get_inference_mode() should return 'cpu_classical' when no checkpoint is configured.
+    _resolve_checkpoint_path() should resolve the Experiment 01 checkpoint.
+    """
+    from app.services.model_inference import _resolve_checkpoint_path
+
+    ckpt = _resolve_checkpoint_path()
+    assert ckpt is not None, "Experiment 01 checkpoint should be discovered"
+    assert ckpt.exists(), f"Discovered checkpoint does not exist: {ckpt}"
+    assert "best_model.pt" in str(ckpt)
+
+
+def test_experiment_01_model_loading_and_e2e_inference(tmp_path):
+    """
+    Real Experiment 01 checkpoint should load and run tiled inference at threshold 0.70.
+    """
+    from PIL import Image
+    from app.services.model_inference import run_change_detection, _resolve_checkpoint_path
+
+    ckpt = _resolve_checkpoint_path()
+    assert ckpt is not None, "Checkpoint must exist for real test"
+
+    # Create dummy before and after images (256x256 RGB)
+    img_a_path = tmp_path / "before.png"
+    img_b_path = tmp_path / "after.png"
+    Image.new("RGB", (256, 256), color=(100, 150, 200)).save(img_a_path)
+    Image.new("RGB", (256, 256), color=(200, 100, 50)).save(img_b_path)
+
+    result = run_change_detection(
+        before_path=img_a_path,
+        after_path=img_b_path,
+        analysis_id="test_exp01_inference",
+    )
+
+    assert result.stats["execution_mode"] == "model_checkpoint"
+    assert result.stats["threshold_used"] == 0.70
+    assert result.stats["threshold_raw_255"] == int(round(0.70 * 255))
+    assert "best_model.pt" in result.stats["checkpoint_path"]
+    assert "Siamese U-Net Model" in result.answer
+    assert result.change_map["overlayUrl"] is not None
+
+
+def test_get_inference_mode_with_checkpoint():
+    """
+    get_inference_mode() should return 'model_checkpoint' when Experiment 01 checkpoint exists.
+    """
+    from app.services.model_inference import get_inference_mode
+    assert get_inference_mode() == "model_checkpoint"
+
+
+def test_get_inference_mode_no_checkpoint_fallback(monkeypatch):
+    """
+    get_inference_mode() should return 'cpu_classical' when no candidate checkpoint exists.
     """
     from app.services import model_inference
 
-    # Monkeypatch settings to have no checkpoint configured
-    mock_settings = MagicMock()
-    mock_settings.CHANGE_DETECTION_CHECKPOINT = None
-    monkeypatch.setattr(model_inference, "get_settings", lambda: mock_settings)
-
+    monkeypatch.setattr(model_inference, "_resolve_checkpoint_path", lambda: None)
     mode = model_inference.get_inference_mode()
     assert mode == "cpu_classical"
 
 
-def test_get_inference_mode_with_nonexistent_checkpoint(tmp_path, monkeypatch):
+def test_run_change_detection_classical_fallback_when_no_checkpoint(tmp_path, monkeypatch):
     """
-    get_inference_mode() should return 'cpu_classical' when checkpoint path
-    is configured but the file does not exist.
+    run_change_detection() should gracefully fall back to CPU classical when checkpoint is missing.
     """
+    from PIL import Image
     from app.services import model_inference
-    from unittest.mock import MagicMock
 
-    mock_settings = MagicMock()
-    mock_settings.CHANGE_DETECTION_CHECKPOINT = str(tmp_path / "nonexistent.pt")
-    monkeypatch.setattr(model_inference, "get_settings", lambda: mock_settings)
+    monkeypatch.setattr(model_inference, "_resolve_checkpoint_path", lambda: None)
 
-    mode = model_inference.get_inference_mode()
-    assert mode == "cpu_classical"
+    img_a = tmp_path / "before.png"
+    img_b = tmp_path / "after.png"
+    Image.new("RGB", (64, 64), color=(0, 0, 0)).save(img_a)
+    Image.new("RGB", (64, 64), color=(255, 255, 255)).save(img_b)
+
+    result = model_inference.run_change_detection(
+        before_path=img_a,
+        after_path=img_b,
+        analysis_id="test_fallback",
+    )
+
+    assert result.stats["execution_mode"] == "cpu_classical"
+    assert result.stats["checkpoint_path"] is None
 
 
-# Need MagicMock at module level for test above
-from unittest.mock import MagicMock
+# Need MagicMock at module level for tests
+from unittest.mock import MagicMock, patch
+
+
+def test_planner_produces_configured_threshold():
+    """
+    plan_execution() should produce threshold 0.70 for change_detector when model_checkpoint is active.
+    """
+    from app.services.orchestrator import plan_execution
+
+    tasks, tools, params, scores = plan_execution(
+        query="Detect changes between acquisitions",
+        mode="bi_temporal",
+    )
+    assert "change_detector" in tools
+    cd_params = params.get("change_detector", {})
+    assert cd_params.get("threshold") == 0.70
+    assert cd_params.get("algorithm") == "siamese-unet-model"
+
+
+def test_execute_plan_forwards_threshold(tmp_path):
+    """
+    execute_plan() should forward the planned threshold from per_tool_params to run_change_detection().
+    """
+    from app.services.orchestrator import execute_plan
+
+    img_a = tmp_path / "before.png"
+    img_b = tmp_path / "after.png"
+    img_a.write_bytes(b"dummy_a")
+    img_b.write_bytes(b"dummy_b")
+
+    mock_cd_result = MagicMock()
+    mock_cd_result.answer = "Report"
+    mock_cd_result.confidence = None
+    mock_cd_result.change_map = {"overlayUrl": "/api/results/mock.png"}
+    mock_cd_result.evidence = ["Evidence"]
+    mock_cd_result.stats = {"execution_mode": "model_checkpoint", "threshold_used": 0.75}
+
+    with patch("app.services.orchestrator.run_change_detection", return_value=mock_cd_result) as mock_run:
+        execute_plan(
+            query="Detect changes",
+            mode="bi_temporal",
+            tool_ids=["change_detector"],
+            per_tool_params={"change_detector": {"threshold": 0.75}},
+            image_file_paths=[img_a, img_b],
+            analysis_id="test_plan_fwd",
+        )
+
+        mock_run.assert_called_once()
+        call_kwargs = mock_run.call_args.kwargs
+        assert call_kwargs.get("threshold") == 0.75
+
+
+def test_inference_uses_supplied_threshold_override(tmp_path):
+    """
+    run_change_detection() should strictly use the supplied threshold override.
+    """
+    from PIL import Image
+    from app.services.model_inference import run_change_detection
+
+    img_a = tmp_path / "before.png"
+    img_b = tmp_path / "after.png"
+    Image.new("RGB", (64, 64), color=(50, 100, 150)).save(img_a)
+    Image.new("RGB", (64, 64), color=(150, 100, 50)).save(img_b)
+
+    result = run_change_detection(
+        before_path=img_a,
+        after_path=img_b,
+        analysis_id="test_override",
+        threshold=0.85,
+    )
+
+    assert result.stats["threshold_used"] == 0.85
+    assert result.stats["threshold_raw_255"] == int(round(0.85 * 255))
+    assert any("threshold: 0.85" in ev for ev in result.evidence)
+
+
+def test_inference_default_threshold_remains_070(tmp_path):
+    """
+    run_change_detection() should default to 0.70 when no threshold is supplied.
+    """
+    from PIL import Image
+    from app.services.model_inference import run_change_detection
+
+    img_a = tmp_path / "before.png"
+    img_b = tmp_path / "after.png"
+    Image.new("RGB", (64, 64), color=(50, 100, 150)).save(img_a)
+    Image.new("RGB", (64, 64), color=(150, 100, 50)).save(img_b)
+
+    result = run_change_detection(
+        before_path=img_a,
+        after_path=img_b,
+        analysis_id="test_default_070",
+    )
+
+    assert result.stats["threshold_used"] == 0.70
+    assert result.stats["threshold_raw_255"] == int(round(0.70 * 255))
+
+
+def test_no_fabricated_confidence_in_change_detection(tmp_path):
+    """
+    run_change_detection() must always return confidence=None (uncalibrated segmentation mask).
+    """
+    from PIL import Image
+    from app.services.model_inference import run_change_detection
+
+    img_a = tmp_path / "before.png"
+    img_b = tmp_path / "after.png"
+    Image.new("RGB", (64, 64), color=(50, 100, 150)).save(img_a)
+    Image.new("RGB", (64, 64), color=(150, 100, 50)).save(img_b)
+
+    result = run_change_detection(
+        before_path=img_a,
+        after_path=img_b,
+        analysis_id="test_conf_none",
+    )
+
+    assert result.confidence is None
+
+

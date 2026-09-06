@@ -118,7 +118,7 @@ def plan_execution(
                     "algorithm": "siamese-unet-model",
                     "tile_size": 256,
                     "tile_overlap": 32,
-                    "threshold": 0.5,
+                    "threshold": getattr(settings, "CHANGE_DETECTION_THRESHOLD", 0.70),
                 }
             else:
                 per_tool_params[tid] = {
@@ -199,10 +199,13 @@ def execute_plan(
                 and len(image_file_paths) == 2
             ):
                 try:
+                    cd_params = per_tool_params.get(tid, {})
+                    cd_threshold = cd_params.get("threshold")
                     cd_result = run_change_detection(
                         before_path=image_file_paths[0],
                         after_path=image_file_paths[1],
                         analysis_id=analysis_id or "unknown",
+                        threshold=cd_threshold,
                     )
                     execution_mode = "real"
                     tool_result = {
