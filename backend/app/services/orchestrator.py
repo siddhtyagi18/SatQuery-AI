@@ -3,11 +3,14 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from ..schemas import AnalysisMode, TaskType, ToolInvocation
+from ..config import get_settings
 from .task_classifier import classify_task
 from .tool_registry import get_tool, TOOL_REGISTRY
 from . import mock_specialists
 from .model_inference import run_change_detection, get_inference_mode
 from ..logging_setup import logger
+
+settings = get_settings()
 
 
 # Tool ID that routes to the real CPU change detection service
@@ -25,6 +28,21 @@ TASK_TO_PREFERRED_TOOL: Dict[TaskType, str] = {
 
 
 REAL_VQA_TOOL_ID = "rs_vqa"
+REAL_CAPTION_TOOL_ID = "rs_caption"
+
+def _mock_caption_factory(query: str, mode: AnalysisMode):
+    """Return a zero-arg closure that produces a mock caption result."""
+    def _factory():
+        from .vqa_service import VQAServiceResult
+        raw = mock_specialists.run_tool("rs_caption", query, mode)
+        return VQAServiceResult(
+            answer=raw["answer"],
+            confidence=raw.get("confidence"),
+            evidence=raw.get("evidence", []),
+            tool_id="rs_caption",
+            is_mock=True,
+        )
+    return _factory
 
 
 def select_tools_for_tasks(
@@ -78,9 +96,18 @@ def plan_execution(
     for tid in tool_ids:
         meta = get_tool(tid)
         if tid == "rs_vqa":
-            per_tool_params[tid] = {"temperature": 0.3, "max_tokens": 512, "beam_size": 4}
+            per_tool_params[tid] = {
+                "temperature": 0.3,
+                "max_tokens": 512,
+                "beam_size": 4,
+                "provider": getattr(settings, "AI_PROVIDER", "auto"),
+            }
         elif tid == "rs_caption":
-            per_tool_params[tid] = {"temperature": 0.4, "max_tokens": 256}
+            per_tool_params[tid] = {
+                "temperature": 0.4,
+                "max_tokens": 256,
+                "provider": getattr(settings, "AI_PROVIDER", "auto"),
+            }
         elif tid == "rs_grounding":
             per_tool_params[tid] = {"confidence_threshold": 0.7, "nms_threshold": 0.45, "tile_size": 512}
         elif tid == "change_detector":
@@ -200,10 +227,11 @@ def execute_plan(
                     tool_execution_modes[tid] = "mock"
 
             # ------------------------------------------------------------------
-            # Real VQA
+            # Real VQA / Captioning
             # ------------------------------------------------------------------
-            elif tid == REAL_VQA_TOOL_ID and vqa_service.should_use_real_vqa(mode, tasks):
-                mock_factory = _mock_vqa_factory(query, mode)
+            elif tid in (REAL_VQA_TOOL_ID, REAL_CAPTION_TOOL_ID) and vqa_service.should_use_real_vqa(mode, tasks):
+                mock_factory = _mock_caption_factory(query, mode) if tid == REAL_CAPTION_TOOL_ID else _mock_vqa_factory(query, mode)
+                pref_provider = per_tool_params.get(tid, {}).get("provider")
                 try:
                     vqa_result = vqa_service.run_real_or_fallback(
                         query=query,
@@ -211,6 +239,8 @@ def execute_plan(
                         image_file_paths=image_file_paths,
                         tasks=tasks,
                         mock_factory=mock_factory,
+                        tool_id=tid,
+                        preferred_provider=pref_provider,
                     )
                     if vqa_result.run_context and vqa_result.run_context.execution_mode == "real":
                         execution_mode = "real"
@@ -224,9 +254,9 @@ def execute_plan(
                     }
                     tool_execution_modes[tid] = execution_mode
                 except Exception as e:
-                    logger.exception(f"Real VQA tool {tid} failed; mock fallback was exhausted")
+                    logger.exception(f"Real Vision-Language tool {tid} failed; mock fallback was exhausted")
                     tool_result = {
-                        "answer": f"[REAL VQA ERROR] Tool {tid} raised: {e}",
+                        "answer": f"[REAL VLM ERROR] Tool {tid} raised: {e}",
                         "confidence": None,
                         "evidence": [f"Tool {tid} failed during real execution: {type(e).__name__}"],
                         "tool_id": tid,

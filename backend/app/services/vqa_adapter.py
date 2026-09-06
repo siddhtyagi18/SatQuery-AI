@@ -99,6 +99,76 @@ class VQAModelAdapter(ABC):
 
 
 # ---------------------------------------------------------------------------
+# LoRA Checkpoint Discovery & Validation
+# ---------------------------------------------------------------------------
+
+_BACKEND_ROOT = Path(__file__).resolve().parent.parent.parent
+
+
+def _is_valid_lora_dir(p: Path) -> bool:
+    """Check if directory contains a PEFT LoRA adapter."""
+    return (
+        p.is_dir()
+        and (
+            (p / "adapter_model.safetensors").exists()
+            or (p / "adapter_model.bin").exists()
+            or (p / "adapter_config.json").exists()
+        )
+    )
+
+
+def resolve_vqa_lora_checkpoint_path(custom_path: Optional[str] = None) -> Optional[Path]:
+    """
+    Resolve domain-adapted PEFT LoRA checkpoint path in priority order:
+    1. custom_path (if provided and valid)
+    2. settings.VQA_LORA_CHECKPOINT (if set and valid directly or relative to backend/repo)
+    3. Known candidate locations:
+       - backend/checkpoints/vqa_lora_experiment_01/best
+       - backend/checkpoints/vqa_lora_experiment_01
+       - checkpoints/vqa_lora_experiment_01/best
+       - checkpoints/vqa_lora_experiment_01
+       - backend/checkpoints/vqa_lora
+       - checkpoints/vqa_lora
+    Returns Path to directory with adapter weights if found, else None.
+    """
+    settings = get_settings()
+    raw = custom_path or settings.VQA_LORA_CHECKPOINT
+
+    if raw:
+        p = Path(raw)
+        if _is_valid_lora_dir(p):
+            if _is_valid_lora_dir(p / "best"):
+                return p / "best"
+            return p
+        p_b = _BACKEND_ROOT / raw
+        if _is_valid_lora_dir(p_b):
+            if _is_valid_lora_dir(p_b / "best"):
+                return p_b / "best"
+            return p_b
+        p_repo = _BACKEND_ROOT.parent / raw
+        if _is_valid_lora_dir(p_repo):
+            if _is_valid_lora_dir(p_repo / "best"):
+                return p_repo / "best"
+            return p_repo
+
+    candidates = [
+        _BACKEND_ROOT / "checkpoints" / "vqa_lora_experiment_01" / "best",
+        _BACKEND_ROOT / "checkpoints" / "vqa_lora_experiment_01",
+        Path("checkpoints/vqa_lora_experiment_01/best"),
+        Path("checkpoints/vqa_lora_experiment_01"),
+        Path("backend/checkpoints/vqa_lora_experiment_01/best"),
+        Path("backend/checkpoints/vqa_lora_experiment_01"),
+        _BACKEND_ROOT / "checkpoints" / "vqa_lora",
+        Path("checkpoints/vqa_lora"),
+    ]
+    for c in candidates:
+        if _is_valid_lora_dir(c):
+            return c
+
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Concrete adapter: HuggingFace Idefics3/SmolVLM-family (AutoModelForVision2Seq)
 # ---------------------------------------------------------------------------
 
@@ -187,16 +257,8 @@ class SmolVLMHuggingFaceAdapter(VQAModelAdapter):
             )
             load_meta["device_actual"] = str(model.device)
 
-            # Check for domain-adapted PEFT LoRA checkpoint (e.g., trained on BigEarthNet)
-            lora_path = None
-            if settings.VQA_LORA_CHECKPOINT:
-                p = Path(settings.VQA_LORA_CHECKPOINT)
-                if p.exists() and (p.is_dir() or p.suffix in (".pt", ".safetensors", ".bin")):
-                    lora_path = p
-                else:
-                    backend_p = Path(__file__).resolve().parent.parent.parent / settings.VQA_LORA_CHECKPOINT
-                    if backend_p.exists():
-                        lora_path = backend_p
+            # Resolve and attach domain-adapted PEFT LoRA checkpoint (e.g. BigEarthNet Experiment 01)
+            lora_path = resolve_vqa_lora_checkpoint_path()
 
             if lora_path:
                 try:
@@ -206,15 +268,18 @@ class SmolVLMHuggingFaceAdapter(VQAModelAdapter):
                     model.eval()
                     load_meta["lora_adapted"] = True
                     load_meta["lora_checkpoint"] = str(lora_path)
-                    logger.info("[VQAAdapter] PEFT LoRA adapter successfully attached.")
+                    logger.info(f"[VQAAdapter] PEFT LoRA adapter successfully attached from {lora_path}.")
                 except Exception as peft_err:
                     logger.warning(
                         f"[VQAAdapter] Could not attach LoRA adapter from {lora_path} ({peft_err}); "
                         f"falling back to base model."
                     )
                     load_meta["lora_adapted"] = False
+                    load_meta["lora_checkpoint"] = None
+                    load_meta["lora_error"] = str(peft_err)
             else:
                 load_meta["lora_adapted"] = False
+                load_meta["lora_checkpoint"] = None
         except Exception as e:
             raise ModelLoadingError(
                 f"Failed to load SmolVLM-style model '{model_id}': {e}"

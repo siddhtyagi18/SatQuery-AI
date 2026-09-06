@@ -39,12 +39,14 @@ class Settings(BaseSettings):
     VQA_INFERENCE_TIMEOUT_SEC: int = 180
     VQA_CACHE_DIR: Optional[str] = None
     VQA_HF_TOKEN: Optional[str] = None
-    VQA_LORA_CHECKPOINT: Optional[str] = "./checkpoints/vqa_lora"
+    VQA_LORA_CHECKPOINT: Optional[str] = "./checkpoints/vqa_lora_experiment_01"
 
     INFERENCE_REQUEST_TIMEOUT_SEC: int = 240
 
     # -----------------------------------------------------------------------
-    # AI Provider configuration (Gemini + OpenRouter Gateway)
+    # AI Provider configuration (Local VLM + Gemini + OpenRouter Gateway)
+    # Options: 'auto' (cloud if configured, else local), 'local' (SmolVLM+LoRA),
+    #          'gemini', 'openrouter'
     # -----------------------------------------------------------------------
     AI_PROVIDER: str = os.getenv("AI_PROVIDER", "auto")
     GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY")

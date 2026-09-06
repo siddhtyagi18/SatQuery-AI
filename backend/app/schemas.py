@@ -102,6 +102,7 @@ class SubmitAnalysisInput(BaseModel):
     mode: AnalysisMode
     imageIds: List[str]
     query: str
+    provider: Optional[str] = None  # 'local', 'gemini', 'openrouter', 'auto'
 
 
 class ToolDefinition(BaseModel):

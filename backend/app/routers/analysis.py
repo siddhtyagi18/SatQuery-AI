@@ -152,6 +152,10 @@ def _run_analysis_pipeline(db: Session, analysis: Analysis, files, input_data: S
     # Step 3 — Task Classification
     mark_step(db, aid, "step-3", "in_progress")
     tasks, tool_ids, per_tool_params, class_scores = plan_execution(q, mode)
+    if getattr(input_data, "provider", None):
+        for tid in ("rs_vqa", "rs_caption"):
+            if tid in per_tool_params:
+                per_tool_params[tid]["provider"] = input_data.provider
     class_str = " | ".join(f"[{t}: {class_scores.get(t, 0):.2f}]" for t in tasks)
     mark_step(db, aid, "step-3", "done",
               detail=f"Detected intents: {class_str} | Tasks: {', '.join(tasks)}",
@@ -165,10 +169,10 @@ def _run_analysis_pipeline(db: Session, analysis: Analysis, files, input_data: S
     selection_bits = []
     for tid in tool_ids:
         tm = get_tool(tid)
-        is_real_vqa = (tid == "rs_vqa" and vqa_service.should_use_real_vqa(mode, tasks))
-        # change_detector is always REAL in bi_temporal mode (CPU service)
-        is_real_change = (tid == "change_detector" and mode == "bi_temporal")
-        exec_label = "REAL" if (is_real_vqa or is_real_change) else "MOCK"
+        is_real_vqa = (tid in ("rs_vqa", "rs_caption") and vqa_service.should_use_real_vqa(mode, tasks))
+        is_real_change = (tid == "change_detector" and mode == "bi_temporal" and len(files) == 2)
+        is_real_optical_sar = (tid == "optical_sar_analyzer" and mode == "optical_sar" and len(files) == 2)
+        exec_label = "REAL" if (is_real_vqa or is_real_change or is_real_optical_sar) else "MOCK"
         selection_bits.append(f"{tid}[{exec_label}] → {tm['name']} {tm['version']}")
     mark_step(db, aid, "step-4", "done",
               detail=" || ".join(selection_bits) if selection_bits else "No tools selected",
