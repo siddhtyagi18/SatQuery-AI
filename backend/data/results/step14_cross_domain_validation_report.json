@@ -1,6 +1,6 @@
 {
   "step": "Step 14 - Cross-Domain Real Satellite Change-Detection Validation",
-  "timestamp": "2026-09-07 08:19:06 UTC",
+  "timestamp": "2026-09-07 08:27:17 UTC",
   "checkpoint_info": {
     "resolved_path": "C:\\Users\\Lenovo\\Desktop\\SatQuery-AI\\backend\\checkpoints\\experiment_01\\best_model.pt",
     "exists": true,
@@ -17,9 +17,9 @@
       "change_map_present": true,
       "evidence_count": 14,
       "latencies_ms": {
-        "inspection": 20.69,
-        "compatibility": 0.31,
-        "execution": 3388.39
+        "inspection": 80.69,
+        "compatibility": 0.38,
+        "execution": 6362.43
       }
     },
     "case_b_bigearthnet_s2_single": {
@@ -64,8 +64,8 @@
         ]
       },
       "latencies_ms": {
-        "inspection": 43.74,
-        "adaptation": 0.91
+        "inspection": 109.3,
+        "adaptation": 0.89
       }
     },
     "case_c_authentic_s1_s2": {
@@ -75,18 +75,16 @@
         "sar"
       ],
       "specialists": [
-        "optical_sar_analyzer",
-        "rs_vqa"
+        "optical_sar_analyzer"
       ],
       "execution_modes": {
-        "optical_sar_analyzer": "real",
-        "rs_vqa": "mock"
+        "optical_sar_analyzer": "real"
       },
-      "confidence": 0.72,
-      "evidence_count": 10,
+      "confidence": null,
+      "evidence_count": 8,
       "latencies_ms": {
-        "inspection": 2.1,
-        "execution": 41.66
+        "inspection": 2.45,
+        "execution": 30.22
       }
     },
     "case_d_non_levir_optical_gate": {
@@ -102,9 +100,9 @@
       "confidence": null,
       "answer_snippet": "[CHANGE DETECTION NOTICE: UNSUPPORTED_FOR_RELIABLE_INFERENCE]\n\nChange detection unavailable for this imagery:\n- Spatial overlap between Image A and Image B is 0.0% (images cover non-overlapping geographic regions).\n\nValidated Model Domain & Limitatio",
       "latencies_ms": {
-        "inspection": 36.01,
-        "compatibility": 0.06,
-        "execution": 0.08
+        "inspection": 3.66,
+        "compatibility": 0.05,
+        "execution": 0.07
       }
     },
     "case_e_sar_only_bi_temporal": {
@@ -143,8 +141,8 @@
     }
   },
   "benchmarks": {
-    "mean_inspection_ms": 25.63,
-    "mean_execution_ms": 1143.37
+    "mean_inspection_ms": 49.03,
+    "mean_execution_ms": 2130.91
   },
   "scientific_claim_audit": {
     "unsupported_universal_claims_found": false,

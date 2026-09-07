@@ -59,7 +59,7 @@ except Exception:
 # Type aliases
 ModalityHint = Literal["rgb_optical", "multispectral_optical", "sar", "grayscale", "unknown"]
 SensorHint = Literal["sentinel-2", "sentinel-1", "landsat", "planet", "unknown"]
-CompatibilityStatus = Literal["compatible", "adaptable", "unsupported", "insufficient_metadata", "invalid", "unsupported_for_reliable_inference"]
+CompatibilityStatus = Literal["compatible", "adaptable", "unsupported", "insufficient_metadata", "invalid", "unsupported_for_reliable_inference", "needs_review"]
 TemporalStatus = Literal["ordered", "same_time", "unknown", "invalid"]
 
 SUPPORTED_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".gtiff", ".webp", ".bmp"}
@@ -591,9 +591,9 @@ class SatelliteCompatibilityService:
             specialists.extend(cls.SUPPORTED_SINGLE_SPECIALISTS)
             status = "compatible"
         else:
-            status = "insufficient_metadata"
-            warnings.append("Could not confidently infer image modality from metadata.")
-            specialists.extend(cls.SUPPORTED_SINGLE_SPECIALISTS)
+            status = "needs_review"
+            warnings.append("Sensor modality could not be determined; results may be unreliable.")
+            reasons.append("Sensor modality could not be determined from metadata.")
 
         # Dtype adaptations
         if report.bit_depth > 8 or "16" in report.dtype or "float" in report.dtype:
@@ -667,7 +667,24 @@ class SatelliteCompatibilityService:
             warnings.append(f"Dimension mismatch: A={report_a.width}x{report_a.height}, B={report_b.width}x{report_b.height}. Image B will be deterministically resampled.")
 
         # Mode-specific evaluations
-        q_lower = (query or "").lower()
+        # Modality check: If modality cannot be determined, flag needs_review
+        if report_a.modality_hint == "unknown" or report_b.modality_hint == "unknown":
+            return PairCompatibilityReport(
+                status="needs_review",
+                reasons=["Sensor modality could not be determined from input metadata for one or both images."],
+                warnings=["Sensor modality could not be determined; results may be unreliable."],
+                specialist_candidates=[],
+                temporal_status=temp_status,
+                temporal_notes=temp_notes,
+                spatial_overlap_pct=overlap_pct,
+                crs_status=crs_status,
+                dimension_status=dim_status,
+                limitations=[
+                    "Sensor modality could not be determined; results may be unreliable.",
+                    "The system will not silently execute specialist models on unverified or unidentified imagery.",
+                ],
+                modality_pair=(report_a.modality_hint, report_b.modality_hint),
+            )
 
         if mode == "bi_temporal":
             # 1. Modality check: Both images must be optical
@@ -717,6 +734,7 @@ class SatelliteCompatibilityService:
                 "agriculture": "agricultural change",
                 "coastline": "coastal erosion change",
             }
+            q_lower = (query or "").lower()
             detected_unsupported_domains = [desc for word, desc in unsupported_domains.items() if word in q_lower]
             if detected_unsupported_domains:
                 return PairCompatibilityReport(

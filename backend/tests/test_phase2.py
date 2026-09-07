@@ -296,7 +296,7 @@ def test_vqa_service_mock_fallback_when_disabled(tmp_path, png_file):
     assert res.answer and len(res.answer) > 0
     assert res.run_context is not None
     assert res.run_context.execution_mode == "mock"
-    assert res.confidence is not None  # mock produces a placeholder confidence
+    assert res.confidence is None  # Mock tools strictly produce null confidence (scientific integrity)
 
 
 def test_vqa_service_real_pipeline_with_mocked_adapter(tmp_path):

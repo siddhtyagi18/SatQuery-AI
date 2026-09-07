@@ -183,3 +183,80 @@ def test_vqa_service_supports_captioning_prompt(monkeypatch):
 
     monkeypatch.setattr(settings, "VQA_MODE", "mock")
     assert vqa.should_use_real_vqa("single_image", tasks=["captioning"]) is False
+
+
+# ---------------------------------------------------------------------------
+# Scientific Integrity & Anti-Fabrication Invariant Tests
+# ---------------------------------------------------------------------------
+
+def test_scientific_integrity_mock_confidence_is_strictly_none():
+    """Rule 1: If any_real == False (mock mode), confidence must strictly be None."""
+    from app.services import mock_specialists
+    for tid in ["rs_vqa", "rs_caption", "rs_grounding", "change_detector", "optical_sar_analyzer", "spatial_analyzer"]:
+        res = mock_specialists.run_tool(tid, "query", "single_image")
+        assert res.get("confidence") is None, f"Tool {tid} fabricated confidence in mock mode: {res.get('confidence')}"
+
+    # Verify aggregation in orchestrator:
+    merged_ans, agg_conf, invocations, _, _, _, tool_modes, _ = execute_plan(
+        query="Mock query",
+        mode="single_image",
+        tool_ids=["rs_vqa", "rs_grounding"],
+        per_tool_params={},
+        tasks=["vqa", "grounding"],
+        image_file_paths=[],
+    )
+    assert agg_conf is None, f"Orchestrator aggregated non-null confidence in mock mode: {agg_conf}"
+    assert all(m == "mock" for m in tool_modes.values())
+
+
+def test_input_validation_modality_unknown_needs_review(tmp_path: Path):
+    """Rule 3: If modality cannot be determined, compatibility must be needs_review, never compatible."""
+    from app.services.satellite_compatibility import (
+        ImageInspectionReport,
+        SatelliteCompatibilityService,
+    )
+    # Synthetic image report with unknown modality
+    rep = ImageInspectionReport(
+        file_name="unidentified_sensor_raster.bin",
+        file_path=str(tmp_path / "unidentified.bin"),
+        format="RAW",
+        width=256,
+        height=256,
+        band_count=3,
+        dtype="uint8",
+        modality_hint="unknown",
+        sensor_hint="unknown",
+    )
+    res = SatelliteCompatibilityService.check_single_compatibility(rep)
+    assert res.status == "needs_review", f"Expected needs_review, got {res.status}"
+    assert any("modality" in w.lower() for w in res.warnings)
+
+    # In pair mode, unknown modality must halt execution
+    rep2 = ImageInspectionReport(
+        file_name="unidentified_sensor_raster_t2.bin",
+        file_path=str(tmp_path / "unidentified_t2.bin"),
+        format="RAW",
+        width=256,
+        height=256,
+        band_count=3,
+        dtype="uint8",
+        modality_hint="unknown",
+        sensor_hint="unknown",
+    )
+    pair_res = SatelliteCompatibilityService.check_pair_compatibility(rep, rep2, mode="bi_temporal")
+    assert pair_res.status == "needs_review", f"Expected needs_review, got {pair_res.status}"
+
+    # Verify orchestrator guardrail halts execution
+    ans, conf, invs, _, ev, _, modes, _ = execute_plan(
+        query="Detect changes",
+        mode="bi_temporal",
+        tool_ids=["change_detector"],
+        per_tool_params={},
+        tasks=["change_detection"],
+        image_file_paths=[],
+        compatibility_context=pair_res.to_dict(),
+    )
+    assert conf is None
+    assert "NEEDS_REVIEW" in ans
+    assert invs[0].toolId == "satellite_compatibility_guardrail"
+    assert "change_detector" not in modes

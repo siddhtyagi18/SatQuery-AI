@@ -18,10 +18,10 @@ def _make_vqa_result(query: str, mode: AnalysisMode, **kwargs: Any) -> Dict[str,
     )
     return {
         "answer": answer,
-        "confidence": 0.72,
+        "confidence": None,
         "evidence": [
             "VQA mock ran on provided image inputs (no real model executed).",
-            "Confidence score is a fixed placeholder, not a calibrated prediction.",
+            "Confidence score is uncalibrated / null.",
         ],
     }
 
@@ -35,10 +35,10 @@ def _make_caption_result(query: str, mode: AnalysisMode, **kwargs: Any) -> Dict[
     )
     return {
         "answer": answer,
-        "confidence": 0.68,
+        "confidence": None,
         "evidence": [
             "Caption generated from template — not from image pixels.",
-            "Confidence score is a fixed placeholder, not a calibrated prediction.",
+            "Confidence score is uncalibrated / null.",
         ],
     }
 
@@ -60,12 +60,12 @@ def _make_grounding_result(query: str, mode: AnalysisMode, **kwargs: Any) -> Dic
     )
     return {
         "answer": answer,
-        "confidence": 0.70,
+        "confidence": None,
         "bounding_boxes": [b.model_dump() for b in boxes],
         "evidence": [
             f"{len(boxes)} mock bounding boxes returned.",
             "All coordinates are fixed template values — no object detection was performed.",
-            "Confidence score is a fixed placeholder, not a calibrated prediction.",
+            "Confidence score is uncalibrated / null.",
         ],
     }
 
@@ -88,12 +88,12 @@ def _make_change_detection_result(query: str, mode: AnalysisMode, **kwargs: Any)
     )
     return {
         "answer": answer,
-        "confidence": 0.65,
+        "confidence": None,
         "change_map": change_map,
         "evidence": [
             "Change map legend is a template; no overlay raster was produced.",
             "Percentages above are representative placeholders, not measured values.",
-            "Confidence score is a fixed placeholder, not a calibrated prediction.",
+            "Confidence score is uncalibrated / null.",
         ],
     }
 
@@ -148,10 +148,10 @@ def _make_optical_sar_result(query: str, mode: AnalysisMode, **kwargs: Any) -> D
     )
     return {
         "answer": answer,
-        "confidence": 0.74,
+        "confidence": None,
         "bounding_boxes": [b.model_dump() for b in boxes],
         "evidence": [
-            "Cross-modal confidence is a fixed placeholder value.",
+            "Optical+SAR cross-modal model emits uncalibrated features; confidence=null.",
             "SAR-unique feature boxes are template annotations, not real detections.",
         ],
     }
@@ -165,10 +165,10 @@ def _make_spatial_analyzer_result(query: str, mode: AnalysisMode, **kwargs: Any)
     )
     return {
         "answer": answer,
-        "confidence": 0.60,
+        "confidence": None,
         "evidence": [
             "No actual distance/area computation was performed.",
-            "Confidence score is a fixed placeholder, not a calibrated prediction.",
+            "Confidence score is uncalibrated / null.",
         ],
     }
 

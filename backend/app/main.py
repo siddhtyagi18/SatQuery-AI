@@ -14,6 +14,25 @@ settings = get_settings()
 
 Base.metadata.create_all(bind=engine)
 
+# Auto-migrate SQLite schema for newly added columns if table already exists
+if settings.DATABASE_URL.startswith("sqlite"):
+    try:
+        from sqlalchemy import text
+        with engine.begin() as conn:
+            res = conn.execute(text("PRAGMA table_info(analyses);")).fetchall()
+            existing_cols = {row[1] for row in res}
+            for col, col_type in [
+                ("compatibility", "JSON"),
+                ("limitations", "JSON"),
+                ("adaptation", "JSON"),
+                ("specialist_selected", "VARCHAR"),
+                ("input_summary", "JSON"),
+            ]:
+                if col not in existing_cols:
+                    conn.execute(text(f"ALTER TABLE analyses ADD COLUMN {col} {col_type};"))
+    except Exception as _mig_err:
+        logger.warning(f"Auto-migration error: {_mig_err}")
+
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,

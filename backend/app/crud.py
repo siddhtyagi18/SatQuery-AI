@@ -28,11 +28,24 @@ def _iso(dt: Optional[datetime]) -> str:
     return dt.isoformat() if dt else None
 
 
+def _norm_modality(m: Optional[str]) -> str:
+    if not m or m == "unknown":
+        return "unknown"
+    ml = m.lower()
+    if "sar" in ml:
+        return "sar"
+    if "multispectral" in ml:
+        return "multispectral"
+    if any(k in ml for k in ("optical", "rgb", "grayscale", "panchromatic")):
+        return "optical"
+    return "unknown"
+
+
 def _file_to_meta(f: UploadedFile) -> ImageMetadataType:
     return ImageMetadataType(
         fileName=f.file_name,
         fileFormat=f.file_format or "TIFF",
-        modality=f.modality or "unknown",
+        modality=_norm_modality(f.modality),
         modalityDetectionConfidence=f.modality_confidence,
         acquisitionDate=f.acquisition_date,
         widthPx=f.width_px,
@@ -87,6 +100,16 @@ def analysis_to_result(db: Session, a: Analysis) -> AnalysisResult:
     primary_task = detected_tasks[0] if detected_tasks else (a.mode or "vqa")
     selected_tools = a.selected_tools or []
 
+    has_real = any(getattr(t, "executionMode", "mock") == "real" for t in tool_invocations)
+    has_mock = any(getattr(t, "executionMode", "mock") == "mock" for t in tool_invocations)
+    if has_real and has_mock:
+        exec_mode = "mixed"
+    elif has_real:
+        exec_mode = "real"
+    else:
+        exec_mode = "mock"
+    is_mock = not has_real
+
     return AnalysisResult(
         id=a.id,
         mode=a.mode,
@@ -111,6 +134,8 @@ def analysis_to_result(db: Session, a: Analysis) -> AnalysisResult:
         adaptation=getattr(a, "adaptation", None),
         specialistSelected=getattr(a, "specialist_selected", None),
         inputSummary=getattr(a, "input_summary", None),
+        isMock=is_mock,
+        executionMode=exec_mode,
     )
 
 

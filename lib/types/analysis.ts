@@ -67,6 +67,7 @@ export interface ToolInvocation {
   taskType: TaskType;
   parameters: Record<string, string | number | boolean>;
   processingTimeMs: number | null;
+  executionMode?: 'real' | 'mock';
 }
 
 export interface AnalysisResult {
@@ -92,6 +93,8 @@ export interface AnalysisResult {
   adaptation?: Record<string, any> | null;
   specialistSelected?: string | null;
   inputSummary?: Record<string, any> | null;
+  isMock?: boolean;
+  executionMode?: 'real' | 'mock' | 'mixed';
 }
 
 export interface ToolDefinition {

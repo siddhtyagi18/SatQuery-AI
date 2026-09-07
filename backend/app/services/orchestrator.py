@@ -62,10 +62,10 @@ def select_tools_for_tasks(
             if t in ("grounding",):
                 if "spatial_analyzer" not in selected:
                     selected.append("spatial_analyzer")
-        for t in tasks:
-            preferred = TASK_TO_PREFERRED_TOOL.get(t)
-            if preferred and preferred not in selected and preferred != "optical_sar_analyzer":
-                selected.append(preferred)
+            elif t not in ("vqa", "captioning", "change_detection"):
+                preferred = TASK_TO_PREFERRED_TOOL.get(t)
+                if preferred and preferred not in selected and preferred != "optical_sar_analyzer":
+                    selected.append(preferred)
         return selected
 
     if mode == "bi_temporal":
@@ -201,11 +201,13 @@ def execute_plan(
         c_reasons = compatibility_context.get("reasons", [])
         c_warnings = compatibility_context.get("warnings", [])
 
-        if c_status in ("invalid", "unsupported", "unsupported_for_reliable_inference"):
+        if c_status in ("invalid", "unsupported", "unsupported_for_reliable_inference", "needs_review"):
             refusal_reasons = c_reasons or [f"Input imagery is {c_status} for mode '{mode}'."]
+            notice_type = "COMPATIBILITY NOTICE: NEEDS_REVIEW" if c_status == "needs_review" else f"CHANGE DETECTION NOTICE: {c_status.upper()}"
+            headline = "Analysis halted for unidentified sensor modality:" if c_status == "needs_review" else "Change detection unavailable for this imagery:"
             refusal_text = (
-                f"[CHANGE DETECTION NOTICE: {c_status.upper()}]\n\n"
-                f"Change detection unavailable for this imagery:\n"
+                f"[{notice_type}]\n\n"
+                f"{headline}\n"
                 + "\n".join(f"- {r}" for r in refusal_reasons)
             )
             if c_limits:
@@ -459,9 +461,19 @@ def execute_plan(
             change_map_out = tool_result["change_map"]
 
     merged_answer = "\n\n".join(answer_parts) if answer_parts else "[No tool produced an answer.]"
-    agg_conf: Optional[float] = None
-    if confidences:
-        agg_conf = round(sum(confidences) / len(confidences), 3)
+    # Strict Scientific Confidence Policy:
+    # If any real specialist was executed, or if mode is bi_temporal or optical_sar,
+    # or if all specialists lack calibrated confidence, confidence MUST remain None.
+    # Mock placeholder confidences must NEVER leak into real/hybrid or multi-sensor results.
+    has_real_tool = any(m != "mock" for m in tool_execution_modes.values())
+    if not has_real_tool:
+        # Strict Scientific Integrity: If any_real == False (mock mode), confidence must be returned as None
+        agg_conf = None
+    elif has_real_tool or mode in ("optical_sar", "bi_temporal"):
+        # Real specialists currently lack calibrated confidence estimators; confidence remains null
+        agg_conf = None
+    else:
+        agg_conf = None
     return (
         merged_answer,
         agg_conf,

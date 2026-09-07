@@ -15,6 +15,7 @@ import {
   Layers,
   Info,
   ShieldCheck,
+  AlertTriangle,
 } from 'lucide-react';
 import type { TaskType } from '@/lib/types/analysis';
 
@@ -22,6 +23,7 @@ interface AnalysisSummaryProps {
   answerText: string | null;
   detectedTasks?: TaskType[];
   createdAt?: string;
+  isMock?: boolean;
   className?: string;
 }
 
@@ -53,6 +55,7 @@ export function AnalysisSummary({
   answerText,
   detectedTasks,
   createdAt,
+  isMock,
   className,
 }: AnalysisSummaryProps) {
   const [copied, setCopied] = useState(false);
@@ -284,10 +287,17 @@ export function AnalysisSummary({
 
         {/* Footer Provenance */}
         <div className="flex items-center justify-between text-xs font-mono text-[var(--text-muted)] pt-3.5 border-t border-[var(--border-hairline)] flex-wrap gap-2">
-          <div className="flex items-center gap-1.5 text-[var(--green)] font-medium">
-            <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>Verified by Specialist Ensemble</span>
-          </div>
+          {isMock ? (
+            <div className="flex items-center gap-1.5 text-amber-400 font-medium">
+              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>Placeholder output — not verified, no real inference</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-[var(--green)] font-medium">
+              <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>Verified by Specialist Ensemble</span>
+            </div>
+          )}
           {createdAt && (
             <span className="text-[var(--text-faint)]">
               Generated: {new Date(createdAt).toLocaleString('en-IN', { hour12: false })}

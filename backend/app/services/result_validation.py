@@ -158,6 +158,14 @@ def validate_analysis_result_payload(
                     report.warnings.append(f"confidence={confidence!r} not numeric; setting to null.")
                     result["confidence"] = None
                     report.stripped_fields.append("confidence")
+        else:
+            # For MOCK runs: confidence must strictly be null/None (scientific integrity rule)
+            if result.get("confidence") is not None:
+                report.warnings.append(
+                    "confidence present in mock run; stripping to null to maintain scientific integrity."
+                )
+                result["confidence"] = None
+                report.stripped_fields.append("confidence")
 
     except Exception as e:
         logger.exception(f"validate_analysis_result_payload raised: {e}")

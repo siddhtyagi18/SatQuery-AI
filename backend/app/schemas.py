@@ -102,6 +102,8 @@ class AnalysisResult(BaseModel):
     adaptation: Optional[Dict[str, Any]] = None
     specialistSelected: Optional[str] = None
     inputSummary: Optional[Dict[str, Any]] = None
+    isMock: Optional[bool] = None
+    executionMode: Optional[Literal["real", "mock", "mixed"]] = None
 
 
 class SubmitAnalysisInput(BaseModel):

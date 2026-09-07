@@ -113,13 +113,29 @@ def _run_analysis_pipeline(db: Session, analysis: Analysis, files, input_data: S
 
     validation_bits = []
     modalities: List[str] = []
-    image_file_paths: List[Path] = []
-    for f in files:
-        p = Path(f.file_path)
-        image_file_paths.append(p)
+    image_file_paths: List[Path] = [Path(f.file_path) for f in files]
+
+    # Run satellite image inspections
+    inspections = [SatelliteImageInspector.inspect(p) for p in image_file_paths]
+
+    for f, p, insp in zip(files, image_file_paths, inspections):
+        # Harmonize modality: if inspector determined modality, use it; otherwise preserve metadata
+        raw_mod = insp.modality_hint if (insp.modality_hint and insp.modality_hint != "unknown") else (f.modality or "unknown")
+        if "sar" in raw_mod:
+            norm_mod = "sar"
+        elif "multispectral" in raw_mod:
+            norm_mod = "multispectral"
+        elif any(k in raw_mod for k in ("optical", "rgb", "grayscale")):
+            norm_mod = "optical"
+        else:
+            norm_mod = "unknown"
+
+        if f.modality in (None, "unknown") and norm_mod != "unknown":
+            f.modality = norm_mod
+        effective_modality = raw_mod
         bits = [
             f"{f.file_name}: {f.file_format or '?'}",
-            f"Modality={f.modality or 'unknown'}"
+            f"Modality={effective_modality}"
             + (f" ({int((f.modality_confidence or 0) * 100)}%)" if f.modality_confidence else ""),
         ]
         if p.exists():
@@ -133,10 +149,8 @@ def _run_analysis_pipeline(db: Session, analysis: Analysis, files, input_data: S
         if f.band_count:
             bits.append(f"bands={f.band_count}")
         validation_bits.append(" | ".join(bits))
-        modalities.append(f.modality or "unknown")
+        modalities.append(effective_modality)
 
-    # Run satellite image inspections
-    inspections = [SatelliteImageInspector.inspect(p) for p in image_file_paths]
     comp_dict: Dict[str, Any] = {}
     limits_list: List[str] = []
 
@@ -144,21 +158,35 @@ def _run_analysis_pipeline(db: Session, analysis: Analysis, files, input_data: S
         s_report = SatelliteCompatibilityService.check_single_compatibility(inspections[0])
         comp_dict = s_report.to_dict()
         limits_list = []
-        validation_bits.append(f"Compatibility: {s_report.status.upper()}")
-        if s_report.warnings:
-            validation_bits.append(f"Warnings: {len(s_report.warnings)}")
+        # Input validation logic fix: if modality cannot be determined, status must be needs_review
+        if modalities[0] == "unknown" or s_report.modality == "unknown":
+            if comp_dict.get("status") in ("compatible", "adaptable"):
+                comp_dict["status"] = "needs_review"
+                comp_dict.setdefault("warnings", []).append("Sensor modality could not be determined; results may be unreliable.")
+                comp_dict.setdefault("reasons", []).append("Sensor modality is unknown; specialist inference requires review.")
+                limits_list.append("Sensor modality could not be determined; results may be unreliable. The system will not silently execute specialist models on unverified or unidentified imagery.")
+        validation_bits.append(f"Compatibility: {comp_dict['status'].upper()}")
+        if comp_dict.get("warnings"):
+            validation_bits.append(f"Warnings: {len(comp_dict['warnings'])}")
     elif len(inspections) >= 2:
         p_report = SatelliteCompatibilityService.check_pair_compatibility(
             inspections[0], inspections[1], mode=mode, query=q
         )
         comp_dict = p_report.to_dict()
-        limits_list = p_report.limitations
-        validation_bits.append(f"Pair Compatibility: {p_report.status.upper()}")
+        limits_list = list(p_report.limitations or [])
+        if any(m == "unknown" for m in modalities[:2]) or any(insp.modality_hint == "unknown" for insp in inspections[:2]):
+            if comp_dict.get("status") in ("compatible", "adaptable"):
+                comp_dict["status"] = "needs_review"
+                comp_dict.setdefault("warnings", []).append("Sensor modality could not be determined; results may be unreliable.")
+                comp_dict.setdefault("reasons", []).append("Sensor modality is unknown for one or both images.")
+                if "Sensor modality could not be determined; results may be unreliable." not in limits_list:
+                    limits_list.append("Sensor modality could not be determined; results may be unreliable. The system will not silently execute specialist models on unverified or unidentified imagery.")
+        validation_bits.append(f"Pair Compatibility: {comp_dict['status'].upper()}")
         validation_bits.append(f"Temporal: {p_report.temporal_status}")
         if p_report.spatial_overlap_pct is not None:
             validation_bits.append(f"Overlap: {p_report.spatial_overlap_pct}%")
-        if p_report.warnings:
-            validation_bits.append(f"Warnings: {len(p_report.warnings)}")
+        if comp_dict.get("warnings"):
+            validation_bits.append(f"Warnings: {len(comp_dict['warnings'])}")
 
     validation_detail = " ; ".join(validation_bits)
     mark_step(

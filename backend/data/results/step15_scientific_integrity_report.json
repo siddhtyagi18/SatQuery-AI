@@ -1,0 +1,164 @@
+{
+  "step": "Step 15 - Final Scientific Integrity + Confidence Audit",
+  "timestamp": "2026-09-07 08:29:00 UTC",
+  "confidence_audit_table": [
+    {
+      "component": "Siamese U-Net Change Detection (LEVIR-CD)",
+      "confidence_source": "change_detection.py / model_inference.py",
+      "mathematically_calibrated": false,
+      "safe_to_expose": false,
+      "current_behavior": "Strictly null (None). Only detector telemetry is exposed (threshold=0.70, changed_pixel_pct, severity)."
+    },
+    {
+      "component": "Change VQA (Bi-temporal VLM)",
+      "confidence_source": "change_vqa.py",
+      "mathematically_calibrated": false,
+      "safe_to_expose": false,
+      "current_behavior": "Strictly null (None). Autoregressive tokens are uncalibrated; telemetry is never leaked into VLM prompt."
+    },
+    {
+      "component": "SmolVLM-500M + LoRA VQA (BigEarthNet S2)",
+      "confidence_source": "vqa_service.py / vqa_adapter.py",
+      "mathematically_calibrated": false,
+      "safe_to_expose": false,
+      "current_behavior": "Strictly null (None). Guarded by _fabricated_confidence_error(); evidence records confidence=null."
+    },
+    {
+      "component": "Optical + SAR Cross-Modal Fusion Net",
+      "confidence_source": "optical_sar.py / OpticalSARFusionNet",
+      "mathematically_calibrated": false,
+      "safe_to_expose": false,
+      "current_behavior": "Strictly null (None). Fixed the 0.72 issue where rs_vqa mock fallback was polled; gate weights stored in telemetry."
+    },
+    {
+      "component": "Satellite Compatibility Layer",
+      "confidence_source": "satellite_compatibility.py",
+      "mathematically_calibrated": false,
+      "safe_to_expose": false,
+      "current_behavior": "Categorical statuses only (COMPATIBLE, ADAPTABLE, UNSUPPORTED, INSUFFICIENT_METADATA, INVALID). No fake percentages."
+    },
+    {
+      "component": "Upload Modality Hint",
+      "confidence_source": "metadata.py (detect_modality)",
+      "mathematically_calibrated": false,
+      "safe_to_expose": false,
+      "current_behavior": "Heuristic upload-time metadata hint only (modalityDetectionConfidence). Never converted into model prediction confidence."
+    },
+    {
+      "component": "Mock Specialists (Phase 1 legacy)",
+      "confidence_source": "mock_specialists.py",
+      "mathematically_calibrated": false,
+      "safe_to_expose": false,
+      "current_behavior": "Optical+SAR and bi-temporal mock routines set confidence=null. Orchestrator suppresses mock confidences whenever real tools run."
+    },
+    {
+      "component": "Frontend ConfidenceCard & Gauge",
+      "confidence_source": "components/ConfidenceCard.tsx, ConfidenceGauge.tsx",
+      "mathematically_calibrated": false,
+      "safe_to_expose": false,
+      "current_behavior": "Displays 'Not Calibrated' and dash '—' gauge when confidence is null. Synthetic sub-claim breakdown eliminated."
+    }
+  ],
+  "optical_sar_confidence_investigation": {
+    "root_cause": "In optical_sar mode, task_classifier added 'vqa', causing select_tools_for_tasks to append 'rs_vqa'. Since rs_vqa lacked an optical_sar runner, orchestrator fell back to mock_specialists._make_vqa_result which contained a legacy 0.72 placeholder.",
+    "resolution": "1. Restricted optical_sar tool planning so optical_sar_analyzer acts as the sole primary specialist covering VQA, captioning, and change detection on multi-sensor pairs without calling single-image rs_vqa.\n2. In orchestrator.py, set agg_conf = None whenever real specialists run or whenever mode is optical_sar or bi_temporal.\n3. Updated mock_specialists.py to enforce confidence=None for optical_sar and bi_temporal mock fallbacks.",
+    "verified_output": "Case C confidence is now strictly null (None)."
+  },
+  "change_detection_metrics_separation": {
+    "detector_telemetry": [
+      "threshold (0.70)",
+      "threshold_raw_255 (179)",
+      "changed_pixel_pct",
+      "changed_pixel_count",
+      "total_pixel_count",
+      "severity (low/moderate/high)",
+      "execution_mode (model_checkpoint)",
+      "is_mock (false)"
+    ],
+    "benchmark_metrics": [
+      "IoU (0.7285)",
+      "F1 (0.8429)",
+      "Precision (0.8712)",
+      "Recall (0.8164)",
+      "Pixel Accuracy (0.9782)"
+    ],
+    "isolation_guarantee": "Benchmark metrics are strictly stored in offline evaluation reports and never injected into per-inference confidence or live reasoning prompts."
+  },
+  "scientific_claim_audit": {
+    "unsupported_terms_checked": [
+      "100%", "accurate", "universal", "any satellite", "all satellite",
+      "all sensors", "guaranteed", "reliable for all", "works everywhere", "cross-attention"
+    ],
+    "findings": "Zero hyperbolic or unsupported claims found in production UI or backend endpoints.",
+    "canonical_positioning": "SatQuery-AI accepts heterogeneous satellite imagery, validates compatibility, adapts supported inputs, and routes imagery to specialist models with documented validated domains. Unsupported imagery is explicitly flagged rather than producing misleading predictions."
+  },
+  "e2e_verification_matrix": {
+    "case_a_levir_cd": {
+      "execution_mode": "model_checkpoint",
+      "is_mock": false,
+      "confidence": null,
+      "specialist": "change_detector",
+      "compatibility": "compatible",
+      "limitations": []
+    },
+    "case_b_bigearthnet_s2": {
+      "execution_mode": "deterministic_adaptation",
+      "is_mock": false,
+      "confidence": null,
+      "specialist": "rs_vqa_candidate",
+      "compatibility": "adaptable",
+      "limitations": []
+    },
+    "case_c_authentic_s1_s2_08": {
+      "execution_mode": "real",
+      "is_mock": false,
+      "confidence": null,
+      "specialist": "optical_sar_analyzer",
+      "compatibility": "adaptable",
+      "limitations": []
+    },
+    "case_d_authentic_s1_s2_12": {
+      "execution_mode": "real",
+      "is_mock": false,
+      "confidence": null,
+      "specialist": "optical_sar_analyzer",
+      "compatibility": "adaptable",
+      "limitations": []
+    },
+    "case_e_unsupported_sentinel2_pair": {
+      "execution_mode": "none_refused",
+      "is_mock": false,
+      "confidence": null,
+      "specialist": null,
+      "compatibility": "unsupported_for_reliable_inference",
+      "limitations": [
+        "Spatial overlap between Image A and Image B is 0.0% (images cover non-overlapping geographic regions).",
+        "Spatial non-overlap: change detection cannot produce meaningful comparative results between two completely different geographic locations."
+      ]
+    },
+    "case_f_sar_only_pair": {
+      "execution_mode": "none_refused",
+      "is_mock": false,
+      "confidence": null,
+      "specialist": null,
+      "compatibility": "unsupported_for_reliable_inference",
+      "limitations": [
+        "Bi-temporal change detection specialist currently does not support SAR-only or mixed SAR-Optical change detection."
+      ]
+    }
+  },
+  "verification_results": {
+    "pytest_total": 201,
+    "pytest_passed": 201,
+    "pytest_regressions": 0,
+    "frontend_build": "PASSED (0 TypeScript errors, 0 build errors)"
+  },
+  "answers_to_mandatory_questions": {
+    "Q1_is_any_uncalibrated_value_presented_as_confidence": "NO — All specialist inference paths (Change Detection, Change VQA, SmolVLM VQA, Optical+SAR fusion) strictly return confidence=null. Mock placeholder values are suppressed whenever real or multi-sensor analysis executes.",
+    "Q2_is_optical_sar_confidence_genuinely_calibrated": "NO — The Optical+SAR gated dual-branch fusion baseline is an exploratory architecture and does not possess a temperature-calibrated posterior probability estimator. Its confidence is strictly reported as null (None), and its 0.72 leak was eliminated.",
+    "Q3_does_change_detection_expose_only_legitimate_telemetry": "YES — The Siamese U-Net exposes only legitimate detector telemetry: threshold (0.70), changed_pixel_pct, changed_pixel_count, total_pixel_count, severity, and processing time. Benchmark metrics (IoU, F1) remain strictly quarantined in offline logs.",
+    "Q4_can_unsupported_imagery_accidentally_receive_fabricated_prediction": "NO — Non-overlapping pairs, SAR-only bi-temporal inputs, and out-of-domain queries trigger the Change Detection Domain Gate which returns UNSUPPORTED_FOR_RELIABLE_INFERENCE, suppresses change masks (change_map=None), and returns structured limitations without fabricated answers.",
+    "Q5_are_all_public_claims_scientifically_defensible": "YES — All claims of 'universal model', '100% accurate', or 'works on all satellites' have been audited and replaced. SatQuery-AI is explicitly documented as a routing and adaptation architecture with specialist models bounded to specific validated domains."
+  },
+  "verdict": "PASS"
+}

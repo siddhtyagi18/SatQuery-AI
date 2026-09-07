@@ -35,8 +35,7 @@ def test_submit_single_image_vqa_and_grounding(client, png_file):
     assert "grounding" in result["detectedTasks"]
     assert result["answerText"] is not None
     assert "[MOCK" in result["answerText"]
-    assert result["confidence"] is not None
-    assert 0 < result["confidence"] <= 1.0
+    assert result["confidence"] is None  # Mock tools strictly return uncalibrated null confidence
     assert result["boundingBoxes"] is not None
     assert len(result["boundingBoxes"]) >= 3
     for b in result["boundingBoxes"]:

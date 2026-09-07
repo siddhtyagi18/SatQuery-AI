@@ -16,28 +16,55 @@ interface ConfidenceCardProps {
   score: number | null;
   detectedTasks?: TaskType[];
   breakdown?: BreakdownItem[];
+  isMock?: boolean;
   className?: string;
 }
 
-export function ConfidenceCard({ score, detectedTasks, breakdown, className }: ConfidenceCardProps) {
-  // Generate simulated breakdown if none explicitly provided
-  const items: BreakdownItem[] = breakdown ?? (score != null ? [
-    { label: 'Feature Extraction Quality', score: Math.min(1, score + 0.05) },
-    { label: 'Spatial Alignment / Co-registration', score: Math.min(1, score + 0.02) },
-    { label: 'Vision-Language Calibration', score: score },
-  ] : []);
+export function ConfidenceCard({ score, detectedTasks, breakdown, isMock, className }: ConfidenceCardProps) {
+  // Only display sub-claim breakdown if genuinely provided by calibrated specialist
+  const items: BreakdownItem[] = breakdown ?? [];
+  const isUncalibrated = isMock || score == null;
 
   const getConfidenceTier = (s: number | null) => {
-    if (s == null) return { text: 'Not Evaluated', color: 'var(--text-faint)' };
-    if (s >= 0.85) return { text: 'High Confidence', color: 'var(--accent-success)' };
-    if (s >= 0.70) return { text: 'Moderate Confidence', color: 'var(--accent-warning)' };
-    return { text: 'Low Confidence / Review Advised', color: 'var(--accent-danger)' };
+    if (isMock) {
+      return {
+        text: 'N/A — no real inference was performed',
+        color: 'var(--accent-warning)',
+        subtext: 'Specialist inference ran in mock/placeholder mode. Confidence remains strictly null to prevent uncalibrated certainty metrics.',
+      };
+    }
+    if (s == null) {
+      return {
+        text: 'N/A — Uncalibrated',
+        color: 'var(--accent-signal)',
+        subtext: 'Authentic specialist model does not emit calibrated confidence scores; confidence remains null to maintain scientific integrity.',
+      };
+    }
+    if (s! >= 0.85) {
+      return {
+        text: 'High Confidence',
+        color: 'var(--accent-success)',
+        subtext: 'Calibrated model uncertainty estimate from authentic specialist execution.',
+      };
+    }
+    if (s! >= 0.70) {
+      return {
+        text: 'Moderate Confidence',
+        color: 'var(--accent-warning)',
+        subtext: 'Calibrated model uncertainty estimate from authentic specialist execution.',
+      };
+    }
+    return {
+      text: 'Low Confidence / Review Advised',
+      color: 'var(--accent-danger)',
+      subtext: 'Calibrated model uncertainty estimate indicates elevated prediction variance.',
+    };
   };
 
   const tier = getConfidenceTier(score);
 
   return (
-    <CornerFrame label="CONFIDENCE ASSESSMENT" className={className} domain="green">
+    <CornerFrame label="CONFIDENCE ASSESSMENT" className={className} domain={isUncalibrated ? 'amber' : 'green'}>
       <div className="panel p-5 flex flex-col gap-4 transition-all duration-300 hover:border-[var(--green)]/40 hover:shadow-lg">
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col gap-1">
@@ -45,11 +72,18 @@ export function ConfidenceCard({ score, detectedTasks, breakdown, className }: C
             <span className="text-base font-semibold" style={{ color: tier.color, fontFamily: 'var(--font-heading)' }}>
               {tier.text}
             </span>
-            <p className="text-xs text-[var(--text-muted)] leading-relaxed max-w-[220px]" style={{ fontFamily: 'var(--font-body)' }}>
-              Computed from posterior probabilities across invoked specialist heads.
+            <p className="text-xs text-[var(--text-muted)] leading-relaxed max-w-[240px]" style={{ fontFamily: 'var(--font-body)' }}>
+              {tier.subtext}
             </p>
           </div>
-          <ConfidenceGauge score={score} size="md" />
+          {isUncalibrated ? (
+            <div className="flex flex-col items-center justify-center p-3 rounded bg-[var(--surface-2)] border border-amber-500/30 text-center min-w-[90px]">
+              <span className="text-xs font-mono font-bold text-amber-400">NULL</span>
+              <span className="text-[0.6rem] font-mono text-[var(--text-faint)] uppercase tracking-wider">Uncalibrated</span>
+            </div>
+          ) : (
+            <ConfidenceGauge score={score} size="md" />
+          )}
         </div>
 
         {items.length > 0 && (

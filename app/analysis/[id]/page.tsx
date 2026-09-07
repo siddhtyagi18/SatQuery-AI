@@ -21,7 +21,7 @@ import { BeforeAfterViewer } from '@/components/BeforeAfterViewer';
 import { ChangeMapViewer } from '@/components/ChangeMapViewer';
 import { OpticalSarViewer } from '@/components/OpticalSarViewer';
 import { ChangeStatsPanel } from '@/components/ChangeStatsPanel';
-import { Download, RotateCcw, ArrowLeft, Cpu, Clock } from 'lucide-react';
+import { Download, RotateCcw, ArrowLeft, Cpu, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabaseAnalysisService, SUPABASE_PERSISTENCE_ENABLED } from '@/lib/supabase/services';
 import { getCurrentUserId } from '@/lib/authService';
@@ -153,6 +153,8 @@ export default function AnalysisResultPage() {
   }
 
   const headerDomain = MODE_DOMAIN[result.mode];
+  const anyReal = result.toolInvocations?.some((t) => t.executionMode === 'real');
+  const isMock = result.isMock !== undefined ? result.isMock : !anyReal;
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-12 pb-16 animate-fade-in-up">
@@ -179,6 +181,23 @@ export default function AnalysisResultPage() {
                 </span>
                 <ModeBadge mode={result.mode} />
                 <StatusBadge status={result.status} />
+                {isMock ? (
+                  <span
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono font-bold uppercase tracking-wider bg-amber-500/15 border border-amber-500/40 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.15)]"
+                    title="Phase 1 Mock Execution: Synthetic placeholder output; no authentic model weights were invoked."
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    MOCK — Phase 1
+                  </span>
+                ) : (
+                  <span
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono font-bold uppercase tracking-wider bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.15)]"
+                    title="Real ML Specialist Execution: Output produced by authentic model inference on imagery."
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    REAL ML SPECIALIST
+                  </span>
+                )}
               </div>
             </div>
 
@@ -226,6 +245,7 @@ export default function AnalysisResultPage() {
             answerText={result.answerText}
             detectedTasks={result.detectedTasks}
             createdAt={result.createdAt}
+            isMock={isMock}
           />
 
           {/* Mode-Specific Visual Viewers */}
@@ -291,6 +311,7 @@ export default function AnalysisResultPage() {
           <ConfidenceCard
             score={result.confidence}
             detectedTasks={result.detectedTasks}
+            isMock={isMock}
           />
 
           {/* Specialist Models Invoked Panel — active agent surface → cyan bracket frame */}
