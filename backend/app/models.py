@@ -63,6 +63,12 @@ class Analysis(Base):
     execution_trace_json = Column(JSON, nullable=True)
     total_elapsed_ms = Column(Integer, nullable=True)
 
+    compatibility = Column(JSON, nullable=True)
+    limitations = Column(JSON, nullable=True)
+    adaptation = Column(JSON, nullable=True)
+    specialist_selected = Column(String, nullable=True)
+    input_summary = Column(JSON, nullable=True)
+
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
 

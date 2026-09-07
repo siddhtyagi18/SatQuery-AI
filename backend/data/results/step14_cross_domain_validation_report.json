@@ -1,0 +1,160 @@
+{
+  "step": "Step 14 - Cross-Domain Real Satellite Change-Detection Validation",
+  "timestamp": "2026-09-07 08:19:06 UTC",
+  "checkpoint_info": {
+    "resolved_path": "C:\\Users\\Lenovo\\Desktop\\SatQuery-AI\\backend\\checkpoints\\experiment_01\\best_model.pt",
+    "exists": true,
+    "size_bytes": 1480495
+  },
+  "test_matrix": {
+    "case_a_levir_cd": {
+      "status": "compatible",
+      "is_mock": true,
+      "execution_mode": "model_checkpoint",
+      "threshold": 0.7,
+      "confidence": null,
+      "changed_pixel_pct": 2.99,
+      "change_map_present": true,
+      "evidence_count": 14,
+      "latencies_ms": {
+        "inspection": 20.69,
+        "compatibility": 0.31,
+        "execution": 3388.39
+      }
+    },
+    "case_b_bigearthnet_s2_single": {
+      "file": "S2A_MSIL2A_20170717T113321_90_83_B02.tif",
+      "modality": "multispectral_optical",
+      "sensor": "sentinel-2",
+      "status": "adaptable",
+      "candidates": [
+        "rs_vqa",
+        "rs_caption",
+        "rs_grounding"
+      ],
+      "adaptation": {
+        "original_dtype": "I;16",
+        "adapted_dtype": "float32",
+        "original_shape": [
+          1,
+          120,
+          120
+        ],
+        "adapted_shape": [
+          120,
+          120,
+          3
+        ],
+        "normalization": "uint8_div_255",
+        "resampling": null,
+        "reprojection": null,
+        "selected_bands": [
+          1,
+          1,
+          1
+        ],
+        "modality": "optical",
+        "crs": "EPSG:32629",
+        "resolution": [
+          10.0,
+          10.0
+        ],
+        "notes": [
+          "Replicated single-band grayscale to 3 channels."
+        ]
+      },
+      "latencies_ms": {
+        "inspection": 43.74,
+        "adaptation": 0.91
+      }
+    },
+    "case_c_authentic_s1_s2": {
+      "status": "adaptable",
+      "modality_pair": [
+        "multispectral_optical",
+        "sar"
+      ],
+      "specialists": [
+        "optical_sar_analyzer",
+        "rs_vqa"
+      ],
+      "execution_modes": {
+        "optical_sar_analyzer": "real",
+        "rs_vqa": "mock"
+      },
+      "confidence": 0.72,
+      "evidence_count": 10,
+      "latencies_ms": {
+        "inspection": 2.1,
+        "execution": 41.66
+      }
+    },
+    "case_d_non_levir_optical_gate": {
+      "status": "unsupported_for_reliable_inference",
+      "gate_refusal_triggered": true,
+      "reasons": [
+        "Spatial overlap between Image A and Image B is 0.0% (images cover non-overlapping geographic regions)."
+      ],
+      "limitations": [
+        "Spatial non-overlap: change detection cannot produce meaningful comparative results between two completely different geographic locations."
+      ],
+      "change_map_suppressed": true,
+      "confidence": null,
+      "answer_snippet": "[CHANGE DETECTION NOTICE: UNSUPPORTED_FOR_RELIABLE_INFERENCE]\n\nChange detection unavailable for this imagery:\n- Spatial overlap between Image A and Image B is 0.0% (images cover non-overlapping geographic regions).\n\nValidated Model Domain & Limitatio",
+      "latencies_ms": {
+        "inspection": 36.01,
+        "compatibility": 0.06,
+        "execution": 0.08
+      }
+    },
+    "case_e_sar_only_bi_temporal": {
+      "status": "unsupported_for_reliable_inference",
+      "refused": true,
+      "reasons": [
+        "Bi-temporal change detection specialist currently does not support SAR-only or mixed SAR-Optical change detection."
+      ],
+      "change_map_suppressed": true,
+      "confidence": null
+    },
+    "case_f_multispectral_adaptation": {
+      "original_dtype": "I;16",
+      "adapted_dtype": "float32",
+      "adapted_shape": [
+        120,
+        120,
+        3
+      ],
+      "selected_bands": [
+        1,
+        1,
+        1
+      ],
+      "normalization": "uint8_div_255"
+    },
+    "case_g_unknown_metadata": {
+      "sensor_inferred": "unknown",
+      "crs_inferred": null,
+      "temporal_status": "unknown",
+      "no_fabrication_confirmed": true
+    },
+    "case_h_resolution_tracking": {
+      "scene_resolution": null,
+      "has_bounds": false
+    }
+  },
+  "benchmarks": {
+    "mean_inspection_ms": 25.63,
+    "mean_execution_ms": 1143.37
+  },
+  "scientific_claim_audit": {
+    "unsupported_universal_claims_found": false,
+    "positioning": "SatQuery-AI accepts heterogeneous satellite imagery, validates compatibility, adapts supported inputs, and routes them to specialist models. Each specialist has a documented validated domain, and unsupported imagery is explicitly flagged rather than producing misleading predictions."
+  },
+  "verdict": "PASS WITH LIMITATIONS",
+  "questions": {
+    "Q1_can_accept_non_levir_imagery": "YES \u2014 The system inspects and adapts diverse satellite imagery (TIFF, GeoTIFF, uint16, SAR, multispectral).",
+    "Q2_can_safely_determine_cd_appropriateness": "YES \u2014 The Change Detection Domain Gate evaluates sensor, resolution, overlap, and query domain before invoking the LEVIR-CD model.",
+    "Q3_can_refuse_unsupported_without_hallucinating": "YES \u2014 Refused imagery produces structured limitations and transparent explanations without fake change maps or fabricated percentages.",
+    "Q4_can_judge_upload_arbitrary_and_always_get_reliable_answer": "NO \u2014 Arbitrary satellite imagery cannot be reliably analyzed by a single specialist. SatQuery-AI will refuse or flag imagery outside validated specialist domains rather than producing a misleading prediction."
+  }
+}

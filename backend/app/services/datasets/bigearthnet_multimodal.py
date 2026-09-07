@@ -23,6 +23,7 @@ Key Characteristics:
 """
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
@@ -174,7 +175,8 @@ class BigEarthNetMultimodalDataset(Dataset):
             raise ImportError("PyTorch is required to instantiate BigEarthNetMultimodalDataset.")
 
         if parquet_path is None:
-            parquet_path = "C:/Users/Lenovo/Downloads/BigEarthNet.txt.parquet"
+            default_dl = Path.home() / "Downloads" / "BigEarthNet.txt.parquet"
+            parquet_path = os.getenv("BIGEARTHNET_TXT_PARQUET") or (str(default_dl) if default_dl.exists() else "BigEarthNet.txt.parquet")
         self.parquet_path = Path(parquet_path)
         self.images_root = Path(images_root) if images_root else None
         self.split = split

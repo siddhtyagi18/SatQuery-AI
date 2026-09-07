@@ -16,7 +16,9 @@ export type { AuthSession } from '@/lib/authService';
 interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
-  login: (email?: string) => void;
+  login: (email?: string, name?: string) => void;
+  signup: (email: string, name?: string, dob?: string) => void;
+  updateProfile: (data: Partial<AuthUser>) => void;
   logout: () => Promise<void>;
   loading: boolean;
   authMode: 'supabase' | 'mock';
@@ -26,6 +28,8 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   isAuthenticated: false,
   login: () => {},
+  signup: () => {},
+  updateProfile: () => {},
   logout: async () => {},
   loading: true,
   authMode: 'mock',
@@ -101,9 +105,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [loading, user, pathname, router]);
 
-  const login = (email?: string) => {
+  const login = (email?: string, name?: string) => {
     const userEmail = email || 'controller@isro.gov.in';
-    const u = buildMockUser(userEmail);
+    const u: AuthUser = {
+      ...buildMockUser(userEmail),
+      ...(name ? { name } : {}),
+    };
     try {
       if (typeof window !== 'undefined') {
         sessionStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(u));
@@ -113,6 +120,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setUser(u);
     setLoading(false);
+  };
+
+  const signup = (email: string, name?: string, dob?: string) => {
+    const u: AuthUser = {
+      email,
+      name: name || (email.includes('@') ? email.split('@')[0] : email),
+      role: 'ISRO Specialist',
+      dob,
+      organization: 'NRSC / Space Applications Centre (ISRO)',
+    };
+    try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(u));
+      }
+    } catch {
+      // Ignore
+    }
+    setUser(u);
+    setLoading(false);
+  };
+
+  const updateProfile = (data: Partial<AuthUser>) => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const updated: AuthUser = { ...prev, ...data };
+      try {
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(updated));
+        }
+      } catch {
+        // Ignore
+      }
+      return updated;
+    });
   };
 
   const logout = async () => {
@@ -134,7 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated: !!user, login, logout, loading, authMode }}
+      value={{ user, isAuthenticated: !!user, login, signup, updateProfile, logout, loading, authMode }}
     >
       {children}
     </AuthContext.Provider>

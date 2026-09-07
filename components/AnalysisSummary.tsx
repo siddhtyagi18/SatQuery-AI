@@ -150,7 +150,29 @@ export function AnalysisSummary({
           {rawParagraphs.map((para, idx) => {
             const trimmed = para.trim();
 
-            // 1. Mock or Execution Provenance header banner
+            // 1. Compatibility & Domain Gate notice banner
+            if (
+              trimmed.startsWith('[CHANGE DETECTION NOTICE:') ||
+              trimmed.startsWith('[COMPATIBILITY NOTICE:') ||
+              trimmed.startsWith('[UNSUPPORTED')
+            ) {
+              return (
+                <div
+                  key={idx}
+                  className="p-4 rounded bg-[rgba(255,176,32,0.08)] border border-[rgba(255,176,32,0.35)] flex flex-col gap-2 text-xs font-mono text-[var(--text-primary)] leading-relaxed shadow-sm"
+                >
+                  <div className="flex items-center gap-2 text-[var(--accent-warning)] font-semibold text-xs tracking-wider uppercase">
+                    <Info className="w-4 h-4 flex-shrink-0" />
+                    <span>Specialist Domain Compatibility Notice</span>
+                  </div>
+                  <div className="whitespace-pre-line text-sm text-[var(--text-primary)] font-body">
+                    {formatInlineText(trimmed)}
+                  </div>
+                </div>
+              );
+            }
+
+            // 1b. Mock or Execution Provenance header banner
             if (trimmed.startsWith('[MOCK') || trimmed.startsWith('[AUTO') || trimmed.startsWith('[REAL')) {
               return (
                 <div

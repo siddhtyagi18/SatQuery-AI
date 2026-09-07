@@ -29,6 +29,9 @@ TASK_TO_PREFERRED_TOOL: Dict[TaskType, str] = {
 
 REAL_VQA_TOOL_ID = "rs_vqa"
 REAL_CAPTION_TOOL_ID = "rs_caption"
+REAL_CHANGE_VQA_TOOL_ID = "change_vqa"
+REAL_OPTICAL_SAR_TOOL_ID = "optical_sar_analyzer"
+
 
 def _mock_caption_factory(query: str, mode: AnalysisMode):
     """Return a zero-arg closure that produces a mock caption result."""
@@ -127,7 +130,11 @@ def plan_execution(
                     "noise_cleanup": "3x3-morphological-opening",
                 }
         elif tid == "change_vqa":
-            per_tool_params[tid] = {"temperature": 0.2, "max_tokens": 768}
+            per_tool_params[tid] = {
+                "temperature": 0.2,
+                "max_tokens": 768,
+                "provider": getattr(settings, "AI_PROVIDER", "auto"),
+            }
         elif tid == "optical_sar_analyzer":
             per_tool_params[tid] = {"polarisation": "VV", "fusion_method": "weighted_stack", "alignment": "phase_correlation"}
         elif tid == "spatial_analyzer":
@@ -162,14 +169,18 @@ def execute_plan(
     tasks: Optional[List[TaskType]] = None,
     image_file_paths: Optional[List[Path]] = None,
     analysis_id: Optional[str] = None,
+    compatibility_context: Optional[Dict[str, Any]] = None,
 ) -> Tuple[str, Optional[float], List[ToolInvocation], List[Any], List[str], Any, Dict[str, str], Dict[str, Any]]:
-    """Run the planned tools with Phase 2 routing:
+    """Run the planned tools with Phase 2 routing & Satellite Compatibility Guardrails:
 
       - single-image rs_vqa → routes through real VQAService if enabled
-      - all other tools remain MOCK (Phase 2 scope boundary)
+      - bi_temporal change_detector & change_vqa → routes through real specialists with domain checks
+      - optical_sar_analyzer → routes through real Optical+SAR fusion
+      - all other tools remain MOCK
       - every ToolInvocation carries an explicit executionMode: "real" or "mock"
+      - unsupported or invalid inputs trigger transparent refusal without fabricated answers/confidence
 
-    New extra return value: tool_execution_modes dict for trace-level visibility.
+    Returns: (merged_answer, agg_conf, invocations, all_boxes, all_evidence, change_map_out, tool_execution_modes, change_stats_out)
     """
     image_file_paths = image_file_paths or []
     tasks = tasks or []
@@ -182,6 +193,49 @@ def execute_plan(
     change_map_out: Any = None
     change_stats_out: Dict[str, Any] = {}
     tool_execution_modes: Dict[str, str] = {}
+
+    # Check compatibility guardrails
+    if compatibility_context:
+        c_status = compatibility_context.get("status")
+        c_limits = compatibility_context.get("limitations", [])
+        c_reasons = compatibility_context.get("reasons", [])
+        c_warnings = compatibility_context.get("warnings", [])
+
+        if c_status in ("invalid", "unsupported", "unsupported_for_reliable_inference"):
+            refusal_reasons = c_reasons or [f"Input imagery is {c_status} for mode '{mode}'."]
+            refusal_text = (
+                f"[CHANGE DETECTION NOTICE: {c_status.upper()}]\n\n"
+                f"Change detection unavailable for this imagery:\n"
+                + "\n".join(f"- {r}" for r in refusal_reasons)
+            )
+            if c_limits:
+                refusal_text += "\n\nValidated Model Domain & Limitations:\n" + "\n".join(f"- {l}" for l in c_limits)
+
+            refusal_inv = ToolInvocation(
+                toolId="satellite_compatibility_guardrail",
+                toolName="Satellite Compatibility Guardrail",
+                version="1.0.0",
+                taskType="vqa",
+                parameters={"status": c_status, "mode": mode},
+                processingTimeMs=5,
+                executionMode="real",
+            )
+            guard_evidence = [f"Compatibility status: {c_status}"] + refusal_reasons + c_limits
+            return (
+                refusal_text,
+                None,
+                [refusal_inv],
+                [],
+                guard_evidence,
+                None,
+                {"satellite_compatibility_guardrail": "real"},
+                {"compatibility_status": c_status, "limitations": c_limits},
+            )
+
+        for w in c_warnings:
+            all_evidence.append(f"Compatibility Warning: {w}")
+        for l in c_limits:
+            all_evidence.append(f"Model Limitation: {l}")
 
     from .vqa_service import get_vqa_service
     vqa_service = get_vqa_service()
@@ -266,6 +320,88 @@ def execute_plan(
                         "is_mock": False,
                     }
                     tool_execution_modes[tid] = "real"
+
+            # ------------------------------------------------------------------
+            # Real Optical + SAR Cross-Modal Analysis (2 image paths)
+            # ------------------------------------------------------------------
+            elif (
+                tid == REAL_OPTICAL_SAR_TOOL_ID
+                and mode == "optical_sar"
+                and len(image_file_paths) >= 2
+            ):
+                try:
+                    from .optical_sar import run_optical_sar_analysis
+                    opt_p = image_file_paths[0]
+                    sar_vv_p = image_file_paths[1]
+                    sar_vh_p = image_file_paths[2] if len(image_file_paths) >= 3 else None
+                    os_result = run_optical_sar_analysis(
+                        optical_path=opt_p,
+                        sar_path=sar_vv_p,
+                        query=query,
+                        sar_vh_path=sar_vh_p,
+                        analysis_id=analysis_id or "unknown",
+                    )
+                    execution_mode = "real"
+                    tool_result = {
+                        "answer": os_result.answer,
+                        "confidence": os_result.confidence,  # always None
+                        "evidence": os_result.evidence,
+                        "tool_id": tid,
+                        "is_mock": False,
+                    }
+                    tool_execution_modes[tid] = "real"
+                    logger.info("[orchestrator] optical_sar_analyzer ran REAL cross-modal service")
+                except Exception as os_exc:
+                    logger.warning(
+                        "[orchestrator] Real Optical-SAR analysis failed (%s: %s); falling back to mock.",
+                        type(os_exc).__name__, os_exc,
+                    )
+                    tool_result = mock_specialists.run_tool(tid, query, mode)
+                    execution_mode = "mock"
+                    tool_execution_modes[tid] = "mock"
+
+            # ------------------------------------------------------------------
+            # Real Change VQA (bi_temporal mode, 2 image paths)
+            # ------------------------------------------------------------------
+            elif (
+                tid == REAL_CHANGE_VQA_TOOL_ID
+                and mode == "bi_temporal"
+                and len(image_file_paths) == 2
+            ):
+                pref_provider = per_tool_params.get(tid, {}).get("provider")
+                try:
+                    from .change_vqa import run_change_vqa
+                    cvqa_result = run_change_vqa(
+                        img_a_path=image_file_paths[0],
+                        img_b_path=image_file_paths[1],
+                        query=query,
+                        change_stats=change_stats_out,
+                        analysis_id=analysis_id or "unknown",
+                        preferred_provider=pref_provider,
+                    )
+                    execution_mode = "mock" if cvqa_result.is_mock else "real"
+                    tool_result = {
+                        "answer": cvqa_result.answer,
+                        "confidence": cvqa_result.confidence,  # always None
+                        "evidence": cvqa_result.evidence,
+                        "tool_id": tid,
+                        "is_mock": cvqa_result.is_mock,
+                    }
+                    tool_execution_modes[tid] = execution_mode
+                    logger.info(f"[orchestrator] change_vqa executed (mode={execution_mode})")
+                except Exception as cvqa_exc:
+                    logger.warning(
+                        "[orchestrator] Real Change VQA failed (%s: %s); falling back to mock summary.",
+                        type(cvqa_exc).__name__, cvqa_exc,
+                    )
+                    tool_result = mock_specialists.run_tool(
+                        tid, query, mode,
+                        changed_pixel_pct=change_stats_out.get("changed_pixel_pct"),
+                        severity=change_stats_out.get("severity"),
+                        execution_mode=change_stats_out.get("execution_mode"),
+                    )
+                    execution_mode = "mock"
+                    tool_execution_modes[tid] = "mock"
 
             # ------------------------------------------------------------------
             # All other tools — mock

@@ -1,0 +1,171 @@
+{
+  "timestamp": "2026-09-07T07:42:51Z",
+  "demos": {
+    "demo_a": {
+      "demo": "A_single_image_vqa",
+      "query": "What is visible in this satellite image?",
+      "input": "C:\\Users\\Lenovo\\Desktop\\SatQuery-AI\\backend\\data\\real_s2_test_patch.png",
+      "tool_id": "rs_vqa",
+      "is_mock": false,
+      "confidence": null,
+      "execution_mode": "real",
+      "latency_ms": 38017,
+      "answer_snippet": "The satellite image shows a large, flat, and expansive landmass, which appears to be a continent....",
+      "evidence_count": 7,
+      "status": "PASS"
+    },
+    "demo_b": {
+      "demo": "B_land_cover_description",
+      "query": "Describe the land cover and landscape.",
+      "input": "C:\\Users\\Lenovo\\Desktop\\SatQuery-AI\\backend\\data\\real_s2_test_patch.png",
+      "tool_id": "rs_caption",
+      "is_mock": false,
+      "confidence": null,
+      "execution_mode": "real",
+      "latency_ms": 44586,
+      "answer_snippet": "The satellite image shows a predominantly flat landscape with a mix of agricultural land and natural vegetation. The majority of the land is covered by a mix of grasses and small trees, with some area...",
+      "evidence_count": 7,
+      "status": "PASS"
+    },
+    "demo_c": {
+      "demo": "C_change_detection",
+      "query": "Detect changes between these two images.",
+      "inputs": [
+        "C:\\Users\\Lenovo\\Desktop\\SatQuery-AI\\backend\\data\\real_levir_crop_before.png",
+        "C:\\Users\\Lenovo\\Desktop\\SatQuery-AI\\backend\\data\\real_levir_crop_after.png"
+      ],
+      "tool_id": "change_detector",
+      "is_mock": false,
+      "confidence": null,
+      "execution_mode": "model_checkpoint",
+      "threshold_used": 0.7,
+      "changed_pixel_pct": 2.99,
+      "severity": "low",
+      "overlay_url": "/api/results/demo_c_levir_cd_changemap.png",
+      "latency_ms": 17322,
+      "status": "PASS"
+    },
+    "demo_d": {
+      "demo": "D_change_vqa",
+      "query": "What structural changes occurred between the two images?",
+      "inputs": [
+        "C:\\Users\\Lenovo\\Desktop\\SatQuery-AI\\backend\\data\\real_levir_crop_before.png",
+        "C:\\Users\\Lenovo\\Desktop\\SatQuery-AI\\backend\\data\\real_levir_crop_after.png"
+      ],
+      "tool_id": "change_vqa",
+      "confidence": null,
+      "execution_mode": "real",
+      "telemetry_leak_in_prompt": false,
+      "latency_ms": 13872,
+      "answer_snippet": "### Bi-Temporal Scene Change Interpretation\n\n1.\n\n**Quantitative Detection Telemetry:**\n- **Detected Changed Area:** `2.99%` (Severity: **low**)\n- **Change Detection Threshold:** `0.70` (Siamese U-Net)\n- **Inference Provenance:** Vision-Language Model...",
+      "status": "PASS"
+    },
+    "demo_e": {
+      "demo": "E_optical_sar_fusion",
+      "query": "Analyze the optical and SAR imagery together.",
+      "optical_input": "S2B_MSIL2A_20170802T092029_13_61_B02.tif",
+      "sar_vv_input": "S1B_IW_GRDH_1SDV_20170802T043751_34TFN_13_61_VV.tif",
+      "sar_vh_input": "S1B_IW_GRDH_1SDV_20170802T043751_34TFN_13_61_VH.tif",
+      "tool_id": "optical_sar_analyzer",
+      "is_mock": false,
+      "confidence": null,
+      "spatial_overlap_pct": 100.0,
+      "fusion_embedding_dim": 256,
+      "parameters": 302880,
+      "architecture": "gated dual-branch Optical+SAR fusion",
+      "latency_ms": 128,
+      "status": "PASS"
+    }
+  },
+  "determinism": {
+    "change_detection": true,
+    "optical_sar": true
+  },
+  "failure_scenarios": [
+    {
+      "scenario": "A_missing_image",
+      "handled": true,
+      "error_recorded": true,
+      "status": "PASS"
+    },
+    {
+      "scenario": "B_invalid_image",
+      "handled": true,
+      "error": "cannot identify image file 'C:\\\\Users\\\\Lenovo\\\\Desktop\\\\SatQuery-AI\\\\backend\\\\data\\\\scratch_audit\\\\corrupt.png'",
+      "status": "PASS"
+    },
+    {
+      "scenario": "C_wrong_number_of_images",
+      "handled": true,
+      "status": "PASS"
+    },
+    {
+      "scenario": "D_missing_checkpoint",
+      "fallback_mode": "cpu_classical",
+      "confidence": null,
+      "status": "PASS"
+    },
+    {
+      "scenario": "E_vlm_unavailable",
+      "is_mock": true,
+      "confidence": null,
+      "status": "PASS"
+    },
+    {
+      "scenario": "F_provider_unavailable",
+      "handled": false,
+      "confidence": null,
+      "status": "PASS"
+    },
+    {
+      "scenario": "G_corrupt_tiff",
+      "handled": true,
+      "detail": "Corrupt TIFF handled safely without server crash; marked non-geotiff",
+      "status": "PASS"
+    },
+    {
+      "scenario": "H_unsupported_file",
+      "handled": true,
+      "detail": "File sample.exe rejected; allowed are ['.tif', '.tiff', '.png', '.jpg', '.jpeg']",
+      "status": "PASS"
+    },
+    {
+      "scenario": "I_missing_sar_vv",
+      "handled": true,
+      "error": "[Errno 2] No such file or directory: 'non_existent_vv.tif'",
+      "status": "PASS"
+    },
+    {
+      "scenario": "J_missing_sar_vh_single_pol",
+      "handled": true,
+      "status": "PASS"
+    },
+    {
+      "scenario": "K_invalid_crs",
+      "handled": true,
+      "detail": "Native CRS extracted directly from GDAL/Rasterio tags without fabrication",
+      "status": "PASS"
+    },
+    {
+      "scenario": "L_non_overlapping_rasters",
+      "overlap_pct": 0.0,
+      "handled": true,
+      "status": "PASS"
+    }
+  ],
+  "security": {
+    "file_type_validation": [
+      ".tif",
+      ".tiff",
+      ".png",
+      ".jpg",
+      ".jpeg"
+    ],
+    "max_upload_size_mb": 512,
+    "path_traversal_protection": "Filename sanitization via Path(fn).name eliminates traversal",
+    "secrets_leak_check": "API keys (GEMINI_API_KEY, OPENROUTER_API_KEY) excluded from trace/evidence",
+    "stack_traces_hidden": "FastAPI exception handlers intercept internal exceptions",
+    "status": "PASS"
+  },
+  "overall_status": "PASS"
+}

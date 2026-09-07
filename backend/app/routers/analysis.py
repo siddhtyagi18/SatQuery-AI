@@ -104,8 +104,13 @@ def _run_analysis_pipeline(db: Session, analysis: Analysis, files, input_data: S
     mark_step(db, aid, "step-1", "done",
               detail=f'Query accepted: "{q[:80]}{"…" if len(q) > 80 else ""}" | Mode: {mode} | Images: {len(files)}')
 
-    # Step 2 — Input Validation (real file existence checks)
+    # Step 2 — Input Validation & Satellite Compatibility Inspection
     mark_step(db, aid, "step-2", "in_progress")
+    from ..services.satellite_compatibility import (
+        SatelliteImageInspector,
+        SatelliteCompatibilityService,
+    )
+
     validation_bits = []
     modalities: List[str] = []
     image_file_paths: List[Path] = []
@@ -130,30 +135,48 @@ def _run_analysis_pipeline(db: Session, analysis: Analysis, files, input_data: S
         validation_bits.append(" | ".join(bits))
         modalities.append(f.modality or "unknown")
 
-    if mode == "bi_temporal" and len(modalities) == 2:
-        crs_ok = True
-        if files[0].crs and files[1].crs:
-            crs_ok = files[0].crs == files[1].crs
-        validation_bits.append(f"CRS match: {'✓' if crs_ok else '⚠ (different)'}")
-        if files[0].acquisition_date and files[1].acquisition_date:
-            validation_bits.append(f"Dates: {files[0].acquisition_date} → {files[1].acquisition_date}")
+    # Run satellite image inspections
+    inspections = [SatelliteImageInspector.inspect(p) for p in image_file_paths]
+    comp_dict: Dict[str, Any] = {}
+    limits_list: List[str] = []
 
-    if mode == "optical_sar" and len(modalities) == 2:
-        expected = {"optical", "sar"}
-        found = set(modalities)
-        overlap = found & expected
-        validation_bits.append(f"Modality pair: {'✓' if len(overlap) >= 1 else '⚠'} (got {modalities})")
-        if files[0].crs and files[1].crs:
-            validation_bits.append(f"CRS: {'match' if files[0].crs == files[1].crs else 'different'}")
+    if len(inspections) == 1:
+        s_report = SatelliteCompatibilityService.check_single_compatibility(inspections[0])
+        comp_dict = s_report.to_dict()
+        limits_list = []
+        validation_bits.append(f"Compatibility: {s_report.status.upper()}")
+        if s_report.warnings:
+            validation_bits.append(f"Warnings: {len(s_report.warnings)}")
+    elif len(inspections) >= 2:
+        p_report = SatelliteCompatibilityService.check_pair_compatibility(
+            inspections[0], inspections[1], mode=mode, query=q
+        )
+        comp_dict = p_report.to_dict()
+        limits_list = p_report.limitations
+        validation_bits.append(f"Pair Compatibility: {p_report.status.upper()}")
+        validation_bits.append(f"Temporal: {p_report.temporal_status}")
+        if p_report.spatial_overlap_pct is not None:
+            validation_bits.append(f"Overlap: {p_report.spatial_overlap_pct}%")
+        if p_report.warnings:
+            validation_bits.append(f"Warnings: {len(p_report.warnings)}")
 
     validation_detail = " ; ".join(validation_bits)
-    mark_step(db, aid, "step-2", "done", detail=validation_detail)
+    mark_step(
+        db, aid, "step-2", "done",
+        detail=validation_detail,
+        meta={
+            "compatibility_status": comp_dict.get("status", "unknown"),
+            "required_adaptations": comp_dict.get("required_adaptations", []),
+            "warnings_count": len(comp_dict.get("warnings", [])),
+            "temporal_status": comp_dict.get("temporal_status", "unknown"),
+        },
+    )
 
     # Step 3 — Task Classification
     mark_step(db, aid, "step-3", "in_progress")
     tasks, tool_ids, per_tool_params, class_scores = plan_execution(q, mode)
     if getattr(input_data, "provider", None):
-        for tid in ("rs_vqa", "rs_caption"):
+        for tid in ("rs_vqa", "rs_caption", "change_vqa"):
             if tid in per_tool_params:
                 per_tool_params[tid]["provider"] = input_data.provider
     class_str = " | ".join(f"[{t}: {class_scores.get(t, 0):.2f}]" for t in tasks)
@@ -171,8 +194,9 @@ def _run_analysis_pipeline(db: Session, analysis: Analysis, files, input_data: S
         tm = get_tool(tid)
         is_real_vqa = (tid in ("rs_vqa", "rs_caption") and vqa_service.should_use_real_vqa(mode, tasks))
         is_real_change = (tid == "change_detector" and mode == "bi_temporal" and len(files) == 2)
+        is_real_change_vqa = (tid == "change_vqa" and mode == "bi_temporal" and len(files) == 2)
         is_real_optical_sar = (tid == "optical_sar_analyzer" and mode == "optical_sar" and len(files) == 2)
-        exec_label = "REAL" if (is_real_vqa or is_real_change or is_real_optical_sar) else "MOCK"
+        exec_label = "REAL" if (is_real_vqa or is_real_change or is_real_change_vqa or is_real_optical_sar) else "MOCK"
         selection_bits.append(f"{tid}[{exec_label}] → {tm['name']} {tm['version']}")
     mark_step(db, aid, "step-4", "done",
               detail=" || ".join(selection_bits) if selection_bits else "No tools selected",
@@ -207,6 +231,7 @@ def _run_analysis_pipeline(db: Session, analysis: Analysis, files, input_data: S
             tasks=tasks,
             image_file_paths=image_file_paths,
             analysis_id=aid,
+            compatibility_context=comp_dict,
         )
     except Exception as e:
         logger.exception("Pipeline execution failed")
@@ -288,6 +313,13 @@ def _run_analysis_pipeline(db: Session, analysis: Analysis, files, input_data: S
     analysis.tool_invocations = [inv.model_dump() for inv in invocations]
     analysis.evidence = list(all_evidence)
     analysis.selected_tools = list(tool_ids)
+    analysis.compatibility = comp_dict
+    analysis.limitations = limits_list or (comp_dict.get("limitations") if comp_dict else [])
+    analysis.specialist_selected = next(iter(tool_ids), None) if tool_ids else None
+    analysis.input_summary = {
+        "image_count": len(inspections),
+        "inspections": [r.to_dict() for r in inspections],
+    }
 
     # Step 8 — Completion + final validation + Firebase sync
     mark_step(db, aid, "step-8", "in_progress")

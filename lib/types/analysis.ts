@@ -87,6 +87,11 @@ export interface AnalysisResult {
   toolInvocations: ToolInvocation[];
   executionTrace: ExecutionTrace;
   errorReason: string | null;
+  compatibility?: Record<string, any> | null;
+  limitations?: string[] | null;
+  adaptation?: Record<string, any> | null;
+  specialistSelected?: string | null;
+  inputSummary?: Record<string, any> | null;
 }
 
 export interface ToolDefinition {

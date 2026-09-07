@@ -36,7 +36,10 @@ def _make_caption_result(query: str, mode: AnalysisMode, **kwargs: Any) -> Dict[
     return {
         "answer": answer,
         "confidence": 0.68,
-        "evidence": ["Caption generated from template — not from image pixels."],
+        "evidence": [
+            "Caption generated from template — not from image pixels.",
+            "Confidence score is a fixed placeholder, not a calibrated prediction.",
+        ],
     }
 
 
@@ -62,6 +65,7 @@ def _make_grounding_result(query: str, mode: AnalysisMode, **kwargs: Any) -> Dic
         "evidence": [
             f"{len(boxes)} mock bounding boxes returned.",
             "All coordinates are fixed template values — no object detection was performed.",
+            "Confidence score is a fixed placeholder, not a calibrated prediction.",
         ],
     }
 
@@ -89,6 +93,7 @@ def _make_change_detection_result(query: str, mode: AnalysisMode, **kwargs: Any)
         "evidence": [
             "Change map legend is a template; no overlay raster was produced.",
             "Percentages above are representative placeholders, not measured values.",
+            "Confidence score is a fixed placeholder, not a calibrated prediction.",
         ],
     }
 
@@ -124,6 +129,7 @@ def _make_change_vqa_result(query: str, mode: AnalysisMode, **context: Any) -> D
         "evidence": [
             "Change-VQA answer is descriptive only — no Vision-Language model was run.",
             "Pixel statistics (if shown) are from real change detection, not fabricated.",
+            "Confidence score is a fixed placeholder, not a calibrated prediction.",
         ],
     }
 
@@ -162,6 +168,7 @@ def _make_spatial_analyzer_result(query: str, mode: AnalysisMode, **kwargs: Any)
         "confidence": 0.60,
         "evidence": [
             "No actual distance/area computation was performed.",
+            "Confidence score is a fixed placeholder, not a calibrated prediction.",
         ],
     }
 

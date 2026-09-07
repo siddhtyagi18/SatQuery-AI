@@ -1,0 +1,134 @@
+{
+  "timestamp": "2026-09-07T12:24:56Z",
+  "architecture": "OpticalSARFusionNet (Gated Dual-Branch Fusion)",
+  "parameter_count": 310521,
+  "n_samples": 2,
+  "sample_reports": [
+    {
+      "sample_index": 1,
+      "patch_id": "S2A_MSIL2A_20180413T095031_N9999_R079_T35VLG_55_03",
+      "s1_product_id": "S1A_IW_GRDH_1SDV_20180415T160451_35VLG_55_3",
+      "crs": "EPSG:32635",
+      "bounds": [
+        366000.0,
+        6695220.0,
+        367200.0,
+        6696420.0
+      ],
+      "ground_truth_labels": [
+        "Arable land",
+        "Broad-leaved forest",
+        "Coniferous forest",
+        "Mixed forest",
+        "Transitional woodland, shrub"
+      ],
+      "optical_top3": [
+        "Beaches, dunes, sands",
+        "Land principally occupied by agriculture, with significant areas of natural vegetation",
+        "Arable land"
+      ],
+      "sar_top3": [
+        "Arable land",
+        "Transitional woodland, shrub",
+        "Permanent crops"
+      ],
+      "fused_top3": [
+        "Arable land",
+        "Pastures",
+        "Marine waters"
+      ],
+      "mean_optical_gate_alpha": 0.4984,
+      "inference_latency_ms": 11.76,
+      "tensor_dimensions": {
+        "optical": [
+          1,
+          4,
+          120,
+          120
+        ],
+        "sar": [
+          1,
+          2,
+          120,
+          120
+        ],
+        "embedding": 128
+      },
+      "model_parameters": 310521,
+      "confidence": null
+    },
+    {
+      "sample_index": 2,
+      "patch_id": "S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61",
+      "s1_product_id": "S1B_IW_GRDH_1SDV_20170802T043751_34TFN_13_61",
+      "crs": "EPSG:32634",
+      "bounds": [
+        615600.0,
+        4725600.0,
+        616800.0,
+        4726800.0
+      ],
+      "ground_truth_labels": [
+        "Broad-leaved forest",
+        "Mixed forest",
+        "Transitional woodland, shrub"
+      ],
+      "optical_top3": [
+        "Beaches, dunes, sands",
+        "Land principally occupied by agriculture, with significant areas of natural vegetation",
+        "Arable land"
+      ],
+      "sar_top3": [
+        "Arable land",
+        "Transitional woodland, shrub",
+        "Permanent crops"
+      ],
+      "fused_top3": [
+        "Arable land",
+        "Pastures",
+        "Marine waters"
+      ],
+      "mean_optical_gate_alpha": 0.4977,
+      "inference_latency_ms": 6.13,
+      "tensor_dimensions": {
+        "optical": [
+          1,
+          4,
+          120,
+          120
+        ],
+        "sar": [
+          1,
+          2,
+          120,
+          120
+        ],
+        "embedding": 128
+      },
+      "model_parameters": 310521,
+      "confidence": null
+    }
+  ],
+  "smoke_test_metrics_declaration": "N=2 smoke-test telemetry ONLY; strictly non-generalizable",
+  "smoke_metrics": {
+    "optical_only": {
+      "precision": 0.2105,
+      "recall": 0.5,
+      "micro_f1": 0.2963,
+      "macro_f1_active_classes": 0.4667
+    },
+    "sar_only": {
+      "precision": 0.3333,
+      "recall": 0.75,
+      "micro_f1": 0.4615,
+      "macro_f1_active_classes": 0.6667
+    },
+    "gated_fusion": {
+      "precision": 0.0833,
+      "recall": 0.125,
+      "micro_f1": 0.1,
+      "macro_f1_active_classes": 0.1333
+    }
+  },
+  "visualization_path": "C:\\Users\\Lenovo\\Desktop\\SatQuery-AI\\backend\\data\\results\\optical_sar_smoke_test_visualization.png"
+}

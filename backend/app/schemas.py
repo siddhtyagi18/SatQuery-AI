@@ -97,6 +97,12 @@ class AnalysisResult(BaseModel):
     evidence: Optional[List[str]] = None
     analysisStatus: Optional[AnalysisStatus] = None
 
+    compatibility: Optional[Dict[str, Any]] = None
+    limitations: Optional[List[str]] = None
+    adaptation: Optional[Dict[str, Any]] = None
+    specialistSelected: Optional[str] = None
+    inputSummary: Optional[Dict[str, Any]] = None
+
 
 class SubmitAnalysisInput(BaseModel):
     mode: AnalysisMode

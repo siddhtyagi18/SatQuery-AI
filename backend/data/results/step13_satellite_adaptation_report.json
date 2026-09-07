@@ -1,0 +1,740 @@
+{
+  "step": "Step 13 - General Satellite Image Compatibility & Adaptation",
+  "timestamp": "2026-09-07 08:06:28 UTC",
+  "evaluations": {
+    "test_a_bigearthnet_s2": {
+      "file": "S2A_MSIL2A_20170717T113321_90_83_B02.tif",
+      "inspection": {
+        "file_path": "C:\\Users\\Lenovo\\Downloads\\BigEarthNet-S2\\S2A_MSIL2A_20170717T113321_N9999_R080_T29UPV_90_83\\S2A_MSIL2A_20170717T113321_90_83_B02.tif",
+        "file_name": "S2A_MSIL2A_20170717T113321_90_83_B02.tif",
+        "format": "TIF",
+        "width": 120,
+        "height": 120,
+        "band_count": 1,
+        "dtype": "I;16",
+        "bit_depth": 16,
+        "min_val": 69.0,
+        "max_val": 197.0,
+        "mean_val": 136.49694444444444,
+        "nodata_value": null,
+        "nodata_pct": 0.0,
+        "crs": "EPSG:32629",
+        "bounds": {
+          "left": 708000.0,
+          "bottom": 5899200.0,
+          "right": 709200.0,
+          "top": 5900400.0
+        },
+        "resolution": [
+          10.0,
+          10.0
+        ],
+        "geotransform": [
+          708000.0,
+          10.0,
+          0.0,
+          5900400.0,
+          0.0,
+          -10.0
+        ],
+        "modality_hint": "multispectral_optical",
+        "sensor_hint": "sentinel-2",
+        "is_geotiff": true,
+        "is_corrupted": false,
+        "error_message": null,
+        "band_metadata": []
+      },
+      "compatibility": {
+        "status": "adaptable",
+        "reasons": [
+          "Image inspected: 120x120px, 1 band(s), I;16."
+        ],
+        "warnings": [],
+        "required_adaptations": [
+          "multispectral_to_rgb_selection",
+          "I;16_to_normalized_float32"
+        ],
+        "specialist_candidates": [
+          "rs_vqa",
+          "rs_caption",
+          "rs_grounding"
+        ],
+        "modality": "multispectral_optical",
+        "sensor": "sentinel-2"
+      },
+      "adaptation": {
+        "original_dtype": "I;16",
+        "adapted_dtype": "float32",
+        "original_shape": [
+          1,
+          120,
+          120
+        ],
+        "adapted_shape": [
+          120,
+          120,
+          3
+        ],
+        "normalization": "uint8_div_255",
+        "resampling": null,
+        "reprojection": null,
+        "selected_bands": [
+          1,
+          1,
+          1
+        ],
+        "modality": "optical",
+        "crs": "EPSG:32629",
+        "resolution": [
+          10.0,
+          10.0
+        ],
+        "notes": [
+          "Replicated single-band grayscale to 3 channels."
+        ]
+      },
+      "latencies_ms": {
+        "inspection": 93.67,
+        "adaptation": 1.95
+      }
+    },
+    "test_b_levir_cd": {
+      "files": [
+        "real_levir_crop_before.png",
+        "real_levir_crop_after.png"
+      ],
+      "inspection_a": {
+        "file_path": "C:\\Users\\Lenovo\\Desktop\\SatQuery-AI\\backend\\data\\real_levir_crop_before.png",
+        "file_name": "real_levir_crop_before.png",
+        "format": "PNG",
+        "width": 256,
+        "height": 256,
+        "band_count": 3,
+        "dtype": "RGB",
+        "bit_depth": 8,
+        "min_val": 0.0,
+        "max_val": 231.0,
+        "mean_val": 45.451171875,
+        "nodata_value": null,
+        "nodata_pct": 0.0,
+        "crs": null,
+        "bounds": null,
+        "resolution": null,
+        "geotransform": null,
+        "modality_hint": "rgb_optical",
+        "sensor_hint": "unknown",
+        "is_geotiff": false,
+        "is_corrupted": false,
+        "error_message": null,
+        "band_metadata": []
+      },
+      "inspection_b": {
+        "file_path": "C:\\Users\\Lenovo\\Desktop\\SatQuery-AI\\backend\\data\\real_levir_crop_after.png",
+        "file_name": "real_levir_crop_after.png",
+        "format": "PNG",
+        "width": 256,
+        "height": 256,
+        "band_count": 3,
+        "dtype": "RGB",
+        "bit_depth": 8,
+        "min_val": 0.0,
+        "max_val": 255.0,
+        "mean_val": 88.45999654134114,
+        "nodata_value": null,
+        "nodata_pct": 0.0,
+        "crs": null,
+        "bounds": null,
+        "resolution": null,
+        "geotransform": null,
+        "modality_hint": "rgb_optical",
+        "sensor_hint": "unknown",
+        "is_geotiff": false,
+        "is_corrupted": false,
+        "error_message": null,
+        "band_metadata": []
+      },
+      "compatibility": {
+        "status": "compatible",
+        "reasons": [
+          "Optical bi-temporal imagery verified."
+        ],
+        "warnings": [],
+        "required_adaptations": [],
+        "specialist_candidates": [
+          "change_detector",
+          "change_vqa"
+        ],
+        "temporal_status": "unknown",
+        "temporal_notes": "Acquisition dates could not be verified from metadata (A=unknown, B=unknown). Temporal ordering is assumed per user designation.",
+        "spatial_overlap_pct": null,
+        "crs_status": "unreferenced_raster",
+        "dimension_status": "match",
+        "limitations": [
+          "Current change detector is validated primarily on LEVIR-CD-style optical building/structural change."
+        ],
+        "modality_pair": [
+          "rgb_optical",
+          "rgb_optical"
+        ]
+      },
+      "adaptation_telemetry_a": {
+        "original_dtype": "RGB",
+        "adapted_dtype": "float32",
+        "original_shape": [
+          3,
+          256,
+          256
+        ],
+        "adapted_shape": [
+          256,
+          256,
+          3
+        ],
+        "normalization": "uint8_div_255",
+        "resampling": null,
+        "reprojection": null,
+        "selected_bands": [
+          1,
+          2,
+          3
+        ],
+        "modality": "optical",
+        "crs": null,
+        "resolution": null,
+        "notes": []
+      },
+      "adaptation_telemetry_b": {
+        "original_dtype": "RGB",
+        "adapted_dtype": "float32",
+        "original_shape": [
+          3,
+          256,
+          256
+        ],
+        "adapted_shape": [
+          256,
+          256,
+          3
+        ],
+        "normalization": "uint8_div_255",
+        "resampling": null,
+        "reprojection": null,
+        "selected_bands": [
+          1,
+          2,
+          3
+        ],
+        "modality": "optical",
+        "crs": null,
+        "resolution": null,
+        "notes": []
+      },
+      "latencies_ms": {
+        "inspection": 11.68,
+        "adaptation": 8.23
+      }
+    },
+    "test_c_bigearthnet_pair_08": {
+      "optical_file": "S2A_MSIL2A_20180413T95032_55_3_B04.tif",
+      "sar_file": "S1A_IW_GRDH_1SDV_20180415T160451_35VLG_55_3_VV.tif",
+      "inspection_optical": {
+        "file_path": "C:\\Users\\Lenovo\\Downloads\\BigEarthNet-S2\\S2A_MSIL2A_20180413T095031_N9999_R079_T35VLG_55_03\\S2A_MSIL2A_20180413T95032_55_3_B04.tif",
+        "file_name": "S2A_MSIL2A_20180413T95032_55_3_B04.tif",
+        "format": "TIF",
+        "width": 120,
+        "height": 120,
+        "band_count": 1,
+        "dtype": "I;16",
+        "bit_depth": 16,
+        "min_val": 98.0,
+        "max_val": 6768.0,
+        "mean_val": 1032.2103472222223,
+        "nodata_value": null,
+        "nodata_pct": 0.0,
+        "crs": "EPSG:32635",
+        "bounds": {
+          "left": 366000.0,
+          "bottom": 6695220.0,
+          "right": 367200.0,
+          "top": 6696420.0
+        },
+        "resolution": [
+          10.0,
+          10.0
+        ],
+        "geotransform": [
+          366000.0,
+          10.0,
+          0.0,
+          6696420.0,
+          0.0,
+          -10.0
+        ],
+        "modality_hint": "multispectral_optical",
+        "sensor_hint": "sentinel-2",
+        "is_geotiff": true,
+        "is_corrupted": false,
+        "error_message": null,
+        "band_metadata": []
+      },
+      "inspection_sar": {
+        "file_path": "C:\\Users\\Lenovo\\Downloads\\BigEarthNet-S1\\S1A_IW_GRDH_1SDV_20180415T160451_35VLG_55_3\\S1A_IW_GRDH_1SDV_20180415T160451_35VLG_55_3_VV.tif",
+        "file_name": "S1A_IW_GRDH_1SDV_20180415T160451_35VLG_55_3_VV.tif",
+        "format": "TIF",
+        "width": 120,
+        "height": 120,
+        "band_count": 1,
+        "dtype": "F",
+        "bit_depth": 32,
+        "min_val": -23.063907623291016,
+        "max_val": 1.1514958143234253,
+        "mean_val": -9.942736625671387,
+        "nodata_value": null,
+        "nodata_pct": 0.0,
+        "crs": "EPSG:32635",
+        "bounds": {
+          "left": 366000.0,
+          "bottom": 6695220.0,
+          "right": 367200.0,
+          "top": 6696420.0
+        },
+        "resolution": [
+          10.0,
+          10.0
+        ],
+        "geotransform": [
+          366000.0,
+          10.0,
+          0.0,
+          6696420.0,
+          0.0,
+          -10.0
+        ],
+        "modality_hint": "sar",
+        "sensor_hint": "sentinel-1",
+        "is_geotiff": true,
+        "is_corrupted": false,
+        "error_message": null,
+        "band_metadata": []
+      },
+      "compatibility": {
+        "status": "adaptable",
+        "reasons": [
+          "Compatible Optical and SAR modalities identified."
+        ],
+        "warnings": [],
+        "required_adaptations": [
+          "preserve_sar_db_representation"
+        ],
+        "specialist_candidates": [
+          "optical_sar_analyzer"
+        ],
+        "temporal_status": "ordered",
+        "temporal_notes": "Temporal ordering verified: T1=2018-04-13 < T2=2018-04-15.",
+        "spatial_overlap_pct": 100.0,
+        "crs_status": "matching_crs",
+        "dimension_status": "match",
+        "limitations": [
+          "Optical+SAR fusion baseline is demonstrated on Sentinel-1 VV/VH and Sentinel-2 optical bands; general arbitrary satellite fusion is not guaranteed."
+        ],
+        "modality_pair": [
+          "multispectral_optical",
+          "sar"
+        ]
+      },
+      "adaptation_optical": {
+        "original_dtype": "I;16",
+        "adapted_dtype": "float32",
+        "original_shape": [
+          1,
+          120,
+          120
+        ],
+        "adapted_shape": [
+          120,
+          120,
+          3
+        ],
+        "normalization": "uint16_scale_10000",
+        "resampling": null,
+        "reprojection": null,
+        "selected_bands": [
+          1,
+          1,
+          1
+        ],
+        "modality": "optical",
+        "crs": "EPSG:32635",
+        "resolution": [
+          10.0,
+          10.0
+        ],
+        "notes": [
+          "Replicated single-band grayscale to 3 channels.",
+          "Normalized high dynamic range data (max=6768.0) using uint16_scale_10000."
+        ]
+      },
+      "adaptation_sar": {
+        "original_dtype": "F",
+        "adapted_dtype": "float32",
+        "original_shape": [
+          120,
+          120
+        ],
+        "adapted_shape": [
+          120,
+          120
+        ],
+        "normalization": "sar_db_preservation",
+        "resampling": null,
+        "reprojection": null,
+        "selected_bands": null,
+        "modality": "sar",
+        "crs": "EPSG:32635",
+        "resolution": [
+          10.0,
+          10.0
+        ],
+        "notes": [
+          "Input is already in calibrated decibel (dB) scale (min=-23.06dB, max=1.15dB). Logarithmic transform skipped."
+        ]
+      },
+      "latencies_ms": {
+        "inspection": 3.51,
+        "adaptation": 1.53
+      }
+    },
+    "test_d_bigearthnet_pair_12": {
+      "optical_file": "S2B_MSIL2A_20170802T092029_13_61_B04.tif",
+      "sar_file": "S1B_IW_GRDH_1SDV_20170802T043751_34TFN_13_61_VV.tif",
+      "inspection_optical": {
+        "file_path": "C:\\Users\\Lenovo\\Downloads\\BigEarthNet-S2\\S2B_MSIL2A_20170802T092029_N9999_R093_T34TFN_13_61\\S2B_MSIL2A_20170802T092029_13_61_B04.tif",
+        "file_name": "S2B_MSIL2A_20170802T092029_13_61_B04.tif",
+        "format": "TIF",
+        "width": 120,
+        "height": 120,
+        "band_count": 1,
+        "dtype": "I;16",
+        "bit_depth": 16,
+        "min_val": 48.0,
+        "max_val": 1571.0,
+        "mean_val": 251.89652777777778,
+        "nodata_value": null,
+        "nodata_pct": 0.0,
+        "crs": "EPSG:32634",
+        "bounds": {
+          "left": 615600.0,
+          "bottom": 4725600.0,
+          "right": 616800.0,
+          "top": 4726800.0
+        },
+        "resolution": [
+          10.0,
+          10.0
+        ],
+        "geotransform": [
+          615600.0,
+          10.0,
+          0.0,
+          4726800.0,
+          0.0,
+          -10.0
+        ],
+        "modality_hint": "multispectral_optical",
+        "sensor_hint": "sentinel-2",
+        "is_geotiff": true,
+        "is_corrupted": false,
+        "error_message": null,
+        "band_metadata": []
+      },
+      "inspection_sar": {
+        "file_path": "C:\\Users\\Lenovo\\Downloads\\BigEarthNet-S1\\S1B_IW_GRDH_1SDV_20170802T043751_34TFN_13_61\\S1B_IW_GRDH_1SDV_20170802T043751_34TFN_13_61_VV.tif",
+        "file_name": "S1B_IW_GRDH_1SDV_20170802T043751_34TFN_13_61_VV.tif",
+        "format": "TIF",
+        "width": 120,
+        "height": 120,
+        "band_count": 1,
+        "dtype": "F",
+        "bit_depth": 32,
+        "min_val": -26.861003875732422,
+        "max_val": 1.1774901151657104,
+        "mean_val": -11.101523399353027,
+        "nodata_value": null,
+        "nodata_pct": 0.0,
+        "crs": "EPSG:32634",
+        "bounds": {
+          "left": 615600.0,
+          "bottom": 4725600.0,
+          "right": 616800.0,
+          "top": 4726800.0
+        },
+        "resolution": [
+          10.0,
+          10.0
+        ],
+        "geotransform": [
+          615600.0,
+          10.0,
+          0.0,
+          4726800.0,
+          0.0,
+          -10.0
+        ],
+        "modality_hint": "sar",
+        "sensor_hint": "sentinel-1",
+        "is_geotiff": true,
+        "is_corrupted": false,
+        "error_message": null,
+        "band_metadata": []
+      },
+      "compatibility": {
+        "status": "adaptable",
+        "reasons": [
+          "Compatible Optical and SAR modalities identified."
+        ],
+        "warnings": [
+          "Both images have identical acquisition dates. Change detection on identical timestamps may detect noise or registration artifacts rather than genuine temporal change."
+        ],
+        "required_adaptations": [
+          "preserve_sar_db_representation"
+        ],
+        "specialist_candidates": [
+          "optical_sar_analyzer"
+        ],
+        "temporal_status": "same_time",
+        "temporal_notes": "Both images appear to have the same acquisition date: 2017-08-02. Genuine temporal change detection may be invalid.",
+        "spatial_overlap_pct": 100.0,
+        "crs_status": "matching_crs",
+        "dimension_status": "match",
+        "limitations": [
+          "Optical+SAR fusion baseline is demonstrated on Sentinel-1 VV/VH and Sentinel-2 optical bands; general arbitrary satellite fusion is not guaranteed."
+        ],
+        "modality_pair": [
+          "multispectral_optical",
+          "sar"
+        ]
+      },
+      "adaptation_optical": {
+        "original_dtype": "I;16",
+        "adapted_dtype": "float32",
+        "original_shape": [
+          1,
+          120,
+          120
+        ],
+        "adapted_shape": [
+          120,
+          120,
+          3
+        ],
+        "normalization": "uint16_scale_10000",
+        "resampling": null,
+        "reprojection": null,
+        "selected_bands": [
+          1,
+          1,
+          1
+        ],
+        "modality": "optical",
+        "crs": "EPSG:32634",
+        "resolution": [
+          10.0,
+          10.0
+        ],
+        "notes": [
+          "Replicated single-band grayscale to 3 channels.",
+          "Normalized high dynamic range data (max=1571.0) using uint16_scale_10000."
+        ]
+      },
+      "adaptation_sar": {
+        "original_dtype": "F",
+        "adapted_dtype": "float32",
+        "original_shape": [
+          120,
+          120
+        ],
+        "adapted_shape": [
+          120,
+          120
+        ],
+        "normalization": "sar_db_preservation",
+        "resampling": null,
+        "reprojection": null,
+        "selected_bands": null,
+        "modality": "sar",
+        "crs": "EPSG:32634",
+        "resolution": [
+          10.0,
+          10.0
+        ],
+        "notes": [
+          "Input is already in calibrated decibel (dB) scale (min=-26.86dB, max=1.18dB). Logarithmic transform skipped."
+        ]
+      },
+      "latencies_ms": {
+        "inspection": 8.97,
+        "adaptation": 1.55
+      }
+    },
+    "test_e_optical_sar_scene_001": {
+      "optical_file": "C:\\Users\\Lenovo\\Downloads\\Optical_SAR_Pairs\\optical\\scene_001.tif",
+      "sar_file": "C:\\Users\\Lenovo\\Downloads\\Optical_SAR_Pairs\\sar_vv\\scene_001.tif",
+      "inspection_optical": {
+        "file_path": "C:\\Users\\Lenovo\\Downloads\\Optical_SAR_Pairs\\optical\\scene_001.tif",
+        "file_name": "scene_001.tif",
+        "format": "TIF",
+        "width": 120,
+        "height": 120,
+        "band_count": 3,
+        "dtype": "RGB",
+        "bit_depth": 8,
+        "min_val": 0.0,
+        "max_val": 255.0,
+        "mean_val": 130.76261574074073,
+        "nodata_value": null,
+        "nodata_pct": 0.0,
+        "crs": null,
+        "bounds": null,
+        "resolution": null,
+        "geotransform": null,
+        "modality_hint": "rgb_optical",
+        "sensor_hint": "unknown",
+        "is_geotiff": false,
+        "is_corrupted": false,
+        "error_message": null,
+        "band_metadata": []
+      },
+      "inspection_sar": {
+        "file_path": "C:\\Users\\Lenovo\\Downloads\\Optical_SAR_Pairs\\sar_vv\\scene_001.tif",
+        "file_name": "scene_001.tif",
+        "format": "TIF",
+        "width": 120,
+        "height": 120,
+        "band_count": 1,
+        "dtype": "F",
+        "bit_depth": 32,
+        "min_val": -31.579833984375,
+        "max_val": -3.430560827255249,
+        "mean_val": -13.0582857131958,
+        "nodata_value": null,
+        "nodata_pct": 0.0,
+        "crs": "EPSG:32635",
+        "bounds": {
+          "left": 505980.0,
+          "bottom": 7078440.0,
+          "right": 507180.0,
+          "top": 7079640.0
+        },
+        "resolution": [
+          10.0,
+          10.0
+        ],
+        "geotransform": [
+          505980.0,
+          10.0,
+          0.0,
+          7079640.0,
+          0.0,
+          -10.0
+        ],
+        "modality_hint": "sar",
+        "sensor_hint": "unknown",
+        "is_geotiff": true,
+        "is_corrupted": false,
+        "error_message": null,
+        "band_metadata": []
+      },
+      "compatibility": {
+        "status": "adaptable",
+        "reasons": [
+          "Compatible Optical and SAR modalities identified."
+        ],
+        "warnings": [],
+        "required_adaptations": [
+          "preserve_sar_db_representation"
+        ],
+        "specialist_candidates": [
+          "optical_sar_analyzer"
+        ],
+        "temporal_status": "unknown",
+        "temporal_notes": "Acquisition dates could not be verified from metadata (A=unknown, B=unknown). Temporal ordering is assumed per user designation.",
+        "spatial_overlap_pct": null,
+        "crs_status": "unreferenced_raster",
+        "dimension_status": "match",
+        "limitations": [
+          "Optical+SAR fusion baseline is demonstrated on Sentinel-1 VV/VH and Sentinel-2 optical bands; general arbitrary satellite fusion is not guaranteed."
+        ],
+        "modality_pair": [
+          "rgb_optical",
+          "sar"
+        ]
+      },
+      "adaptation_optical": {
+        "original_dtype": "RGB",
+        "adapted_dtype": "float32",
+        "original_shape": [
+          3,
+          120,
+          120
+        ],
+        "adapted_shape": [
+          120,
+          120,
+          3
+        ],
+        "normalization": "uint8_div_255",
+        "resampling": null,
+        "reprojection": null,
+        "selected_bands": [
+          1,
+          2,
+          3
+        ],
+        "modality": "optical",
+        "crs": null,
+        "resolution": null,
+        "notes": []
+      },
+      "adaptation_sar": {
+        "original_dtype": "F",
+        "adapted_dtype": "float32",
+        "original_shape": [
+          120,
+          120
+        ],
+        "adapted_shape": [
+          120,
+          120
+        ],
+        "normalization": "sar_db_preservation",
+        "resampling": null,
+        "reprojection": null,
+        "selected_bands": null,
+        "modality": "sar",
+        "crs": "EPSG:32635",
+        "resolution": [
+          10.0,
+          10.0
+        ],
+        "notes": [
+          "Input is already in calibrated decibel (dB) scale (min=-31.58dB, max=-3.43dB). Logarithmic transform skipped."
+        ]
+      },
+      "latencies_ms": {
+        "inspection": 14.74,
+        "adaptation": 1.54
+      }
+    }
+  },
+  "benchmarks": {
+    "mean_inspection_latency_ms": 26.52,
+    "mean_adaptation_latency_ms": 2.96,
+    "total_mean_overhead_ms": 29.47
+  },
+  "verdict": "PASS WITH LIMITATIONS",
+  "limitations": [
+    "Change detection model is validated primarily on LEVIR-CD optical building/structural change.",
+    "Arbitrary satellite sensors without explicit metadata are flagged as 'sensor: unknown' to prevent fabrication.",
+    "Optical+SAR fusion baseline is currently verified on Sentinel-1/Sentinel-2 spectral bands; universal cross-sensor generalization is not claimed."
+  ]
+}

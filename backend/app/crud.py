@@ -106,6 +106,11 @@ def analysis_to_result(db: Session, a: Analysis) -> AnalysisResult:
         selectedTools=selected_tools,
         evidence=a.evidence,
         analysisStatus=a.status,
+        compatibility=getattr(a, "compatibility", None),
+        limitations=getattr(a, "limitations", None),
+        adaptation=getattr(a, "adaptation", None),
+        specialistSelected=getattr(a, "specialist_selected", None),
+        inputSummary=getattr(a, "input_summary", None),
     )
 
 

@@ -7,16 +7,18 @@ from ..logging_setup import logger
 
 VQA_KEYWORDS = [
     "what", "is", "are", "how", "many", "does", "do", "which", "where", "who",
-    "explain", "describe", "identify", "tell me", "?",
+    "explain", "identify", "tell me", "?",
 ]
 CAPTION_KEYWORDS = [
-    "caption", "summarize", "summary", "describe the image", "image caption",
-    "what does this image show", "overview of",
+    "caption", "summarize", "summary", "describe", "description", "describe the image",
+    "scene description", "image caption", "what does this image show", "overview of",
+    "land-cover", "land cover",
 ]
 GROUNDING_KEYWORDS = [
     "locate", "find", "detect", "where are", "mark", "bounding", "box", "boxes",
     "count.*building", "count.*road", "count.*water", "how many", "all buildings",
-    "all roads", "all water", "identify all",
+    "all roads", "all water", "identify all", "highlight", "segment", "outline",
+    "delineate", "point out",
 ]
 CHANGE_KEYWORDS = [
     "change", "changed", "difference", "differences", "before.*after",

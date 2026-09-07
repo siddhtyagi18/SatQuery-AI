@@ -25,7 +25,10 @@ from sqlalchemy.orm import sessionmaker
 
 _TEST_DB = BACKEND_ROOT / "test_satquery.db"
 if _TEST_DB.exists():
-    _TEST_DB.unlink()
+    try:
+        _TEST_DB.unlink()
+    except Exception:
+        pass
 _TEST_UPLOADS = BACKEND_ROOT / "test_uploads"
 if _TEST_UPLOADS.exists():
     import shutil
