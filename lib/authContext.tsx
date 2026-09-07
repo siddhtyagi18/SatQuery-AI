@@ -5,9 +5,11 @@ import { useRouter, usePathname } from 'next/navigation';
 import {
   onAuthStateChange,
   signOut as authSignOut,
+  signInWithOAuth,
   getAuthMode,
   getCurrentSession,
   type AuthUser,
+  type OAuthResult,
 } from '@/lib/authService';
 
 export type { AuthUser } from '@/lib/authService';
@@ -18,6 +20,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email?: string, name?: string) => void;
   signup: (email: string, name?: string, dob?: string) => void;
+  loginWithGoogle: () => Promise<OAuthResult>;
   updateProfile: (data: Partial<AuthUser>) => void;
   logout: () => Promise<void>;
   loading: boolean;
@@ -29,13 +32,14 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   login: () => {},
   signup: () => {},
+  loginWithGoogle: async () => ({}),
   updateProfile: () => {},
   logout: async () => {},
   loading: true,
   authMode: 'mock',
 });
 
-const AUTH_ROUTES = ['/login', '/signup', '/forgot-password'];
+const AUTH_ROUTES = ['/login', '/signup', '/forgot-password', '/auth/callback'];
 const MOCK_STORAGE_KEY = 'satquery_auth_session';
 
 function buildMockUser(email: string): AuthUser {
@@ -100,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
     if (!user && !isAuthRoute) {
       router.replace('/login');
-    } else if (user && isAuthRoute) {
+    } else if (user && isAuthRoute && pathname !== '/auth/callback') {
       router.replace('/');
     }
   }, [loading, user, pathname, router]);
@@ -120,6 +124,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setUser(u);
     setLoading(false);
+  };
+
+  const loginWithGoogle = async (): Promise<OAuthResult> => {
+    try {
+      const res = await signInWithOAuth('google');
+      return res;
+    } catch (err) {
+      return {
+        error: err instanceof Error ? err.message : 'Google OAuth failed to start',
+      };
+    }
   };
 
   const signup = (email: string, name?: string, dob?: string) => {
@@ -175,7 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated: !!user, login, signup, updateProfile, logout, loading, authMode }}
+      value={{ user, isAuthenticated: !!user, login, signup, loginWithGoogle, updateProfile, logout, loading, authMode }}
     >
       {children}
     </AuthContext.Provider>

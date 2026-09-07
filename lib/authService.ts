@@ -9,6 +9,7 @@ export interface AuthUser {
   role: string;
   dob?: string;
   organization?: string;
+  avatarUrl?: string;
 }
 
 export interface AuthSession {
@@ -39,10 +40,14 @@ function supabaseUserToAuthUser(sbUser: SupabaseUser | undefined): AuthUser | nu
     (sbUser.user_metadata?.['full_name'] as string | undefined) ||
     email.split('@')[0] ||
     'Operator';
+  const avatarUrl =
+    (sbUser.user_metadata?.['avatar_url'] as string | undefined) ||
+    (sbUser.user_metadata?.['picture'] as string | undefined);
   return {
     email,
     name,
     role: 'ISRO Specialist',
+    avatarUrl,
   };
 }
 
@@ -89,10 +94,17 @@ function mockStoreSession(user: AuthUser | null): void {
   }
 }
 
+export interface OAuthResult {
+  url?: string;
+  error?: string;
+  providerDisabled?: boolean;
+}
+
 interface AuthService {
   getMode(): AuthMode;
   signUp(email: string, password: string): Promise<{ session: AuthSession | null; needsEmailConfirmation?: boolean }>;
   signIn(email: string, password: string): Promise<{ session: AuthSession | null }>;
+  signInWithOAuth(provider: 'google' | 'github'): Promise<OAuthResult>;
   signOut(): Promise<void>;
   getCurrentSession(): Promise<AuthSession | null>;
   getCurrentUserId(): Promise<string | null>;
@@ -154,6 +166,62 @@ class SupabaseAuthService implements AuthService {
     }
     const session = supabaseSessionToAuthSession(data.session ?? null);
     return { session };
+  }
+
+  async signInWithOAuth(provider: 'google' | 'github'): Promise<OAuthResult> {
+    if (!supabase) {
+      throw new Error('Supabase client is not configured');
+    }
+    const redirectTo =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}/auth/callback`
+        : undefined;
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+        skipBrowserRedirect: true,
+      },
+    });
+
+    if (error) {
+      const msg = error.message || '';
+      const isProviderDisabled =
+        msg.toLowerCase().includes('not enabled') ||
+        msg.toLowerCase().includes('validation_failed') ||
+        (error as { status?: number }).status === 400;
+      return {
+        error: msg,
+        providerDisabled: isProviderDisabled,
+      };
+    }
+
+    if (data?.url && typeof window !== 'undefined') {
+      try {
+        // Probe endpoint to prevent browser navigating to a raw 400 JSON error page
+        const probe = await fetch(data.url, { redirect: 'manual' });
+        if (probe.status === 400) {
+          const body = (await probe.json().catch(() => ({}))) as { msg?: string };
+          const msg = body?.msg || 'Unsupported provider: provider is not enabled';
+          return {
+            error: msg,
+            providerDisabled: true,
+          };
+        }
+      } catch {
+        // Cross-origin redirect to accounts.google.com will throw or return opaque, which indicates success
+      }
+
+      window.location.href = data.url;
+      return { url: data.url };
+    }
+
+    return {};
   }
 
   async signOut(): Promise<void> {
@@ -242,6 +310,21 @@ class MockAuthService implements AuthService {
     return { session: this.currentMockSession };
   }
 
+  async signInWithOAuth(provider: 'google' | 'github'): Promise<OAuthResult> {
+    await new Promise((r) => setTimeout(r, 600));
+    const user: AuthUser = {
+      email: `${provider}.operator@isro.gov.in`,
+      name: `${provider === 'google' ? 'Google' : 'GitHub'} Mission Specialist`,
+      role: 'ISRO Specialist',
+      organization: 'NRSC / Space Applications Centre (ISRO)',
+      avatarUrl: provider === 'google' ? 'https://lh3.googleusercontent.com/a/default-user' : undefined,
+    };
+    mockStoreSession(user);
+    this.currentMockSession = { user };
+    this.emit('SIGNED_IN', this.currentMockSession);
+    return {};
+  }
+
   async signOut(): Promise<void> {
     await new Promise((r) => setTimeout(r, 200));
     mockStoreSession(null);
@@ -308,6 +391,36 @@ export async function signUp(email: string, password: string) {
 
 export async function signIn(email: string, password: string) {
   return authService.signIn(email, password);
+}
+
+export async function signInWithOAuth(provider: 'google' | 'github'): Promise<OAuthResult> {
+  // If Supabase is configured, always attempt real Supabase OAuth
+  if (HAS_SUPABASE && supabase) {
+    const sbService = new SupabaseAuthService();
+    return sbService.signInWithOAuth(provider);
+  }
+  return authService.signInWithOAuth(provider);
+}
+
+export async function checkGoogleProviderStatus(): Promise<{ enabled: boolean; error?: string }> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !anonKey) {
+    return { enabled: false, error: 'Supabase credentials missing' };
+  }
+  try {
+    const res = await fetch(`${supabaseUrl}/auth/v1/settings`, {
+      headers: { apikey: anonKey },
+    });
+    if (!res.ok) {
+      return { enabled: false, error: `HTTP ${res.status}` };
+    }
+    const data = await res.json();
+    const isGoogle = Boolean(data?.external?.google);
+    return { enabled: isGoogle };
+  } catch (err) {
+    return { enabled: false, error: err instanceof Error ? err.message : 'Network error' };
+  }
 }
 
 export async function signOut() {
