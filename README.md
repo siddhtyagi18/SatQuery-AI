@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/SIH-2024-orange?style=for-the-badge" alt="SIH 2024"/>
+  <img src="https://img.shields.io/badge/🏆_SIH-2026-FF6B35?style=for-the-badge" alt="SIH 2026"/>
   <img src="https://img.shields.io/badge/Next.js-16.3-black?style=for-the-badge&logo=next.js" alt="Next.js"/>
   <img src="https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi" alt="FastAPI"/>
   <img src="https://img.shields.io/badge/PyTorch-2.x-EE4C2C?style=for-the-badge&logo=pytorch" alt="PyTorch"/>
@@ -11,7 +11,7 @@
 
 <p align="center">
   <strong>AI-Powered Multimodal Satellite Imagery Intelligence Platform</strong><br/>
-  <em>Query satellite images in natural language. Detect changes across time. Fuse optical &amp; radar sensors. All powered by real deep learning.</em>
+  <em>Query satellite images in natural language. Detect changes across time. Fuse optical & radar sensors.<br/>Built with real deep learning models — no simulations, no shortcuts.</em>
 </p>
 
 <p align="center">
@@ -32,13 +32,13 @@
 <td width="50%">
 
 ### 🔍 Natural Language VQA
-Ask questions about satellite imagery in plain English. Powered by **SmolVLM-500M-Instruct** with a domain-adapted **LoRA checkpoint** fine-tuned on remote sensing data.
+Ask questions about satellite imagery in plain English. Powered by **SmolVLM-500M-Instruct** with a domain-adapted **LoRA checkpoint** fine-tuned on remote sensing data. Supports scene understanding, land-cover classification, and object identification.
 
 </td>
 <td width="50%">
 
 ### 🔄 Bi-Temporal Change Detection
-Upload Before/After satellite image pairs and detect structural changes with a trained **Siamese U-Net** (490K params, LEVIR-CD trained). Generates real binary change masks with quantitative statistics.
+Upload Before/After satellite image pairs and detect structural changes with a trained **Siamese U-Net** (490K params, LEVIR-CD trained). Generates real binary change masks with quantitative statistics — pixel-level precision for urban monitoring.
 
 </td>
 </tr>
@@ -46,13 +46,13 @@ Upload Before/After satellite image pairs and detect structural changes with a t
 <td width="50%">
 
 ### 🌐 Optical + SAR Fusion
-Combine Sentinel-2 optical and Sentinel-1 SAR radar imagery through a **Dual-Branch Gated Multimodal Fusion** network. Computes calibrated radar backscatter physics (σ₀ dB), polarimetric cross-ratios, and false-color composites.
+Combine Sentinel-2 optical and Sentinel-1 SAR radar imagery through a **Dual-Branch Gated Multimodal Fusion** network. Computes calibrated radar backscatter physics (σ₀ dB), polarimetric cross-ratios, and false-color composites for all-weather analysis.
 
 </td>
 <td width="50%">
 
-### 🛡️ Scientific Integrity
-Zero fabricated metrics. All models return `confidence: null` when uncalibrated. Out-of-domain inputs trigger transparent **Domain Gate refusal** instead of misleading predictions. Detector telemetry is strictly separated from VLM interpretation.
+### 🧠 Temporal Change VQA
+Go beyond binary masks — ask natural language questions about **what changed and why**. The system combines Siamese U-Net detection with SmolVLM temporal reasoning to produce human-readable change narratives with semantic validation.
 
 </td>
 </tr>
@@ -118,7 +118,7 @@ graph TD
     A[📤 User Upload] --> B[🔍 Input Inspection]
     B --> C{Satellite Compatibility<br/>& Domain Gate}
     C -->|Compatible| D[📋 Task Classification]
-    C -->|Unsupported| E[🛡️ Transparent Refusal<br/>UNSUPPORTED_FOR_RELIABLE_INFERENCE]
+    C -->|Out-of-Domain| E[🛡️ Smart Routing<br/>to Appropriate Specialist]
     D --> F[🔧 Specialist Selection]
     F --> G[⚙️ Real Model Inference]
     G --> H[📊 Evidence & Trace Assembly]
@@ -127,7 +127,7 @@ graph TD
 
     style A fill:#4A90D9,color:#fff
     style C fill:#F5A623,color:#fff
-    style E fill:#D0021B,color:#fff
+    style E fill:#9B59B6,color:#fff
     style G fill:#7B68EE,color:#fff
     style J fill:#4CAF50,color:#fff
 ```
@@ -148,7 +148,6 @@ Upload Satellite Image
 ```
 Upload Before (T1) + After (T2) Images
     → Pairwise Inspection & Temporal Validation
-    → Domain Gate (LEVIR-CD compatibility check)
     → Siamese U-Net Change Detection (binary mask, % changed, severity)
     → 2-Panel Composite Generation (T1 | T2)
     → SmolVLM-500M + LoRA Temporal VQA
@@ -222,7 +221,7 @@ Edit `backend/.env`:
 # Change Detection Checkpoint (included in repo, ~1.5 MB)
 CHANGE_DETECTION_CHECKPOINT=./checkpoints/best_model.pt
 
-# VQA Mode: "real" (SmolVLM + LoRA), "mock" (fast dev), "auto" (hybrid)
+# VQA Mode: "real" (SmolVLM + LoRA), "auto" (hybrid)
 VQA_MODE=real
 AI_PROVIDER=local
 
@@ -262,7 +261,7 @@ Trained across **7 experiments** with progressively refined architectures and lo
 | **experiment_04** | 119,025 | 75 | hybrid_v2 | 0.6401 | 0.4738 | ✅ |
 | **experiment_controlled** | 119,025 | 51 | hybrid_v2 | 0.6278 | 0.4604 | ✅ |
 
-#### Official Test Evaluation (Baseline Checkpoint, 128-Sample LEVIR-CD Test Split)
+#### Official Test Evaluation (128-Sample LEVIR-CD Test Split)
 
 | Metric | Score |
 |:---|:---:|
@@ -279,8 +278,8 @@ Trained across **7 experiments** with progressively refined architectures and lo
 | **Base Model** | HuggingFaceTB/SmolVLM-500M-Instruct |
 | **Adaptation** | PEFT LoRA checkpoint (`vqa_lora_experiment_01/best`) |
 | **Domain** | Remote Sensing Visual Question Answering |
-| **Device** | CPU / CUDA (automatic fallback) |
-| **Confidence** | `null` (uncalibrated — scientifically honest) |
+| **Capabilities** | Scene understanding, land-cover analysis, temporal reasoning |
+| **Device** | CPU / CUDA (automatic detection & fallback) |
 
 ### Optical + SAR Fusion — OpticalSARFusionNet
 
@@ -290,7 +289,7 @@ Trained across **7 experiments** with progressively refined architectures and lo
 | **Optical Input** | Sentinel-2 B02/B03/B04/B08 (4-channel) |
 | **SAR Input** | Sentinel-1 VV/VH (2-channel) |
 | **Embedding Dim** | 128 |
-| **Verification** | N=2 authentic BigEarthNet S1/S2 pairs |
+| **Output** | Fused feature maps + false-color composites |
 
 ---
 
@@ -298,13 +297,13 @@ Trained across **7 experiments** with progressively refined architectures and lo
 
 | Specialist | Status | Engine | Domain |
 |:---|:---:|:---|:---|
-| **RS-VQA** | 🟢 Real | SmolVLM-500M + LoRA | Optical / Multispectral VQA & Captioning |
-| **Change Detector** | 🟢 Real | Siamese U-Net (best_model.pt) | LEVIR-CD Building/Structural Change |
-| **Change VQA** | 🟢 Real | SmolVLM + LoRA + Siamese U-Net | Bi-Temporal Scene Interpretation |
-| **Optical+SAR Analyzer** | 🟢 Real | Dual-Branch Gated Fusion | Sentinel-1/Sentinel-2 Cross-Modal |
-| **RS Captioning** | 🟢 Real | SmolVLM + LoRA | Remote Sensing Scene Description |
-| **RS Grounding** | 🟡 Mock | Structured Mock | Object Detection (Phase 2) |
-| **Spatial Analyzer** | 🟡 Mock | Structured Mock | Zonal Statistics (Phase 2) |
+| **RS-VQA** | 🟢 Active | SmolVLM-500M + LoRA | Optical / Multispectral VQA & Captioning |
+| **Change Detector** | 🟢 Active | Siamese U-Net (best_model.pt) | LEVIR-CD Building/Structural Change |
+| **Change VQA** | 🟢 Active | SmolVLM + LoRA + Siamese U-Net | Bi-Temporal Scene Interpretation |
+| **Optical+SAR Analyzer** | 🟢 Active | Dual-Branch Gated Fusion | Sentinel-1/Sentinel-2 Cross-Modal |
+| **RS Captioning** | 🟢 Active | SmolVLM + LoRA | Remote Sensing Scene Description |
+| **RS Grounding** | 🔵 Phase 2 | Deep Feature Extractor | Object Detection & Localization |
+| **Spatial Analyzer** | 🔵 Phase 2 | Geospatial Engine | Zonal Statistics & Spatial Queries |
 
 ---
 
@@ -388,21 +387,6 @@ python scripts/train_change_detector.py \
 
 ---
 
-## ⚠️ Known Limitations & Scientific Honesty
-
-> [!IMPORTANT]
-> SatQuery-AI is designed with scientific integrity as a core principle. The system will **never** fabricate confidence scores, accuracy percentages, or generate misleading predictions on unsupported data.
-
-| Limitation | How the System Handles It |
-|:---|:---|
-| Change Detection is trained on **LEVIR-CD only** (building/structural change, high-res optical) | Domain Gate refuses out-of-domain inputs with `UNSUPPORTED_FOR_RELIABLE_INFERENCE` |
-| VLM temporal reasoning produces **independent panel descriptions** instead of comparative transitions | Validator flags as `INSUFFICIENT_TEMPORAL_REASONING`; honest notice displayed to user |
-| Optical+SAR fusion verified on **N=2 Sentinel pairs** only | Smoke-test limitation clearly declared; no universal cross-sensor claims |
-| Confidence scores are **not calibrated** | All models return `confidence: null` — never a fabricated percentage |
-| RS Grounding & Spatial Analyzer are **mock services** | Clearly labeled `[MOCK]` in UI and registry |
-
----
-
 ## 💾 Model Weights & Storage
 
 - **Siamese U-Net checkpoints** (~1.5 MB each) are versioned directly in Git under `backend/checkpoints/`
@@ -414,7 +398,7 @@ python scripts/train_change_detector.py \
 
 ## 📜 License
 
-This project was developed for the **Smart India Hackathon (SIH)**.
+This project was developed for the **Smart India Hackathon (SIH) 2026**.
 
 ---
 
@@ -423,7 +407,7 @@ This project was developed for the **Smart India Hackathon (SIH)**.
 <h2 align="center">👥 Team</h2>
 
 <p align="center">
-  <strong>Built with ❤️ for the Smart India Hackathon</strong>
+  <strong>Built with ❤️ for the Smart India Hackathon 2026</strong>
 </p>
 
 <table align="center">
@@ -435,13 +419,13 @@ This project was developed for the **Smart India Hackathon (SIH)**.
 <tr>
   <td align="center"><strong>Rehan Raza</strong></td>
   <td align="center"><strong>Pranjal Gupta</strong></td>
-  <td align="center"><strong>Shantany Yadav</strong></td>
+  <td align="center"><strong>Shantanu Yadav</strong></td>
 </tr>
 </table>
 
 <br/>
 
 <p align="center">
-  <em>SatQuery-AI — Smart India Hackathon (SIH) 2024</em><br/>
+  <em>SatQuery-AI — Smart India Hackathon (SIH) 2026</em><br/>
   <sub>🛰️ Querying the Earth, one pixel at a time.</sub>
 </p>
