@@ -20,6 +20,7 @@ Pipeline Architecture:
 """
 from __future__ import annotations
 
+import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -46,6 +47,48 @@ class ChangeVQAResult:
     is_mock: bool = False
     composite_url: Optional[str] = None
     stats: Dict[str, Any] = field(default_factory=dict)
+
+
+def validate_change_vqa_vlm_output(raw_text: Optional[str]) -> Tuple[bool, Optional[str], Optional[str]]:
+    """
+    Validate raw Vision-Language Model output for Change VQA.
+
+    Enforces that the VLM produced genuine qualitative natural-language text
+    and rejects degenerate outputs (e.g., lone coordinates, floats like "1.000000",
+    empty strings, or ungrounded numeric tokens).
+
+    Returns:
+        (is_valid, cleaned_answer, rejection_reason)
+    """
+    if raw_text is None:
+        return False, None, "VLM returned null/empty response"
+
+    cleaned = raw_text.strip()
+    if not cleaned:
+        return False, cleaned, "Empty or whitespace-only output"
+
+    # 1. Pure floating point or integer number (e.g. "1.000000", "0.500000", "1", "42")
+    if re.fullmatch(r"[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?", cleaned):
+        return False, cleaned, f"Degenerate isolated numeric token ({cleaned})"
+
+    # 2. Coordinate-like strings (e.g. "[0.0 0.0, 1.0 1.0]", "<point>(0.5, 0.5)</point>", "(0.1, 0.2)")
+    if (
+        re.fullmatch(r"\[\s*[-+]?\d+(?:\.\d+)?(?:\s+[-+]?\d+(?:\.\d+)?)*(?:,\s*[-+]?\d+(?:\.\d+)?(?:\s+[-+]?\d+(?:\.\d+)?)*)*\s*\]", cleaned)
+        or "<point>" in cleaned
+        or re.fullmatch(r"\(\s*[-+]?\d+(?:\.\d+)?\s*,\s*[-+]?\d+(?:\.\d+)?\s*\)", cleaned)
+    ):
+        return False, cleaned, f"Degenerate coordinate-like token string ({cleaned})"
+
+    # 3. Single-character or too short
+    if len(cleaned) < 2:
+        return False, cleaned, "Single-character output"
+
+    # 4. Output containing no alphabetic words of at least 2 letters
+    words = re.findall(r"[A-Za-z]{2,}", cleaned)
+    if not words:
+        return False, cleaned, f"No natural-language words found in output ({cleaned})"
+
+    return True, cleaned, None
 
 
 # ---------------------------------------------------------------------------
@@ -240,56 +283,64 @@ def build_change_vqa_prompt(
     Construct a concise, domain-grounded prompt instructing the VLM to analyze
     the satellite comparison strip.
 
-    Step 9B Design:
-    ---------------
+    Step 9B/16C Design:
+    -------------------
     - Default reasoning image is 2-PANEL (T1: Before | T2: After).
-    - Prompt is concise and direct to prevent small VLMs (e.g. SmolVLM-500M)
-      from parroting structured bullet lists.
-    - Quantitative detector telemetry (changed_pixel_pct, severity, threshold,
-      model metadata) is strictly EXCLUDED from the VLM prompt to enforce visual
-      reasoning and prevent causal LM text-copying shortcuts.
+    - Explicitly identifies LEFT as Before/T1 and RIGHT as After/T2.
+    - Instructs VLM to compare images directly and describe visually supported changes.
+    - Requires 1-2 complete natural-language sentences using remote-sensing terminology.
+    - Strictly prohibits isolated coordinates, numbers, JSON, fabricated dates, or percentages.
+    - Quantitative detector telemetry is strictly EXCLUDED from the VLM prompt to enforce visual reasoning.
     """
     is_three_panel = use_three_panel or (not two_panel and use_three_panel)
 
     if is_three_panel:
         prompt_parts = [
-            "You are analyzing a bi-temporal satellite image.",
-            "",
-            "The image contains:",
-            "- Left panel = BEFORE (T1)",
-            "- Center panel = AFTER (T2)",
+            "You are analyzing a bi-temporal satellite image comparison strip containing three horizontal panels.",
+            "- Left panel = BEFORE (T1) earlier acquisition.",
+            "- Center panel = AFTER (T2) later acquisition.",
             "- Right panel = T2 with a subtle outline showing pixels detected as changed.",
+            "",
+            "Instructions:",
+            "- Compare the Left (Before / T1) and Center (After / T2) panels directly to identify physical changes, using the Right panel only to locate candidate difference regions.",
+            "- Use the RIGHT panel only to locate where the change detector identified differences.",
+            "- Produce 1 to 2 complete natural-language sentences describing only visually supported qualitative changes using remote-sensing terminology (e.g. new structures, vegetation alteration, road development).",
+            "- Do not describe image annotations, colors, masks, overlays, or graphics as physical objects.",
+            "- Do not invent exact counts, measurements, percentages, coordinates, dates, or confidence scores.",
+            "- Do not output coordinate tokens, JSON, or isolated numeric values.",
         ]
         if date_a or date_b:
             prompt_parts.append(f"Temporal baseline: {date_a or 'T1'} to {date_b or 'T2'}.")
         prompt_parts.extend([
             "",
-            "First compare the LEFT and CENTER panels directly.",
-            "Use the RIGHT panel only to locate where the change detector identified differences.",
-            "Identify physical features or land-cover changes that are visibly supported by the BEFORE versus AFTER comparison.",
-            "Do not treat the outline color as an object.",
-            "Do not describe the overlay itself as a physical feature.",
-            "Do not use detector statistics.",
-            "Do not invent buildings, roads, vegetation, water, or other objects.",
-            "",
-            "Answer the user's question concisely.",
-            "",
             f"User Question: {query.strip()}",
+            "",
+            "Qualitative Scene Change Description:",
         ])
         return "\n".join(prompt_parts)
 
     # DEFAULT: 2-Panel Concise Prompt
-    prompt_parts = []
+    prompt_parts = [
+        "You are analyzing a bi-temporal satellite image comparison strip containing two temporal acquisitions of the same location.",
+        "The left satellite image (Before / T1) is the earlier acquisition. The right satellite image (After / T2) is the later acquisition.",
+        "Compare the left satellite image (Before / T1) with the right satellite image (After / T2). "
+        "Identify only physical changes visible between the two images.",
+        "",
+        "Instructions:",
+        "- Produce 1 to 2 complete natural-language sentences describing only visually supported qualitative changes using remote-sensing terminology (e.g. new building construction, surface clearing, vegetation loss, road expansion).",
+        "- Do not describe image annotations, colors, masks, overlays, or graphics as physical objects.",
+        "- Do not invent exact counts, measurements, or object identities unless clearly visible.",
+        "- Do not invent exact counts, measurements, percentages, coordinates, dates, or confidence scores.",
+        "- Do not output coordinate tokens, JSON, or isolated numeric values.",
+    ]
     if date_a or date_b:
         prompt_parts.append(f"Temporal baseline: {date_a or 'T1'} to {date_b or 'T2'}.")
 
     prompt_parts.extend([
-        "Compare the left satellite image (Before / T1) with the right satellite image (After / T2). "
-        "Identify only physical changes visible between the two images. "
-        "Do not describe image annotations, colors, masks, overlays, or graphics as physical objects. "
-        "Do not invent exact counts, measurements, or object identities unless clearly visible.",
         "",
         f"User Question: {query.strip()}",
+        "",
+        "Qualitative Scene Change Description:",
     ])
     return "\n".join(prompt_parts)
 
@@ -459,18 +510,33 @@ def run_change_vqa(
                 },
             )
 
-        # 5. Format successful real VLM output, preserving raw VLM generation
+        # 5. Format successful real VLM output, preserving raw VLM generation and validating quality
         elapsed_sec = time.perf_counter() - t0
         raw_vlm_answer = vqa_res.answer.strip()
+        is_valid_vlm, cleaned_vlm, rejection_reason = validate_change_vqa_vlm_output(raw_vlm_answer)
+
+        if is_valid_vlm:
+            vlm_section = (
+                f"**Qualitative Visual Interpretation (VLM):**\n"
+                f"{cleaned_vlm}\n\n"
+                f"**VLM Interpretation Validation:** `ACCEPTED` (Natural-language visual reasoning validated)"
+            )
+        else:
+            vlm_section = (
+                f"**Qualitative Visual Interpretation (VLM):**\n"
+                f"[VLM interpretation unavailable: Output was rejected by validation as degenerate ({rejection_reason}). Raw output: `{raw_vlm_answer}`]\n\n"
+                f"**VLM Interpretation Validation:** `REJECTED` ({rejection_reason})"
+            )
 
         formatted_answer = (
             f"### Bi-Temporal Scene Change Interpretation\n\n"
-            f"{raw_vlm_answer}\n\n"
+            f"{vlm_section}\n\n"
             f"**Quantitative Detection Telemetry:**\n"
             f"- **Detected Changed Area:** `{changed_pct:.2f}%` (Severity: **{severity}**)\n"
             f"- **Change Detection Threshold:** `{thresh_used:.2f}` (Siamese U-Net)\n"
-            f"- **Inference Provenance:** Vision-Language Model ({vqa_res.run_context.model_id if vqa_res.run_context else 'VLM'})"
-        ) if changed_pct is not None else raw_vlm_answer
+            f"- **Detector Model:** SiameseUNet (~490K parameters, LEVIR-CD trained checkpoint)\n"
+            f"- **Inference Provenance:** Vision-Language Model ({vqa_res.run_context.model_id if vqa_res.run_context else 'local:SmolVLM'})"
+        ) if changed_pct is not None else f"### Bi-Temporal Scene Change Interpretation\n\n{vlm_section}"
 
         # Separate Change Detector evidence from VLM evidence
         evidence: List[str] = [
@@ -484,8 +550,14 @@ def run_change_vqa(
             for ev in vqa_res.evidence:
                 if not any(k in ev.lower() for k in ("output shape", "pillow backend")):
                     evidence.append(f"[VLM Reasoning] {ev}")
+
+        if is_valid_vlm:
+            evidence.append("[VLM Validation] Output passed natural-language quality validation.")
+        else:
+            evidence.append(f"[VLM Validation] Output REJECTED as degenerate: {rejection_reason} (raw: {raw_vlm_answer!r}).")
+
         evidence.append(
-            "[Integrity] The change mask was generated by SiameseUNet; natural-language explanation was generated by domain-adapted VLM."
+            "[Integrity] The change mask was generated by SiameseUNet; qualitative interpretation was processed by domain-adapted VLM."
         )
         evidence.append("Model does not emit a calibrated confidence score; confidence=null.")
 
@@ -505,6 +577,8 @@ def run_change_vqa(
                 "evidence_image_dimensions": [evidence_img.width, evidence_img.height],
                 "reasoning_image_passed_to_vlm": vlm_image_name,
                 "raw_vlm_answer": raw_vlm_answer,
+                "vlm_validation": "accepted" if is_valid_vlm else "rejected",
+                "vlm_rejection_reason": rejection_reason,
                 "processing_time_sec": round(elapsed_sec, 2),
             },
         )

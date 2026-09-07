@@ -54,9 +54,9 @@ TOOL_REGISTRY: List[Dict[str, Any]] = [
         "name": "Change-VQA Language Model",
         "task_types": ["change_vqa", "change_description"],
         "supported_modalities": ["optical", "multispectral"],
-        "status": "mock",
-        "version": "0.1.0-mock",
-        "description": "Answers natural-language questions about detected changes and generates human-readable descriptions based on pixel statistics.",
+        "status": "available",
+        "version": "0.3.0-p0",
+        "description": "Answers natural-language questions about bi-temporal scene changes by combining Siamese U-Net change detection with domain-adapted Vision-Language Model interpretation.",
     },
     {
         "id": "optical_sar_analyzer",

@@ -343,3 +343,151 @@ def test_change_vqa_passes_2panel_reasoning_image_to_vlm(sample_pair):
         # P0: Prompt sent to VLM must NOT contain telemetry
         assert "18.20%" not in captured_inputs[0].query_text
         assert "moderate" not in captured_inputs[0].query_text
+
+
+# ---------------------------------------------------------------------------
+# G. Step 16C.2 Tests: Tool Registry, Degenerate Protection & Provenance
+# ---------------------------------------------------------------------------
+
+def test_change_vqa_tool_registry_metadata():
+    """Tool registry for change_vqa must report available and 0.3.0-p0 without 'mock'."""
+    from app.services.tool_registry import get_tool
+    tool = get_tool("change_vqa")
+    assert tool["status"] == "available"
+    assert tool["version"] == "0.3.0-p0"
+    assert "mock" not in tool["status"].lower()
+    assert "mock" not in tool["version"].lower()
+    assert "mock" not in tool["description"].lower()
+
+
+def test_validate_change_vqa_vlm_output_accepts_natural_language():
+    """Natural-language remote-sensing answers must be accepted."""
+    from app.services.change_vqa import validate_change_vqa_vlm_output
+
+    sample_1 = "New residential buildings were constructed on former agricultural parcels."
+    valid, cleaned, reason = validate_change_vqa_vlm_output(sample_1)
+    assert valid is True
+    assert cleaned == sample_1
+    assert reason is None
+
+    sample_2 = "Vegetation removal and earthworks are visible along the central road corridor."
+    valid, cleaned, reason = validate_change_vqa_vlm_output(sample_2)
+    assert valid is True
+    assert cleaned == sample_2
+    assert reason is None
+
+
+def test_validate_change_vqa_vlm_output_rejects_degenerate_cases():
+    """Degenerate outputs like '1.000000', empty text, or coordinates must be rejected."""
+    from app.services.change_vqa import validate_change_vqa_vlm_output
+
+    # 1. Lone numeric tokens
+    for num_str in ("1.000000", "0.500000", "0.0", "1", "42", "0.70"):
+        valid, _, reason = validate_change_vqa_vlm_output(num_str)
+        assert valid is False
+        assert "isolated numeric" in reason.lower()
+
+    # 2. Empty / whitespace
+    for empty_str in ("", "   ", "\n\t", None):
+        valid, _, reason = validate_change_vqa_vlm_output(empty_str)
+        assert valid is False
+
+    # 3. Coordinate brackets & points
+    for coord_str in ("[0.0 0.0, 1.0 1.0]", "<point>(0.2, 0.4)</point>", "(0.5, 0.5)"):
+        valid, _, reason = validate_change_vqa_vlm_output(coord_str)
+        assert valid is False
+        assert "coordinate" in reason.lower() or "natural-language" in reason.lower()
+
+
+def test_change_vqa_rejects_degenerate_1_000000_in_pipeline(sample_pair):
+    """
+    When the VLM outputs degenerate '1.000000':
+    - Model execution was real (is_mock=False).
+    - Confidence remains null (never fabricated).
+    - Output is marked as REJECTED with rejection reason.
+    - Detector telemetry is preserved separately.
+    - mock_specialists is NOT called.
+    """
+    p_a, p_b = sample_pair
+
+    mock_vqa_svc_res = MagicMock()
+    mock_vqa_svc_res.answer = "1.000000"
+    mock_vqa_svc_res.confidence = None
+    mock_vqa_svc_res.is_mock = False
+    mock_vqa_svc_res.evidence = ["Provider: local (SmolVLM with domain-adapted LoRA)."]
+    mock_vqa_svc_res.run_context = MagicMock()
+    mock_vqa_svc_res.run_context.model_id = "local:HuggingFaceTB/SmolVLM-500M-Instruct"
+
+    with patch("app.services.vqa_service.VQAService.run_real_or_fallback", return_value=mock_vqa_svc_res), \
+         patch("app.services.mock_specialists.run_tool") as mock_fallback:
+
+        res = run_change_vqa(
+            img_a_path=p_a,
+            img_b_path=p_b,
+            query="What land-use changes occurred between these two dates?",
+            change_stats={"changed_pixel_pct": 26.61, "severity": "high", "threshold_used": 0.70},
+            analysis_id="test_reject_1_000000",
+        )
+
+        # 1. Real execution preserved
+        assert res.is_mock is False
+        assert res.confidence is None
+
+        # 2. Validation marked as rejected
+        assert res.stats["vlm_validation"] == "rejected"
+        assert "isolated numeric" in res.stats["vlm_rejection_reason"].lower()
+        assert res.stats["raw_vlm_answer"] == "1.000000"
+
+        # 3. Answer clearly identifies rejection and preserves raw VLM text
+        assert "REJECTED" in res.answer
+        assert "1.000000" in res.answer
+        assert "VLM interpretation unavailable" in res.answer
+
+        # 4. Detector telemetry remains strictly separate
+        assert "Detected Changed Area:" in res.answer
+        assert "26.61%" in res.answer
+        assert "high" in res.answer
+        assert "0.70" in res.answer
+        assert "SiameseUNet" in res.answer
+
+        # 5. Evidence includes validation failure
+        assert any("REJECTED as degenerate" in ev for ev in res.evidence)
+
+        # 6. mock_specialists was NOT invoked
+        mock_fallback.assert_not_called()
+
+
+def test_change_vqa_accepts_valid_natural_language_in_pipeline(sample_pair):
+    """
+    When the VLM outputs valid natural language:
+    - Marked as ACCEPTED.
+    - Real execution preserved (is_mock=False, confidence=None).
+    - Qualitative interpretation and detector telemetry displayed separately.
+    """
+    p_a, p_b = sample_pair
+
+    mock_vqa_svc_res = MagicMock()
+    mock_vqa_svc_res.answer = "Significant new building construction is visible across the eastern quadrant."
+    mock_vqa_svc_res.confidence = None
+    mock_vqa_svc_res.is_mock = False
+    mock_vqa_svc_res.evidence = ["Provider: local"]
+    mock_vqa_svc_res.run_context = MagicMock()
+    mock_vqa_svc_res.run_context.model_id = "local:HuggingFaceTB/SmolVLM-500M-Instruct"
+
+    with patch("app.services.vqa_service.VQAService.run_real_or_fallback", return_value=mock_vqa_svc_res):
+        res = run_change_vqa(
+            img_a_path=p_a,
+            img_b_path=p_b,
+            query="What land-use changes occurred between these two dates?",
+            change_stats={"changed_pixel_pct": 26.61, "severity": "high", "threshold_used": 0.70},
+            analysis_id="test_accept_nl",
+        )
+
+        assert res.is_mock is False
+        assert res.confidence is None
+        assert res.stats["vlm_validation"] == "accepted"
+        assert res.stats["vlm_rejection_reason"] is None
+        assert "ACCEPTED" in res.answer
+        assert "Significant new building construction is visible across the eastern quadrant." in res.answer
+        assert "26.61%" in res.answer
+
