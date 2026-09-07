@@ -243,6 +243,7 @@ def _run_analysis_pipeline(db: Session, analysis: Analysis, files, input_data: S
 
     # Step 6 — Processing (real or mock inference)
     mark_step(db, aid, "step-6", "in_progress")
+    db.commit()
     tool_exec_modes: Dict[str, str] = {}
     try:
         (

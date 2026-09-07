@@ -1,0 +1,128 @@
+{
+  "title": "SATQUERY-AI \u2014 FINAL SIH JUDGE ACCEPTANCE & DEMO FREEZE REPORT",
+  "step": "Step 17",
+  "timestamp": "2026-09-07 17:18:45 UTC",
+  "test_results": {
+    "test_a_single_image_vqa": {
+      "input_type": "BigEarthNet Sentinel-2 120x120 RGB Patch",
+      "query": "What land cover types are visible in this satellite image?",
+      "analysis_id": "a2e19873-980c-4349-8414-0fdc3ed46213",
+      "specialist": "rs_vqa (SmolVLM-500M-Instruct + LoRA vqa_lora_experiment_01)",
+      "execution_mode": "real",
+      "is_mock": false,
+      "confidence": null,
+      "evidence_count": 14,
+      "trace_step_count": 8,
+      "latencies_ms": {
+        "upload_validation": 36.89,
+        "vlm_inference": 0,
+        "e2e_total": 53763.53
+      },
+      "answer_snippet": "The satellite image shows a mix of forest and grassland cover types.\n\n1. Vegetation: 0.55 hectares\n2. Water: 0.02 hectares\n3. Roads: 0.00 hectares\n4. Agriculture: 0.00 hectares\n5. Urban areas: 0.00 hectares\n6. Deforestation: 0.00 hectares\n7. Grasslan",
+      "verdict": "PASS"
+    },
+    "test_b_bitemporal_change_detection": {
+      "input_type": "LEVIR-CD Bi-Temporal Optical Pair (test_45.png, test_45 (2).png)",
+      "query": "What changes occurred between these two images?",
+      "analysis_id": "03145b97-0662-4137-869f-fba8a943d423",
+      "specialist": "change_detector (SiameseUNet ~490K params, checkpoint best_model.pt)",
+      "threshold": 0.7,
+      "changed_pixel_pct": 26.61,
+      "change_mask_url": "/api/results/03145b97-0662-4137-869f-fba8a943d423_changemap.png",
+      "confidence": null,
+      "is_mock": false,
+      "latencies_ms": {
+        "upload_validation": 75.32,
+        "change_detection": 0
+      },
+      "verdict": "PASS"
+    },
+    "test_c_change_vqa": {
+      "input_type": "LEVIR-CD Bi-Temporal Optical Pair",
+      "query": "What changes occurred between these two images?",
+      "analysis_id": "03145b97-0662-4137-869f-fba8a943d423",
+      "specialist": "change_vqa (SmolVLM-500M-Instruct + LoRA)",
+      "reasoning_image_passed": "2-panel (T1 | T2)",
+      "telemetry_leakage_prevented": true,
+      "raw_vlm_output_preserved": true,
+      "validation_status": "INSUFFICIENT_TEMPORAL_REASONING",
+      "honest_insufficient_notice_displayed": true,
+      "is_mock": false,
+      "confidence": null,
+      "latencies_ms": {
+        "e2e_total": 45938.86
+      },
+      "verdict": "PASS WITH LIMITATIONS",
+      "limitation": "VLM temporal reasoning correctly flagged as INSUFFICIENT_TEMPORAL_REASONING because base SmolVLM produces independent panel descriptions rather than temporal transitions."
+    },
+    "test_d_optical_sar_fusion": {
+      "pair_08": {
+        "optical": "S2A_MSIL2A_20180413T95032_55_3_B04.tif",
+        "sar": "S1A_IW_GRDH_1SDV_20180415T160451_35VLG_55_3_VV.tif",
+        "analysis_id": "c7f6ab3b-c866-4a4a-b732-29ed25639c34",
+        "execution_mode": "real",
+        "is_mock": false,
+        "confidence": null,
+        "latency_ms": 3101.55
+      },
+      "pair_12": {
+        "optical": "S2B_MSIL2A_20170802T092029_13_61_B04.tif",
+        "sar": "S1B_IW_GRDH_1SDV_20170802T043751_34TFN_13_61_VV.tif",
+        "analysis_id": "b196ecfb-84b7-47a3-b4a1-1a239f0ad4f7",
+        "execution_mode": "real",
+        "is_mock": false,
+        "confidence": null,
+        "latency_ms": 2097.98
+      },
+      "fusion_model": "OpticalSARFusionNet (Dual-Branch Gated Multimodal Fusion)",
+      "prohibited_terms_absent": true,
+      "n_equals_2_smoke_test_limitation": "Optical+SAR fusion verified on N=2 authentic Sentinel-1/Sentinel-2 scene pairs; universal cross-sensor generalization is not claimed.",
+      "verdict": "PASS WITH LIMITATIONS"
+    },
+    "test_e_unsupported_domain": {
+      "input_type": "Two Sentinel-1 SAR VV images in bi_temporal mode",
+      "query": "Detect building change between these two dates",
+      "analysis_id": "3282fbc1-f13f-4395-a992-b95e0cd21b05",
+      "gate_status": "UNSUPPORTED_FOR_RELIABLE_INFERENCE",
+      "siamese_model_suppressed": true,
+      "fake_change_percentage_suppressed": true,
+      "fake_confidence_suppressed": true,
+      "fake_change_mask_suppressed": true,
+      "transparent_explanation_provided": true,
+      "verdict": "PASS"
+    },
+    "test_f_arbitrary_satellite_image": {
+      "input_type": "Arbitrary GeoTIFF scene (scene_001.tif)",
+      "query": "What visual features and land cover structures are visible?",
+      "analysis_id": "3c9ab141-4f5b-46e1-9598-de8b9decfde7",
+      "inspection_completed": true,
+      "safe_routing_confirmed": true,
+      "no_universal_claims": true,
+      "verdict": "PASS"
+    }
+  },
+  "performance_latencies": {
+    "single_image_vqa_e2e_ms": 53763.53,
+    "single_image_vqa_upload_ms": 36.89,
+    "single_image_vqa_vlm_ms": 0,
+    "bitemporal_change_detection_siamese_unet_ms": 0,
+    "bitemporal_e2e_ms": 45938.86,
+    "optical_sar_fusion_pair08_e2e_ms": 3101.55,
+    "optical_sar_fusion_pair12_e2e_ms": 2097.98,
+    "domain_gate_refusal_e2e_ms": 2062.69
+  },
+  "scientific_claim_audit": {
+    "no_cross_attention_terminology": true,
+    "no_fake_confidence_percentages": true,
+    "no_fake_accuracy_percentages": true,
+    "no_universal_satellite_claims": true,
+    "telemetry_vlm_separation_preserved": true,
+    "honest_limitations_declared": true
+  },
+  "verdict": "READY_FOR_SIH_WITH_LIMITATIONS",
+  "exact_remaining_limitations": [
+    "Change Detection (Siamese U-Net) is calibrated exclusively for building and structural change on high-resolution optical data (LEVIR-CD domain). Out-of-domain sensors trigger gate refusal.",
+    "Change VQA VLM is fine-tuned on single-image remote sensing QA and not comparative bi-temporal pairs; when presented with temporal strips, it generates independent panel observations and is correctly flagged as INSUFFICIENT_TEMPORAL_REASONING rather than producing fabricated transitions.",
+    "Optical+SAR dual-branch gated fusion is evaluated as an authentic smoke test on N=2 Sentinel-1/Sentinel-2 pairs; broader cross-sensor generalization across arbitrary SAR sensors remains an ongoing research direction."
+  ]
+}

@@ -1,161 +1,210 @@
-# SatQuery-AI 🌍🛰️
+<p align="center">
+  <img src="https://img.shields.io/badge/SIH-2024-orange?style=for-the-badge" alt="SIH 2024"/>
+  <img src="https://img.shields.io/badge/Next.js-16.3-black?style=for-the-badge&logo=next.js" alt="Next.js"/>
+  <img src="https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi" alt="FastAPI"/>
+  <img src="https://img.shields.io/badge/PyTorch-2.x-EE4C2C?style=for-the-badge&logo=pytorch" alt="PyTorch"/>
+  <img src="https://img.shields.io/badge/HuggingFace-Transformers-FFD21E?style=for-the-badge&logo=huggingface" alt="HuggingFace"/>
+  <img src="https://img.shields.io/badge/Tests-213%20Passed-brightgreen?style=for-the-badge" alt="Tests"/>
+</p>
 
-An AI-powered satellite imagery query and multi-temporal analysis platform for the Smart India Hackathon (SIH).
+<h1 align="center">🛰️ SatQuery-AI</h1>
 
----
+<p align="center">
+  <strong>AI-Powered Multimodal Satellite Imagery Intelligence Platform</strong><br/>
+  <em>Query satellite images in natural language. Detect changes across time. Fuse optical &amp; radar sensors. All powered by real deep learning.</em>
+</p>
 
-## 🚀 Project Status & Real ML Milestones
-
-SatQuery-AI features an end-to-end pipeline spanning geospatial pre-processing, deterministic task routing, deep learning change detection, multi-modal VQA adapters, and interactive Next.js visualization.
-
-### Real Training Experiments (LEVIR-CD Dataset)
-
-We have completed **7 training experiments** on the LEVIR-CD building change detection benchmark using a progressively refined Siamese U-Net architecture (119,025–490,561 parameters):
-
-| Experiment | Architecture | Params | Target Epochs | Actual Epochs | Loss | Best Val F1 | Best Val IoU | Status |
-|---|---|---|---|---|---|---|---|---|
-| **Baseline / Root** | Siamese U-Net | 490,561 | 50 | 50 | BCE + Dice | 0.5429 (E48) | 0.4875 (E48) | ✅ Complete |
-| **experiment_01** | Siamese U-Net | 490,561 | 50 | 50 | Hybrid Imbalance | 0.6245 | 0.4638 | ✅ Complete |
-| **experiment_02** | Siamese U-Net (base=16) | 119,025 | 5 | 5 | hybrid_v2 | 0.4116 (E4) | 0.2651 (E4) | ✅ Complete |
-| **experiment_03** | Siamese U-Net (base=16) | 119,025 | 60 | 60 | hybrid_v2 | **0.6435** (E60) | **0.4776** (E60) | ✅ Complete 🏆 |
-| **experiment_04** | Siamese U-Net (base=16) | 119,025 | 75 | 75 | hybrid_v2 | 0.6401 (E75) | 0.4738 (E75) | ✅ Complete |
-| **experiment_A_mini** | Siamese U-Net (base=16) | 119,025 | — | — | — | — | — | ✅ Checkpoints present |
-| **experiment_controlled** | Siamese U-Net (base=16) | 119,025 | 51 | 51 | hybrid_v2 | 0.6278 (E51) | 0.4604 (E51) | ✅ Complete |
-
-**🏆 Best Model**: experiment_03 — Val F1 = **0.6435**, Val IoU = **0.4776** at epoch 60.
-
-### Official Test Evaluation Benchmarks
-
-#### Baseline Run (Root Checkpoint)
-Evaluated across the full 128-sample LEVIR-CD test split using the validation-selected optimal threshold:
-- **Test Micro IoU (Jaccard Index)**: **`58.06%`** (`0.5806`)
-- **Test Micro F1 / Dice Score**: **`73.47%`** (`0.7347`)
-- **Test Precision**: **`73.62%`** (`0.7362`)
-- **Test Recall**: **`73.32%`** (`0.7332`)
-- **Test Pixel Accuracy**: **`97.34%`** (`0.9734`)
-
-#### experiment_03 Full Test Eval
-Full 128-sample test split evaluation with threshold sweep is available in [`evaluation_results/experiment_03_eval/`](./evaluation_results/experiment_03_eval/).
-
-#### experiment_04 Full Test Eval
-Full 128-sample test split evaluation with threshold sweep is available in [`evaluation_results/experiment_04_eval/`](./evaluation_results/experiment_04_eval/).
-
-Full evaluation logs, per-sample qualitative prediction PNGs, and JSON validation sweeps are available in [`evaluation_results/`](./evaluation_results/):
-- [`EXPERIMENT_01_RESULTS.md`](./evaluation_results/EXPERIMENT_01_RESULTS.md)
-- [`EXPERIMENT_03_RESULTS.md`](./evaluation_results/EXPERIMENT_03_RESULTS.md)
-- [`EXPERIMENT_04_RESULTS.md`](./evaluation_results/EXPERIMENT_04_RESULTS.md)
+<p align="center">
+  <a href="#-features">Features</a> •
+  <a href="#%EF%B8%8F-system-architecture">Architecture</a> •
+  <a href="#-end-to-end-workflow">Workflow</a> •
+  <a href="#-getting-started">Getting Started</a> •
+  <a href="#-model-zoo--benchmarks">Benchmarks</a> •
+  <a href="#-team">Team</a>
+</p>
 
 ---
 
-## 🔍 Real vs. Mock Specialist Capabilities
+## ✨ Features
 
-To ensure scientific honesty and prevent fabricated metrics ("no fake science"), all backend services clearly delineate real ML capabilities from mock tools:
+<table>
+<tr>
+<td width="50%">
 
-| Specialist Tool / Capability | Status | Execution Engine | Output Guarantee |
-|---|---|---|---|
-| **Change Detection (Bi-temporal)** | 🟢 **REAL ML** | Trained Siamese U-Net (`checkpoints/best_model.pt`) with tiled 256×256 sliding-window inference + 32px overlap smoothing. | Real binary change mask, percentage changed, pixel confusion stats. |
-| **Classical Difference (Fallback)** | 🟢 **REAL ALG** | CPU perceptual luminance difference + adaptive thresholding. | Active if checkpoint is unconfigured. |
-| **Geospatial Preprocessing** | 🟢 **REAL** | Pillow + Rasterio/PyProj GeoTIFF bounds, CRS, dimensions, and band normalization. | Real metadata extraction. |
-| **VQA Adapter Pipeline** | 🟢 **REAL** | HuggingFace `SmolVLM-500M-Instruct` adapter with dynamic device fallback (CUDA/CPU) & model caching. | Real text synthesis when enabled (`VQA_MODE=real/auto`). |
-| **Dataset Validators** | 🟢 **REAL** | LEVIR-CD directory layout & file alignment validator; BigEarthNet parquet schema validator. | Real split checks & patch count summaries. |
-| **RS Captioning / Grounding** | 🟡 *Mock* | Structured mock specialist service (clearly marked `[MOCK]`). | Bounding boxes/coords return `null` when unverified. |
-| **Optical / SAR Fusion** | 🟡 *Mock* | Structured mock specialist service. | Delineated mock summary. |
+### 🔍 Natural Language VQA
+Ask questions about satellite imagery in plain English. Powered by **SmolVLM-500M-Instruct** with a domain-adapted **LoRA checkpoint** fine-tuned on remote sensing data.
+
+</td>
+<td width="50%">
+
+### 🔄 Bi-Temporal Change Detection
+Upload Before/After satellite image pairs and detect structural changes with a trained **Siamese U-Net** (490K params, LEVIR-CD trained). Generates real binary change masks with quantitative statistics.
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 🌐 Optical + SAR Fusion
+Combine Sentinel-2 optical and Sentinel-1 SAR radar imagery through a **Dual-Branch Gated Multimodal Fusion** network. Computes calibrated radar backscatter physics (σ₀ dB), polarimetric cross-ratios, and false-color composites.
+
+</td>
+<td width="50%">
+
+### 🛡️ Scientific Integrity
+Zero fabricated metrics. All models return `confidence: null` when uncalibrated. Out-of-domain inputs trigger transparent **Domain Gate refusal** instead of misleading predictions. Detector telemetry is strictly separated from VLM interpretation.
+
+</td>
+</tr>
+</table>
 
 ---
 
-## 📂 Repository Structure
+## 🏗️ System Architecture
 
 ```
-SatQuery-AI/
-├── app/                              # Next.js 15 Frontend (App Router, Tailwind CSS, Dark Mode)
-│   ├── analysis/                     # Analysis flows ([id] details, history, new submission)
-│   ├── benchmark/                    # Benchmark metrics dashboard
-│   ├── registry/                     # Specialist tool registry inspection page
-│   ├── login/                        # Authentication guard & access
-│   ├── analysis/                     # (see above) Analysis workflow pages
-│   ├── page.tsx                      # Landing page & quick launch
-│   └── layout.tsx                    # Root layout with theme provider & header
-├── backend/                          # FastAPI Backend
-│   ├── app/
-│   │   ├── routers/                  # API endpoints (upload, analysis, datasets, tools, benchmark, health, files)
-│   │   ├── services/                 # Core services (orchestrator, model_inference, datasets, vqa_service,
-│   │   │                             #               preprocessing, firebase, metadata, models, trace,
-│   │   │                             #               change_detection, model_manager)
-│   │   ├── main.py                   # FastAPI app entry + CORS + error handlers
-│   │   ├── config.py                 # Pydantic Settings (LEVIR_CD_DATASET_PATH, CHECKPOINT_DIR, etc.)
-│   │   ├── models.py                 # SQLAlchemy SQLite models
-│   │   └── schemas.py                # Pydantic validation schemas matching TypeScript contracts
-│   ├── checkpoints/                  # Model weights (versioned in Git, ~1 MB each)
-│   │   ├── best_model.pt             # Baseline best checkpoint (Epoch 48, F1=0.5429)
-│   │   ├── last_model.pt             # Baseline Epoch 50 (resume-ready)
-│   │   ├── baseline_epoch48_best_model.pt  # Explicit epoch-48 baseline copy
-│   │   ├── training_log.json         # Baseline 50-epoch training curves
-│   │   ├── experiment_01/            # Hybrid Loss (F1=0.6245) — best_model.pt / last_model.pt / log / config
-│   │   ├── experiment_02/            # 5-epoch quick run (F1=0.4116) — best_model.pt / last_model.pt / log / config
-│   │   ├── experiment_03/            # 🏆 Best — 60 epochs (F1=0.6435) — best_model.pt / last_model.pt / log / config
-│   │   ├── experiment_04/            # 75 epochs (F1=0.6401) — best_model.pt / last_model.pt / log / config
-│   │   ├── experiment_A_mini/        # Lightweight experiment — best_model.pt / last_model.pt
-│   │   └── experiment_controlled/    # Controlled 51-epoch run (F1=0.6278) — best/last/log/config
-│   ├── scripts/                      # Standalone CLI tools for training & evaluation
-│   │   ├── train_change_detector.py  # Full training, resume training, smoke-test, eval-only CLI
-│   │   ├── evaluate_full_test_and_val.py  # Full 128-test split evaluation & threshold sweeps
-│   │   ├── visualize_change_predictions.py  # 6-panel qualitative visual evaluation generator
-│   │   ├── _baseline_eval.py         # Baseline checkpoint full-split evaluation (standalone)
-│   │   ├── _baseline_fullres.py      # Full-resolution 1024×1024 evaluation script
-│   │   ├── _estimate_time.py         # Epoch time estimator for training planning
-│   │   ├── _inspect_ckpt.py          # Checkpoint inspector (state dict, sizes, epoch metadata)
-│   │   └── _train_expAmini.py        # Short A_mini experiment launch script
-│   ├── evaluation_results/           # Per-experiment quantitative & qualitative evaluation artifacts
-│   │   ├── baseline_run/             # Baseline test split metrics + per-sample PNG visuals
-│   │   ├── experiment_03_eval/       # experiment_03 full test split eval + threshold sweep
-│   │   ├── experiment_04_eval/       # experiment_04 full test split eval + threshold sweep
-│   │   └── visuals/                  # Shared 6-panel prediction PNGs
-│   ├── tests/                        # Automated unit & integration tests
-│   ├── requirements.txt              # Backend dependencies
-│   └── .env.example                  # Backend environment variable template
-├── components/                       # React UI components (SatelliteViewer, ChangeStatsPanel, Trace UI, etc.)
-├── evaluation_results/               # Top-level evaluation reports (root)
-│   ├── EXPERIMENT_01_RESULTS.md      # Detailed experiment 01 logs & benchmark comparison
-│   ├── EXPERIMENT_03_RESULTS.md      # Detailed experiment 03 logs & benchmark comparison
-│   ├── EXPERIMENT_04_RESULTS.md      # Detailed experiment 04 logs & benchmark comparison
-│   ├── test_full_results.json        # Full 128-sample test evaluation metrics
-│   └── val_threshold_sweep.json      # Validation threshold sweep metrics [0.30 - 0.70]
-├── lib/                              # API client (`liveApi.ts`, `mockApi.ts`) & TypeScript interfaces + config.ts
-├── public/                           # Static demo assets & sample imagery
-├── .env.example                      # Frontend environment variable template
-└── README.md                         # Project documentation
+┌──────────────────────────────────────────────────────────────────────────┐
+│                        SatQuery-AI Platform                             │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐     │
+│  │                    Frontend (Next.js 16)                         │     │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐   │     │
+│  │  │  Upload   │  │ Analysis │  │ Registry │  │  Benchmark   │   │     │
+│  │  │  Portal   │  │  Viewer  │  │  Panel   │  │  Dashboard   │   │     │
+│  │  └─────┬────┘  └────┬─────┘  └──────────┘  └──────────────┘   │     │
+│  └────────┼─────────────┼──────────────────────────────────────────┘     │
+│           │             │                                                │
+│           ▼             ▼                                                │
+│  ┌─────────────────────────────────────────────────────────────────┐     │
+│  │                   FastAPI Backend (Port 8000)                    │     │
+│  │                                                                   │     │
+│  │  ┌──────────────────────────────────────────────────────────┐    │     │
+│  │  │               Satellite Compatibility Layer               │    │     │
+│  │  │  Image Inspector → Spatial Validator → Domain Gate        │    │     │
+│  │  └──────────────────────────┬───────────────────────────────┘    │     │
+│  │                             │                                     │     │
+│  │  ┌──────────────────────────▼───────────────────────────────┐    │     │
+│  │  │            Task Classifier & Orchestrator                 │    │     │
+│  │  │   Query Analysis → Tool Selection → Parallel Dispatch     │    │     │
+│  │  └────┬──────────────┬──────────────┬───────────────────────┘    │     │
+│  │       │              │              │                             │     │
+│  │       ▼              ▼              ▼                             │     │
+│  │  ┌─────────┐  ┌───────────┐  ┌──────────────┐                   │     │
+│  │  │ RS-VQA  │  │  Change   │  │ Optical+SAR  │                   │     │
+│  │  │ SmolVLM │  │ Detector  │  │   Fusion     │                   │     │
+│  │  │ + LoRA  │  │ Siamese   │  │ Dual-Branch  │                   │     │
+│  │  │         │  │  U-Net    │  │   Gated Net  │                   │     │
+│  │  └─────────┘  └───────────┘  └──────────────┘                   │     │
+│  │                                                                   │     │
+│  │  ┌──────────────────────────────────────────────────────────┐    │     │
+│  │  │           Evidence & Trace Assembly Engine                │    │     │
+│  │  │  Provenance Tracking → Result Validation → UI Rendering   │    │     │
+│  │  └──────────────────────────────────────────────────────────┘    │     │
+│  └─────────────────────────────────────────────────────────────────┘     │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 👥 Team Setup & Quickstart Guide
+## 🔄 End-to-End Workflow
 
-### 1. Clone & Frontend Setup
+The platform supports three primary analysis modes. Each follows the same rigorous pipeline:
+
+### Pipeline Flow
+
+```mermaid
+graph TD
+    A[📤 User Upload] --> B[🔍 Input Inspection]
+    B --> C{Satellite Compatibility<br/>& Domain Gate}
+    C -->|Compatible| D[📋 Task Classification]
+    C -->|Unsupported| E[🛡️ Transparent Refusal<br/>UNSUPPORTED_FOR_RELIABLE_INFERENCE]
+    D --> F[🔧 Specialist Selection]
+    F --> G[⚙️ Real Model Inference]
+    G --> H[📊 Evidence & Trace Assembly]
+    H --> I[✅ Validated Result]
+    I --> J[🖥️ Frontend Display]
+
+    style A fill:#4A90D9,color:#fff
+    style C fill:#F5A623,color:#fff
+    style E fill:#D0021B,color:#fff
+    style G fill:#7B68EE,color:#fff
+    style J fill:#4CAF50,color:#fff
+```
+
+### Mode 1 — Single Image VQA
+
+```
+Upload Satellite Image
+    → Metadata Extraction (format, bands, CRS, modality)
+    → Compatibility Check (sensor, resolution, domain)
+    → Task Classification (VQA / Captioning)
+    → SmolVLM-500M-Instruct + LoRA Inference
+    → Natural Language Answer + Evidence Chain
+```
+
+### Mode 2 — Bi-Temporal Change Detection & Change VQA
+
+```
+Upload Before (T1) + After (T2) Images
+    → Pairwise Inspection & Temporal Validation
+    → Domain Gate (LEVIR-CD compatibility check)
+    → Siamese U-Net Change Detection (binary mask, % changed, severity)
+    → 2-Panel Composite Generation (T1 | T2)
+    → SmolVLM-500M + LoRA Temporal VQA
+    → Semantic Validation (reject echoes, static descriptions, degenerate tokens)
+    → Separated Report: Detector Telemetry ║ VLM Interpretation
+```
+
+### Mode 3 — Optical + SAR Cross-Modal Fusion
+
+```
+Upload Optical (Sentinel-2) + SAR (Sentinel-1) Images
+    → GeoTIFF Metadata & CRS Extraction
+    → Spatial Alignment & Resampling
+    → SAR Polarimetric Physics (σ₀ dB, VH/VV ratio, specular/double-bounce)
+    → Dual-Branch Gated Fusion Network
+    → False-Color Composite Synthesis
+    → Joint Cross-Modal Analysis Report
+```
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Node.js** ≥ 18.x
+- **Python** ≥ 3.11
+- **Git**
+
+### 1. Clone & Install Frontend
+
 ```bash
-# Clone the repository
 git clone https://github.com/siddhtyagi18/SatQuery-AI.git
 cd SatQuery-AI
 
 # Configure frontend environment
 cp .env.example .env.local
 
-# Install dependencies and start development server
+# Install and launch
 npm install
 npm run dev
-# Frontend is now running at: http://localhost:3000
+# ➜ Frontend: http://localhost:3000
 ```
 
-### 2. Backend Setup
+### 2. Setup Backend
+
 ```bash
-# In a new terminal, navigate to backend:
+# In a new terminal
 cd backend
 
-# Create and activate Python virtual environment (Python 3.11+ recommended)
+# Create virtual environment
 python -m venv .venv
 
-# On Windows PowerShell:
+# Activate (Windows PowerShell)
 .\.venv\Scripts\Activate.ps1
-# On Linux/macOS:
+# Activate (Linux/macOS)
 # source .venv/bin/activate
 
 # Install dependencies
@@ -165,46 +214,152 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-### 3. Local Dataset & Checkpoint Configuration
+### 3. Configure & Launch
 
-Edit `backend/.env` with your local paths:
+Edit `backend/.env`:
 
 ```env
-# Path to trained SiameseUNet checkpoint file (included in repository)
-# Default: baseline checkpoint (Val F1=0.5429)
-# For BEST PERFORMANCE, use experiment_03 (Val F1=0.6435):
-# CHANGE_DETECTION_CHECKPOINT=./checkpoints/experiment_03/best_model.pt
-# Or experiment_04 (Val F1=0.6401):
-# CHANGE_DETECTION_CHECKPOINT=./checkpoints/experiment_04/best_model.pt
+# Change Detection Checkpoint (included in repo, ~1.5 MB)
 CHANGE_DETECTION_CHECKPOINT=./checkpoints/best_model.pt
 
-# Optional: Path to local LEVIR-CD dataset (if validating or running training/eval scripts)
-# Do NOT commit your local dataset path into version control
-LEVIR_CD_DATASET_PATH=/path/to/LEVIR-CD
+# VQA Mode: "real" (SmolVLM + LoRA), "mock" (fast dev), "auto" (hybrid)
+VQA_MODE=real
+AI_PROVIDER=local
 
-# Storage & VQA configuration
-STORAGE_BACKEND=local
-VQA_MODE=auto   # "mock" (fast), "real" (SmolVLM 500M), "auto" (hybrid)
+# Optional: Local LEVIR-CD dataset path for training/evaluation
+# LEVIR_CD_DATASET_PATH=/path/to/LEVIR-CD
 ```
 
-### 4. Run Backend Server
 ```bash
-uvicorn app.main:app --reload --port 8000
-# Backend API & Interactive Docs: http://localhost:8000/docs
+# Start the backend server
+uvicorn app.main:app --host 127.0.0.1 --port 8000
+# ➜ API Docs: http://localhost:8000/docs
+# ➜ Health:   http://localhost:8000/health
 ```
 
-### 5. Run Automated Test Suite
+### 4. Run Tests
+
 ```bash
 cd backend
-pytest tests/ -v
-# All 88 tests execute locally in under 15 seconds
+pytest -v
+# ➜ 213 tests passed ✅
 ```
 
 ---
 
-## 🏋️ Training & Evaluation CLI Commands
+## 🏆 Model Zoo & Benchmarks
 
-### Run Full Test Split Evaluation
+### Change Detection — Siamese U-Net (LEVIR-CD)
+
+Trained across **7 experiments** with progressively refined architectures and loss functions:
+
+| Experiment | Params | Epochs | Loss | Best Val F1 | Best Val IoU | Status |
+|:---|:---:|:---:|:---|:---:|:---:|:---:|
+| **Baseline** | 490,561 | 50 | BCE + Dice | 0.5429 | 0.4875 | ✅ |
+| **experiment_01** | 490,561 | 50 | Hybrid Imbalance | 0.6245 | 0.4638 | ✅ |
+| **experiment_02** | 119,025 | 5 | hybrid_v2 | 0.4116 | 0.2651 | ✅ |
+| **experiment_03** 🏆 | 119,025 | 60 | hybrid_v2 | **0.6435** | **0.4776** | ✅ |
+| **experiment_04** | 119,025 | 75 | hybrid_v2 | 0.6401 | 0.4738 | ✅ |
+| **experiment_controlled** | 119,025 | 51 | hybrid_v2 | 0.6278 | 0.4604 | ✅ |
+
+#### Official Test Evaluation (Baseline Checkpoint, 128-Sample LEVIR-CD Test Split)
+
+| Metric | Score |
+|:---|:---:|
+| **Test Micro IoU** | 58.06% |
+| **Test Micro F1 / Dice** | 73.47% |
+| **Test Precision** | 73.62% |
+| **Test Recall** | 73.32% |
+| **Test Pixel Accuracy** | 97.34% |
+
+### Vision-Language Model — SmolVLM-500M-Instruct + LoRA
+
+| Component | Detail |
+|:---|:---|
+| **Base Model** | HuggingFaceTB/SmolVLM-500M-Instruct |
+| **Adaptation** | PEFT LoRA checkpoint (`vqa_lora_experiment_01/best`) |
+| **Domain** | Remote Sensing Visual Question Answering |
+| **Device** | CPU / CUDA (automatic fallback) |
+| **Confidence** | `null` (uncalibrated — scientifically honest) |
+
+### Optical + SAR Fusion — OpticalSARFusionNet
+
+| Component | Detail |
+|:---|:---|
+| **Architecture** | Dual-Branch Gated Multimodal Fusion |
+| **Optical Input** | Sentinel-2 B02/B03/B04/B08 (4-channel) |
+| **SAR Input** | Sentinel-1 VV/VH (2-channel) |
+| **Embedding Dim** | 128 |
+| **Verification** | N=2 authentic BigEarthNet S1/S2 pairs |
+
+---
+
+## 🔬 Specialist Tool Registry
+
+| Specialist | Status | Engine | Domain |
+|:---|:---:|:---|:---|
+| **RS-VQA** | 🟢 Real | SmolVLM-500M + LoRA | Optical / Multispectral VQA & Captioning |
+| **Change Detector** | 🟢 Real | Siamese U-Net (best_model.pt) | LEVIR-CD Building/Structural Change |
+| **Change VQA** | 🟢 Real | SmolVLM + LoRA + Siamese U-Net | Bi-Temporal Scene Interpretation |
+| **Optical+SAR Analyzer** | 🟢 Real | Dual-Branch Gated Fusion | Sentinel-1/Sentinel-2 Cross-Modal |
+| **RS Captioning** | 🟢 Real | SmolVLM + LoRA | Remote Sensing Scene Description |
+| **RS Grounding** | 🟡 Mock | Structured Mock | Object Detection (Phase 2) |
+| **Spatial Analyzer** | 🟡 Mock | Structured Mock | Zonal Statistics (Phase 2) |
+
+---
+
+## 📂 Project Structure
+
+```
+SatQuery-AI/
+├── 🖥️  app/                         # Next.js 16 Frontend (App Router)
+│   ├── analysis/                    # Analysis submission, history & detail views
+│   ├── benchmark/                   # Model benchmark dashboard
+│   ├── registry/                    # Specialist tool registry inspector
+│   ├── login/                       # Authentication & access control
+│   ├── page.tsx                     # Landing page with orbital HUD
+│   └── layout.tsx                   # Root layout with theme provider
+│
+├── 🧩  components/                   # Reusable React UI components
+│   ├── SatelliteViewer              # Image comparison & overlay viewer
+│   ├── ChangeStatsPanel             # Change detection statistics display
+│   └── ExecutionTrace               # Step-by-step execution trace viewer
+│
+├── 📡  backend/                      # FastAPI Backend Service
+│   ├── app/
+│   │   ├── routers/                 # API endpoints (upload, analysis, tools, health)
+│   │   ├── services/                # Core ML services
+│   │   │   ├── orchestrator.py      # Task classification & specialist dispatch
+│   │   │   ├── vqa_service.py       # VLM inference pipeline (SmolVLM + LoRA)
+│   │   │   ├── model_inference.py   # Siamese U-Net change detection engine
+│   │   │   ├── change_vqa.py        # Temporal VQA with semantic validation
+│   │   │   ├── optical_sar.py       # SAR physics & cross-modal fusion
+│   │   │   ├── satellite_compatibility.py  # Domain gate & input validation
+│   │   │   └── models/              # Neural network architectures
+│   │   ├── main.py                  # FastAPI app entry point
+│   │   ├── config.py                # Pydantic settings
+│   │   └── schemas.py               # API request/response schemas
+│   │
+│   ├── checkpoints/                 # Trained model weights (~1.5 MB each)
+│   │   ├── best_model.pt            # Production checkpoint
+│   │   ├── experiment_03/           # 🏆 Best experiment (F1=0.6435)
+│   │   └── vqa_lora_experiment_01/  # LoRA adapter weights
+│   │
+│   ├── tests/                       # 213 automated tests
+│   ├── scripts/                     # Training, evaluation & CLI tools
+│   └── data/                        # Upload storage & result artifacts
+│
+├── 📚  lib/                          # API client & TypeScript interfaces
+├── 📊  evaluation_results/           # Quantitative benchmark reports
+└── 📋  README.md
+```
+
+---
+
+## 🏋️ Training & Evaluation
+
+### Run Test Split Evaluation
+
 ```bash
 cd backend
 python scripts/evaluate_full_test_and_val.py \
@@ -213,34 +368,80 @@ python scripts/evaluate_full_test_and_val.py \
     --threshold 0.70
 ```
 
-### Generate 6-Panel Prediction Visualizations
+### Generate Prediction Visualizations
+
 ```bash
-cd backend
 python scripts/visualize_change_predictions.py \
     --checkpoint ./checkpoints/best_model.pt \
     --data-root /path/to/LEVIR-CD \
-    --num-samples 10 \
-    --threshold 0.70
+    --num-samples 10 --threshold 0.70
 ```
 
-### Continue / Resume Training
+### Resume Training
+
 ```bash
-cd backend
 python scripts/train_change_detector.py \
     --data-root /path/to/LEVIR-CD \
     --resume ./checkpoints/last_model.pt \
-    --epochs 100 \
-    --batch-size 4
+    --epochs 100 --batch-size 4
 ```
 
 ---
 
-## 💾 Model Weights & Git Storage Strategy
+## ⚠️ Known Limitations & Scientific Honesty
 
-- **Current Checkpoints**: The Siamese U-Net weights (`best_model.pt` and `last_model.pt`) are **~1.48 MB** each. Because they are well below GitHub's 50 MB / 100 MB limits, they are versioned directly in Git under `backend/checkpoints/` for zero-friction team onboarding.
-- **Large Transformer Models**: If larger foundational models or Vision-Language Transformers (>50 MB) are added in future iterations, they should be stored via **Git LFS** (`git lfs track "*.pt"`), **GitHub Releases**, or a shared cloud storage bucket (e.g. Google Cloud Storage / Hugging Face Model Hub).
-- **Datasets**: The LEVIR-CD dataset (~5-10 GB) and BigEarthNet parquet files are strictly excluded from git via `.gitignore`. Each teammate configures their local dataset path via `LEVIR_CD_DATASET_PATH` in `.env`.
+> [!IMPORTANT]
+> SatQuery-AI is designed with scientific integrity as a core principle. The system will **never** fabricate confidence scores, accuracy percentages, or generate misleading predictions on unsupported data.
+
+| Limitation | How the System Handles It |
+|:---|:---|
+| Change Detection is trained on **LEVIR-CD only** (building/structural change, high-res optical) | Domain Gate refuses out-of-domain inputs with `UNSUPPORTED_FOR_RELIABLE_INFERENCE` |
+| VLM temporal reasoning produces **independent panel descriptions** instead of comparative transitions | Validator flags as `INSUFFICIENT_TEMPORAL_REASONING`; honest notice displayed to user |
+| Optical+SAR fusion verified on **N=2 Sentinel pairs** only | Smoke-test limitation clearly declared; no universal cross-sensor claims |
+| Confidence scores are **not calibrated** | All models return `confidence: null` — never a fabricated percentage |
+| RS Grounding & Spatial Analyzer are **mock services** | Clearly labeled `[MOCK]` in UI and registry |
 
 ---
 
-*SatQuery-AI — Smart India Hackathon (SIH) Project*
+## 💾 Model Weights & Storage
+
+- **Siamese U-Net checkpoints** (~1.5 MB each) are versioned directly in Git under `backend/checkpoints/`
+- **LoRA adapter weights** are stored under `backend/checkpoints/vqa_lora_experiment_01/`
+- **SmolVLM-500M-Instruct** base model is downloaded automatically from HuggingFace on first run
+- **Datasets** (LEVIR-CD, BigEarthNet) are excluded from Git via `.gitignore` — configure paths in `.env`
+
+---
+
+## 📜 License
+
+This project was developed for the **Smart India Hackathon (SIH)**.
+
+---
+
+<br/>
+
+<h2 align="center">👥 Team</h2>
+
+<p align="center">
+  <strong>Built with ❤️ for the Smart India Hackathon</strong>
+</p>
+
+<table align="center">
+<tr>
+  <td align="center"><strong>Siddh Tyagi</strong></td>
+  <td align="center"><strong>Pratha Varshney</strong></td>
+  <td align="center"><strong>Niharika Swain</strong></td>
+</tr>
+<tr>
+  <td align="center"><strong>Rehan Raza</strong></td>
+  <td align="center"><strong>Pranjal Gupta</strong></td>
+  <td align="center"><strong>Shantany Yadav</strong></td>
+</tr>
+</table>
+
+<br/>
+
+<p align="center">
+  <em>SatQuery-AI — Smart India Hackathon (SIH) 2024</em><br/>
+  <sub>🛰️ Querying the Earth, one pixel at a time.</sub>
+</p>

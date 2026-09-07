@@ -491,3 +491,160 @@ def test_change_vqa_accepts_valid_natural_language_in_pipeline(sample_pair):
         assert "Significant new building construction is visible across the eastern quadrant." in res.answer
         assert "26.61%" in res.answer
 
+
+def test_validate_change_vqa_vlm_output_rejects_independent_t1_t2_descriptions():
+    """Independent static descriptions of T1 and T2 must be flagged as INSUFFICIENT_TEMPORAL_REASONING."""
+    from app.services.change_vqa import validate_change_vqa_vlm_output
+
+    sample_1 = "The left satellite image (Before / T1) shows a small, densely-packed forest with a few scattered trees. The right satellite image (After / T2) shows a large, open grassland with a few scattered trees."
+    res = validate_change_vqa_vlm_output(sample_1)
+    assert res.is_valid is False
+    assert res.status == "INSUFFICIENT_TEMPORAL_REASONING"
+    assert "INSUFFICIENT_TEMPORAL_REASONING" in res.reason
+
+    sample_2 = "T1 shows forest. T2 shows grassland."
+    res2 = validate_change_vqa_vlm_output(sample_2)
+    assert res2.is_valid is False
+    assert res2.status == "INSUFFICIENT_TEMPORAL_REASONING"
+
+
+def test_validate_change_vqa_vlm_output_accepts_reliable_fallback_statement():
+    """Explicit uncertainty fallback statement must be accepted as valid reasoning."""
+    from app.services.change_vqa import validate_change_vqa_vlm_output
+
+    sample = "A semantic description of the change cannot be determined reliably from the imagery."
+    res = validate_change_vqa_vlm_output(sample)
+    assert res.is_valid is True
+    assert res.status == "ACCEPTED"
+    assert res.reason is None
+
+
+def test_change_vqa_rejects_insufficient_temporal_reasoning_in_pipeline(sample_pair):
+    """
+    When the VLM outputs static scene descriptions without temporal transition:
+    - is_mock remains False (real model executed).
+    - confidence remains None (not fabricated).
+    - Status is INSUFFICIENT_TEMPORAL_REASONING.
+    - Detector telemetry remains completely separate.
+    - mock_specialists is NOT called.
+    """
+    p_a, p_b = sample_pair
+
+    mock_vqa_svc_res = MagicMock()
+    mock_vqa_svc_res.answer = (
+        "The left satellite image (Before / T1) shows a small, densely-packed forest. "
+        "The right satellite image (After / T2) shows a large, open grassland."
+    )
+    mock_vqa_svc_res.confidence = None
+    mock_vqa_svc_res.is_mock = False
+    mock_vqa_svc_res.evidence = ["Provider: local"]
+    mock_vqa_svc_res.run_context = MagicMock()
+    mock_vqa_svc_res.run_context.model_id = "local:HuggingFaceTB/SmolVLM-500M-Instruct"
+
+    with patch("app.services.vqa_service.VQAService.run_real_or_fallback", return_value=mock_vqa_svc_res), \
+         patch("app.services.mock_specialists.run_tool") as mock_fallback:
+
+        res = run_change_vqa(
+            img_a_path=p_a,
+            img_b_path=p_b,
+            query="What land-use changes occurred between these two dates?",
+            change_stats={"changed_pixel_pct": 26.61, "severity": "high", "threshold_used": 0.70},
+            analysis_id="test_insufficient_temporal",
+        )
+
+        assert res.is_mock is False
+        assert res.confidence is None
+        assert res.stats["vlm_validation"] == "insufficient_temporal_reasoning"
+        assert res.stats["vlm_temporal_status"] == "INSUFFICIENT_TEMPORAL_REASONING"
+        assert "INSUFFICIENT_TEMPORAL_REASONING" in res.answer
+        assert "VLM temporal interpretation insufficient" in res.answer
+        assert "26.61%" in res.answer
+        assert "SiameseUNet" in res.answer
+        assert any("INSUFFICIENT_TEMPORAL_REASONING" in ev for ev in res.evidence)
+        mock_fallback.assert_not_called()
+
+
+def test_validate_change_vqa_vlm_output_step16e_hardening():
+    """
+    Step 16E Regression Tests:
+    - 'Vegetation decreased between T1 and T2.' -> ACCEPTED
+    - 'Built-up area increased in T2.' -> ACCEPTED
+    - 'T1 shows forest. T2 shows grassland.' -> INSUFFICIENT
+    - 'New construction' -> INSUFFICIENT
+    - 'After: New construction, vegetation clearing, water disappearance' -> INSUFFICIENT
+    - copied category-list output -> INSUFFICIENT
+    - '1.000000' -> REJECTED
+    - empty output -> REJECTED
+    """
+    from app.services.change_vqa import validate_change_vqa_vlm_output
+
+    # 1. Evidence-oriented temporal transitions -> ACCEPTED
+    res1 = validate_change_vqa_vlm_output("Vegetation decreased between T1 and T2.")
+    assert res1.is_valid is True
+    assert res1.status == "ACCEPTED"
+
+    res2 = validate_change_vqa_vlm_output("Built-up area increased in T2.")
+    assert res2.is_valid is True
+    assert res2.status == "ACCEPTED"
+
+    # Additional accepted evidence-oriented examples from Step 16E spec:
+    res_ex1 = validate_change_vqa_vlm_output(
+        "Vegetated land in the first image appears to have been converted to built-up land in the second image."
+    )
+    assert res_ex1.is_valid is True
+    assert res_ex1.status == "ACCEPTED"
+
+    res_ex2 = validate_change_vqa_vlm_output(
+        "The built-up area expands between T1 and T2, with additional structures visible in the previously open region."
+    )
+    assert res_ex2.is_valid is True
+    assert res_ex2.status == "ACCEPTED"
+
+    # 2. Independent static scene descriptions without transition -> INSUFFICIENT
+    res3 = validate_change_vqa_vlm_output("T1 shows forest. T2 shows grassland.")
+    assert res3.is_valid is False
+    assert res3.status == "INSUFFICIENT_TEMPORAL_REASONING"
+
+    # 3. Isolated category label -> INSUFFICIENT
+    res4 = validate_change_vqa_vlm_output("New construction")
+    assert res4.is_valid is False
+    assert res4.status == "INSUFFICIENT_TEMPORAL_REASONING"
+
+    res4b = validate_change_vqa_vlm_output("Vegetation clearing")
+    assert res4b.is_valid is False
+    assert res4b.status == "INSUFFICIENT_TEMPORAL_REASONING"
+
+    # 4. Header followed by category labels -> INSUFFICIENT
+    res5 = validate_change_vqa_vlm_output("After: New construction, vegetation clearing, water disappearance")
+    assert res5.is_valid is False
+    assert res5.status == "INSUFFICIENT_TEMPORAL_REASONING"
+
+    # 5. Copied category-list output -> INSUFFICIENT
+    category_list_text = (
+        "After:\n"
+        "- New construction\n"
+        "- Built-up area increase/decrease\n"
+        "- Vegetation clearing\n"
+        "- Vegetation increase/decrease\n"
+        "- Water appearance/disappearance\n"
+        "- Agricultural/land-cover transition"
+    )
+    res6 = validate_change_vqa_vlm_output(category_list_text)
+    assert res6.is_valid is False
+    assert res6.status == "INSUFFICIENT_TEMPORAL_REASONING"
+
+    # 6. Degenerate float token -> REJECTED
+    res7 = validate_change_vqa_vlm_output("1.000000")
+    assert res7.is_valid is False
+    assert res7.status == "REJECTED"
+
+    # 7. Empty output -> REJECTED
+    res8 = validate_change_vqa_vlm_output("")
+    assert res8.is_valid is False
+    assert res8.status == "REJECTED"
+
+    res8b = validate_change_vqa_vlm_output("   \n\t  ")
+    assert res8b.is_valid is False
+    assert res8b.status == "REJECTED"
+
+

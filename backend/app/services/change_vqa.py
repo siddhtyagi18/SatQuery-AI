@@ -49,27 +49,142 @@ class ChangeVQAResult:
     stats: Dict[str, Any] = field(default_factory=dict)
 
 
-def validate_change_vqa_vlm_output(raw_text: Optional[str]) -> Tuple[bool, Optional[str], Optional[str]]:
+class ChangeVQAValidationResult(tuple):
+    """
+    Validation result for Change VQA VLM outputs.
+    Inherits from tuple (is_valid, cleaned, reason) for full backwards compatibility
+    with callers unpacking 3 values, while exposing:
+    - is_valid: bool (True only if ACCEPTED)
+    - cleaned: Optional[str]
+    - reason: Optional[str]
+    - status: str ("ACCEPTED", "INSUFFICIENT_TEMPORAL_REASONING", or "REJECTED")
+    """
+    is_valid: bool
+    cleaned: Optional[str]
+    reason: Optional[str]
+    status: str
+
+    def __new__(cls, is_valid: bool, cleaned: Optional[str], reason: Optional[str], status: str):
+        instance = super().__new__(cls, (is_valid, cleaned, reason))
+        instance.is_valid = is_valid
+        instance.cleaned = cleaned
+        instance.reason = reason
+        instance.status = status
+        return instance
+
+
+PROMPT_CATEGORY_NAMES = [
+    "new construction",
+    "built-up area increase/decrease",
+    "built-up area increase",
+    "built-up area decrease",
+    "vegetation clearing",
+    "vegetation increase/decrease",
+    "vegetation increase",
+    "vegetation decrease",
+    "water appearance/disappearance",
+    "water appearance",
+    "water disappearance",
+    "agricultural/land-cover transition",
+    "land-cover transition",
+]
+
+TEMPORAL_TRANSITION_PATTERNS = [
+    r"\bincreas(?:e|ed|ing|es)\b",
+    r"\bdecreas(?:e|ed|ing|es)\b",
+    r"\bexpand(?:ed|ing|s|ion)?\b",
+    r"\breduc(?:e|ed|ing|tion|tions)\b",
+    r"\bappear(?:ed|ing|s|ance)?\b",
+    r"\bdisappear(?:ed|ing|s|ance)?\b",
+    r"\bconvert(?:ed|ing|s|ion)?\b",
+    r"\btransition(?:ed|ing|s)?\b",
+    r"\bcleared\b|\bclearing\b",
+    r"\bconstruct(?:ed|ing|ion|ions)?\b",
+    r"\bbuilt\b|\bnewly\s+built\b|\bdevelopment\b",
+    r"\bremov(?:ed|ing|al)\b",
+    r"\bdemolish(?:ed|ing|tion)?\b",
+    r"\bchang(?:ed?|ing|es)\s+(?:from|to|into)\b",
+    r"\breplaced\s+by\b",
+    r"\b(?:loss|gain|growth)\s+of\b",
+    r"\bdeforestation\b|\burbanization\b|\burban\s+expansion\b",
+    r"\bnew\s+(?:building|structure|road|residential|commercial|industrial|infrastructure)\b",
+    r"\bdeveloped\s+into\b",
+    r"\badded\b|\baddition\s+of\b",
+]
+
+
+def _detect_prompt_echo_or_isolated_category(cleaned: str) -> Tuple[bool, Optional[str]]:
+    """
+    Detect outputs that:
+    1. Reproduce isolated category names (e.g. 'New construction', 'Vegetation clearing').
+    2. Start with 'After:' followed by generic category labels.
+    3. Reproduce multiple category names copied from the prompt instruction without visual observations.
+    4. Are too short (< 4 words) to form a complete observational sentence.
+    """
+    norm_text = re.sub(r"[-*•\d\.\:\(\)]+", " ", cleaned).strip().lower()
+    norm_words = norm_text.split()
+
+    # 1. Exact or near-exact isolated category label
+    for cat in PROMPT_CATEGORY_NAMES:
+        if norm_text == cat or norm_text == f"after {cat}" or norm_text == f"before {cat}":
+            return True, f"Isolated category label without observation sentence ('{cleaned}')"
+
+    # 2. Text starts with 'After:' or 'Before:' followed by category labels or bullet list
+    if re.match(r"^(?:after|before)\s*:", cleaned, re.IGNORECASE):
+        after_body = re.sub(r"^(?:after|before)\s*:\s*", "", cleaned, flags=re.IGNORECASE).strip()
+        lines = [ln.strip() for ln in after_body.splitlines() if ln.strip()]
+        if lines:
+            all_short = all(len(ln.split()) <= 4 for ln in lines)
+            if all_short:
+                return True, f"Echoed category list under header ('{cleaned[:50]}...')"
+        comma_parts = [p.strip() for p in after_body.split(",") if p.strip()]
+        if len(comma_parts) >= 2 and all(len(p.split()) <= 4 for p in comma_parts):
+            return True, f"Echoed category list under header ('{cleaned[:50]}...')"
+
+    # 3. Output containing multiple prompt categories in a short bullet/line list
+    matched_cats = [cat for cat in PROMPT_CATEGORY_NAMES if cat in cleaned.lower()]
+    lines = [ln.strip() for ln in cleaned.splitlines() if ln.strip()]
+    if len(matched_cats) >= 2:
+        is_bullet_list = all(
+            re.match(r"^(?:[-*•]|\d+[\.\)])\s*", ln) or len(ln.split()) <= 4
+            for ln in lines
+        )
+        if is_bullet_list and len(norm_words) < 25:
+            return True, f"Echoed prompt categories without visual evidence ({', '.join(matched_cats[:3])})"
+
+    # 4. Word count too short to constitute a complete natural-language observation sentence
+    if len(norm_words) < 4:
+        return True, f"Output too short to form an observational sentence ('{cleaned}')"
+
+    return False, None
+
+
+def validate_change_vqa_vlm_output(raw_text: Optional[str]) -> ChangeVQAValidationResult:
     """
     Validate raw Vision-Language Model output for Change VQA.
 
     Enforces that the VLM produced genuine qualitative natural-language text
-    and rejects degenerate outputs (e.g., lone coordinates, floats like "1.000000",
-    empty strings, or ungrounded numeric tokens).
+    with temporal transition reasoning:
+    1. Rejects degenerate outputs (e.g., lone coordinates, floats like '1.000000',
+       empty strings, or ungrounded numeric tokens) as REJECTED.
+    2. Rejects prompt category echoes, isolated category labels ('New construction'),
+       and independent static descriptions as INSUFFICIENT_TEMPORAL_REASONING.
+    3. Accepts answers that describe an actual temporal relationship or transition
+       with evidence-oriented phrasing, or the explicit reliable fallback statement, as ACCEPTED.
 
     Returns:
-        (is_valid, cleaned_answer, rejection_reason)
+        ChangeVQAValidationResult(is_valid, cleaned_answer, rejection_reason, status)
     """
     if raw_text is None:
-        return False, None, "VLM returned null/empty response"
+        return ChangeVQAValidationResult(False, None, "VLM returned null/empty response", "REJECTED")
 
     cleaned = raw_text.strip()
     if not cleaned:
-        return False, cleaned, "Empty or whitespace-only output"
+        return ChangeVQAValidationResult(False, cleaned, "Empty or whitespace-only output", "REJECTED")
 
     # 1. Pure floating point or integer number (e.g. "1.000000", "0.500000", "1", "42")
     if re.fullmatch(r"[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?", cleaned):
-        return False, cleaned, f"Degenerate isolated numeric token ({cleaned})"
+        return ChangeVQAValidationResult(False, cleaned, f"Degenerate isolated numeric token ({cleaned})", "REJECTED")
 
     # 2. Coordinate-like strings (e.g. "[0.0 0.0, 1.0 1.0]", "<point>(0.5, 0.5)</point>", "(0.1, 0.2)")
     if (
@@ -77,18 +192,44 @@ def validate_change_vqa_vlm_output(raw_text: Optional[str]) -> Tuple[bool, Optio
         or "<point>" in cleaned
         or re.fullmatch(r"\(\s*[-+]?\d+(?:\.\d+)?\s*,\s*[-+]?\d+(?:\.\d+)?\s*\)", cleaned)
     ):
-        return False, cleaned, f"Degenerate coordinate-like token string ({cleaned})"
+        return ChangeVQAValidationResult(False, cleaned, f"Degenerate coordinate-like token string ({cleaned})", "REJECTED")
 
     # 3. Single-character or too short
     if len(cleaned) < 2:
-        return False, cleaned, "Single-character output"
+        return ChangeVQAValidationResult(False, cleaned, "Single-character output", "REJECTED")
 
     # 4. Output containing no alphabetic words of at least 2 letters
     words = re.findall(r"[A-Za-z]{2,}", cleaned)
     if not words:
-        return False, cleaned, f"No natural-language words found in output ({cleaned})"
+        return ChangeVQAValidationResult(False, cleaned, f"No natural-language words found in output ({cleaned})", "REJECTED")
 
-    return True, cleaned, None
+    # 5. Reliable Uncertainty Fallback: explicitly allowed by instruction
+    if re.search(r"cannot\s+be\s+(?:determined\s+reliably|reliably\s+determined)", cleaned, re.IGNORECASE):
+        return ChangeVQAValidationResult(True, cleaned, None, "ACCEPTED")
+
+    # 6. Prompt Echo & Isolated Category Detection
+    is_echo, echo_reason = _detect_prompt_echo_or_isolated_category(cleaned)
+    if is_echo:
+        return ChangeVQAValidationResult(
+            False,
+            cleaned,
+            f"INSUFFICIENT_TEMPORAL_REASONING: {echo_reason}",
+            "INSUFFICIENT_TEMPORAL_REASONING",
+        )
+
+    # 7. Evidence-Oriented Temporal Transition Validation
+    has_temporal_transition = any(
+        re.search(pat, cleaned, re.IGNORECASE) for pat in TEMPORAL_TRANSITION_PATTERNS
+    )
+    if not has_temporal_transition:
+        return ChangeVQAValidationResult(
+            False,
+            cleaned,
+            "INSUFFICIENT_TEMPORAL_REASONING: Output describes static scenes independently without identifying temporal transition or change-oriented dynamics",
+            "INSUFFICIENT_TEMPORAL_REASONING",
+        )
+
+    return ChangeVQAValidationResult(True, cleaned, None, "ACCEPTED")
 
 
 # ---------------------------------------------------------------------------
@@ -283,13 +424,20 @@ def build_change_vqa_prompt(
     Construct a concise, domain-grounded prompt instructing the VLM to analyze
     the satellite comparison strip.
 
-    Step 9B/16C Design:
-    -------------------
+    Step 16D Temporal Design:
+    -------------------------
     - Default reasoning image is 2-PANEL (T1: Before | T2: After).
-    - Explicitly identifies LEFT as Before/T1 and RIGHT as After/T2.
-    - Instructs VLM to compare images directly and describe visually supported changes.
-    - Requires 1-2 complete natural-language sentences using remote-sensing terminology.
-    - Strictly prohibits isolated coordinates, numbers, JSON, fabricated dates, or percentages.
+    - Instructs VLM to compare T1 and T2 directly and identify the temporal transition.
+    - Demands change-oriented language distinguishing:
+        * vegetation increase/decrease
+        * built-up area increase/decrease
+        * vegetation clearing
+        * new construction
+        * water appearance/disappearance
+        * agricultural/land-cover transition
+    - Only mentions a category when visually supported.
+    - Prohibits inferring exact percentages/counts, coordinates, dates, or measurements.
+    - Explicitly instructs fallback: "A semantic description of the change cannot be determined reliably from the imagery."
     - Quantitative detector telemetry is strictly EXCLUDED from the VLM prompt to enforce visual reasoning.
     """
     is_three_panel = use_three_panel or (not two_panel and use_three_panel)
@@ -302,12 +450,16 @@ def build_change_vqa_prompt(
             "- Right panel = T2 with a subtle outline showing pixels detected as changed.",
             "",
             "Instructions:",
-            "- Compare the Left (Before / T1) and Center (After / T2) panels directly to identify physical changes, using the Right panel only to locate candidate difference regions.",
+            "- Compare the Left (Before / T1) and Center (After / T2) panels directly to identify the temporal transition from T1 to T2.",
             "- Use the RIGHT panel only to locate where the change detector identified differences.",
-            "- Produce 1 to 2 complete natural-language sentences describing only visually supported qualitative changes using remote-sensing terminology (e.g. new structures, vegetation alteration, road development).",
+            "- Describe only physical changes that are actually visible between the earlier acquisition (Left / T1) and later acquisition (Center / T2).",
+            "- Produce 1 to 2 complete natural-language sentences describing the observed transition.",
             "- Do not describe image annotations, colors, masks, overlays, or graphics as physical objects.",
-            "- Do not invent exact counts, measurements, percentages, coordinates, dates, or confidence scores.",
+            "- Never infer an exact percentage, count, or measurement from visual inspection.",
+            "- Never invent dates, coordinates, sensor names, confidence scores, or measurements.",
             "- Do not output coordinate tokens, JSON, or isolated numeric values.",
+            "- If no clear semantic change can be identified, explicitly say: 'A semantic description of the change cannot be determined reliably from the imagery.'",
+            "- Produce 1 to 2 complete natural-language sentences focusing on the temporal transition.",
         ]
         if date_a or date_b:
             prompt_parts.append(f"Temporal baseline: {date_a or 'T1'} to {date_b or 'T2'}.")
@@ -315,23 +467,27 @@ def build_change_vqa_prompt(
             "",
             f"User Question: {query.strip()}",
             "",
-            "Qualitative Scene Change Description:",
+            "Temporal Scene Change Description:",
         ])
         return "\n".join(prompt_parts)
 
-    # DEFAULT: 2-Panel Concise Prompt
+    # DEFAULT: 2-Panel Temporal Comparison Prompt
     prompt_parts = [
         "You are analyzing a bi-temporal satellite image comparison strip containing two temporal acquisitions of the same location.",
         "The left satellite image (Before / T1) is the earlier acquisition. The right satellite image (After / T2) is the later acquisition.",
-        "Compare the left satellite image (Before / T1) with the right satellite image (After / T2). "
+        "Compare the left satellite image (Before / T1) with the right satellite image (After / T2).",
         "Identify only physical changes visible between the two images.",
         "",
         "Instructions:",
-        "- Produce 1 to 2 complete natural-language sentences describing only visually supported qualitative changes using remote-sensing terminology (e.g. new building construction, surface clearing, vegetation loss, road expansion).",
+        "- Describe only physical changes that are actually visible between the earlier acquisition (Left / T1) and later acquisition (Right / T2).",
+        "- Produce 1 to 2 complete natural-language sentences describing the observed transition.",
         "- Do not describe image annotations, colors, masks, overlays, or graphics as physical objects.",
         "- Do not invent exact counts, measurements, or object identities unless clearly visible.",
-        "- Do not invent exact counts, measurements, percentages, coordinates, dates, or confidence scores.",
+        "- Never infer an exact percentage, count, or measurement from visual inspection.",
+        "- Never invent dates, coordinates, sensor names, confidence scores, or measurements.",
         "- Do not output coordinate tokens, JSON, or isolated numeric values.",
+        "- If no clear semantic change can be identified, explicitly say: 'A semantic description of the change cannot be determined reliably from the imagery.'",
+        "- Produce 1 to 2 complete natural-language sentences focusing on the temporal transition.",
     ]
     if date_a or date_b:
         prompt_parts.append(f"Temporal baseline: {date_a or 'T1'} to {date_b or 'T2'}.")
@@ -340,7 +496,7 @@ def build_change_vqa_prompt(
         "",
         f"User Question: {query.strip()}",
         "",
-        "Qualitative Scene Change Description:",
+        "Temporal Scene Change Description:",
     ])
     return "\n".join(prompt_parts)
 
@@ -513,13 +669,23 @@ def run_change_vqa(
         # 5. Format successful real VLM output, preserving raw VLM generation and validating quality
         elapsed_sec = time.perf_counter() - t0
         raw_vlm_answer = vqa_res.answer.strip()
-        is_valid_vlm, cleaned_vlm, rejection_reason = validate_change_vqa_vlm_output(raw_vlm_answer)
+        validation_res = validate_change_vqa_vlm_output(raw_vlm_answer)
+        is_valid_vlm = validation_res.is_valid
+        cleaned_vlm = validation_res.cleaned
+        rejection_reason = validation_res.reason
+        validation_status = validation_res.status
 
-        if is_valid_vlm:
+        if validation_status == "ACCEPTED":
             vlm_section = (
                 f"**Qualitative Visual Interpretation (VLM):**\n"
                 f"{cleaned_vlm}\n\n"
-                f"**VLM Interpretation Validation:** `ACCEPTED` (Natural-language visual reasoning validated)"
+                f"**VLM Interpretation Validation:** `ACCEPTED` (Temporal change transition validated)"
+            )
+        elif validation_status == "INSUFFICIENT_TEMPORAL_REASONING":
+            vlm_section = (
+                f"**Qualitative Visual Interpretation (VLM):**\n"
+                f"[VLM temporal interpretation insufficient: The model described static scenes independently without explicit temporal transition or change-oriented dynamics. Raw output: \"{cleaned_vlm}\"]\n\n"
+                f"**VLM Interpretation Validation:** `INSUFFICIENT_TEMPORAL_REASONING` (Static scene descriptions without temporal transition phrasing)"
             )
         else:
             vlm_section = (
@@ -551,8 +717,10 @@ def run_change_vqa(
                 if not any(k in ev.lower() for k in ("output shape", "pillow backend")):
                     evidence.append(f"[VLM Reasoning] {ev}")
 
-        if is_valid_vlm:
-            evidence.append("[VLM Validation] Output passed natural-language quality validation.")
+        if validation_status == "ACCEPTED":
+            evidence.append("[VLM Validation] Output passed temporal change quality validation.")
+        elif validation_status == "INSUFFICIENT_TEMPORAL_REASONING":
+            evidence.append(f"[VLM Validation] Output flagged as INSUFFICIENT_TEMPORAL_REASONING: Lacks temporal transition phrasing (raw: {raw_vlm_answer!r}).")
         else:
             evidence.append(f"[VLM Validation] Output REJECTED as degenerate: {rejection_reason} (raw: {raw_vlm_answer!r}).")
 
@@ -577,7 +745,8 @@ def run_change_vqa(
                 "evidence_image_dimensions": [evidence_img.width, evidence_img.height],
                 "reasoning_image_passed_to_vlm": vlm_image_name,
                 "raw_vlm_answer": raw_vlm_answer,
-                "vlm_validation": "accepted" if is_valid_vlm else "rejected",
+                "vlm_validation": validation_status.lower(),
+                "vlm_temporal_status": validation_status,
                 "vlm_rejection_reason": rejection_reason,
                 "processing_time_sec": round(elapsed_sec, 2),
             },
