@@ -185,39 +185,17 @@ class SupabaseAuthService implements AuthService {
           access_type: 'offline',
           prompt: 'consent',
         },
-        skipBrowserRedirect: true,
       },
     });
 
     if (error) {
-      const msg = error.message || '';
-      const isProviderDisabled =
-        msg.toLowerCase().includes('not enabled') ||
-        msg.toLowerCase().includes('validation_failed') ||
-        (error as { status?: number }).status === 400;
       return {
-        error: msg,
-        providerDisabled: isProviderDisabled,
+        error: error.message,
       };
     }
 
     if (data?.url && typeof window !== 'undefined') {
-      try {
-        // Probe endpoint to prevent browser navigating to a raw 400 JSON error page
-        const probe = await fetch(data.url, { redirect: 'manual' });
-        if (probe.status === 400) {
-          const body = (await probe.json().catch(() => ({}))) as { msg?: string };
-          const msg = body?.msg || 'Unsupported provider: provider is not enabled';
-          return {
-            error: msg,
-            providerDisabled: true,
-          };
-        }
-      } catch {
-        // Cross-origin redirect to accounts.google.com will throw or return opaque, which indicates success
-      }
-
-      window.location.href = data.url;
+      window.location.assign(data.url);
       return { url: data.url };
     }
 
@@ -424,17 +402,47 @@ export async function checkGoogleProviderStatus(): Promise<{ enabled: boolean; e
 }
 
 export async function signOut() {
+  if (HAS_SUPABASE && supabase) {
+    try {
+      await new SupabaseAuthService().signOut();
+    } catch {
+      // Ignore
+    }
+  }
   return authService.signOut();
 }
 
 export async function getCurrentSession() {
+  if (HAS_SUPABASE && supabase) {
+    const sbSession = await new SupabaseAuthService().getCurrentSession();
+    if (sbSession) return sbSession;
+  }
   return authService.getCurrentSession();
 }
 
 export async function getCurrentUserId() {
+  if (HAS_SUPABASE && supabase) {
+    const sbId = await new SupabaseAuthService().getCurrentUserId();
+    if (sbId) return sbId;
+  }
   return authService.getCurrentUserId();
 }
 
 export function onAuthStateChange(listener: AuthStateChangeListener): () => void {
+  if (HAS_SUPABASE && supabase) {
+    const sbService = new SupabaseAuthService();
+    const unsubSb = sbService.onAuthStateChange((event) => {
+      if (event.session) {
+        listener(event);
+      }
+    });
+    const unsubMock = authService.onAuthStateChange((event) => {
+      listener(event);
+    });
+    return () => {
+      unsubSb();
+      unsubMock();
+    };
+  }
   return authService.onAuthStateChange(listener);
 }

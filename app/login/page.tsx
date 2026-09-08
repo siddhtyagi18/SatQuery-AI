@@ -82,28 +82,16 @@ export default function LoginPage() {
     setIsGoogleLoading(true);
     try {
       const res = await loginWithGoogle();
-      if (res?.url) {
-        toast.loading('Redirecting to Google Mission Clearance…');
+      if (res?.error) {
+        toast.error(`Google Sign-In: ${res.error}`);
+        setIsGoogleLoading(false);
         return;
       }
-      if (res?.providerDisabled || res?.error?.toLowerCase().includes('not enabled')) {
-        toast.info(
-          'Supabase project reports Google provider is not enabled yet. Continuing with clearance profile.',
-          { duration: 4000 }
-        );
-      } else if (res?.error) {
-        toast.error(`Google Sign-In: ${res.error}`);
-      }
-    } catch {
-      // Seamless fallback
-    } finally {
+      toast.loading('Redirecting to Google…');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Google OAuth failed');
       setIsGoogleLoading(false);
     }
-
-    // Seamless instant login preserving 100% existing functionality
-    login('google.operator@isro.gov.in', 'Google Operator');
-    toast.success('Authenticated via Google ISRO SSO');
-    setTimeout(() => router.push('/profile'), 400);
   };
 
   return (

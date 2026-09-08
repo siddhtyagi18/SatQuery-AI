@@ -105,6 +105,8 @@ function AuthCallbackContent() {
         console.warn('[auth-callback] Profile creation note:', profileErr);
       }
 
+      login(email, fullName);
+
       if (!active) return;
       setStatus('success');
       setTimeout(() => {
