@@ -2,7 +2,7 @@
 // Drag-and-drop image uploader — Mode-aware slot rendering with clear role labeling and "Choose Image" button.
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { cn, formatBytes } from '@/lib/utils';
 import type { AnalysisMode, UploadedImage } from '@/lib/types/analysis';
 import {
@@ -97,6 +97,11 @@ function UploadSlot({
 }: UploadSlotProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
+  const [previewError, setPreviewError] = useState(false);
+
+  useEffect(() => {
+    setPreviewError(false);
+  }, [uploaded?.previewUrl]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -189,12 +194,13 @@ function UploadSlot({
         ) : uploaded ? (
           <div className="w-full h-full relative flex flex-col items-center justify-center">
             {/* Image Preview Thumbnail */}
-            {uploaded.previewUrl ? (
+            {uploaded.previewUrl && !previewError ? (
               <div className="w-full relative rounded-lg overflow-hidden border border-[var(--border-hairline)] max-h-[220px]">
                 <img
                   src={uploaded.previewUrl}
                   alt={`Preview of ${uploaded.metadata.fileName}`}
                   className="w-full h-full object-cover"
+                  onError={() => setPreviewError(true)}
                 />
               </div>
             ) : (

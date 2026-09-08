@@ -2,7 +2,7 @@
 // Cross-modal Optical + SAR viewer with blend control and dual-view sync.
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CornerFrame } from '@/components/ui/CornerFrame';
 import { Radar, Eye, SlidersHorizontal, SunMedium } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -16,6 +16,16 @@ interface OpticalSarViewerProps {
 export function OpticalSarViewer({ opticalUrl, sarUrl, className }: OpticalSarViewerProps) {
   const [viewMode, setViewMode] = useState<'sideBySide' | 'blend'>('sideBySide');
   const [sarBlend, setSarBlend] = useState(0.5);
+  const [opticalError, setOpticalError] = useState(false);
+  const [sarError, setSarError] = useState(false);
+
+  useEffect(() => {
+    setOpticalError(false);
+  }, [opticalUrl]);
+
+  useEffect(() => {
+    setSarError(false);
+  }, [sarUrl]);
 
   return (
     <CornerFrame label="CROSS-MODAL OPTICAL + SAR FUSION" domain="amber" className={cn('w-full', className)}>
@@ -88,8 +98,13 @@ export function OpticalSarViewer({ opticalUrl, sarUrl, className }: OpticalSarVi
           <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-[var(--border-hairline)] h-[380px]">
             {/* Optical Channel */}
             <div className="relative bg-[#071322] flex flex-col items-center justify-center overflow-hidden">
-              {opticalUrl ? (
-                <img src={opticalUrl} alt="Optical Imagery" className="w-full h-full object-cover" />
+              {opticalUrl && !opticalError ? (
+                <img
+                  src={opticalUrl}
+                  alt="Optical Imagery"
+                  className="w-full h-full object-cover"
+                  onError={() => setOpticalError(true)}
+                />
               ) : (
                 <div className="flex flex-col items-center gap-2 p-6 text-center">
                   <SunMedium className="w-8 h-8 text-[var(--accent-signal)] opacity-50" />
@@ -104,8 +119,13 @@ export function OpticalSarViewer({ opticalUrl, sarUrl, className }: OpticalSarVi
 
             {/* SAR Channel */}
             <div className="relative bg-[#14120a] flex flex-col items-center justify-center overflow-hidden">
-              {sarUrl ? (
-                <img src={sarUrl} alt="SAR Imagery" className="w-full h-full object-cover grayscale contrast-125" />
+              {sarUrl && !sarError ? (
+                <img
+                  src={sarUrl}
+                  alt="SAR Imagery"
+                  className="w-full h-full object-cover grayscale contrast-125"
+                  onError={() => setSarError(true)}
+                />
               ) : (
                 <div className="flex flex-col items-center gap-2 p-6 text-center">
                   <Radar className="w-8 h-8 text-[var(--accent-warning)] opacity-50" />
@@ -126,8 +146,13 @@ export function OpticalSarViewer({ opticalUrl, sarUrl, className }: OpticalSarVi
 
             {/* Optical Base */}
             <div className="absolute inset-0">
-              {opticalUrl ? (
-                <img src={opticalUrl} alt="Optical Base" className="w-full h-full object-cover" />
+              {opticalUrl && !opticalError ? (
+                <img
+                  src={opticalUrl}
+                  alt="Optical Base"
+                  className="w-full h-full object-cover"
+                  onError={() => setOpticalError(true)}
+                />
               ) : (
                 <div className="w-full h-full bg-[#071322] flex items-center justify-center">
                   <span className="text-xs font-mono text-[var(--accent-signal)]">Optical Base</span>
@@ -137,8 +162,13 @@ export function OpticalSarViewer({ opticalUrl, sarUrl, className }: OpticalSarVi
 
             {/* SAR Blended Top Layer */}
             <div className="absolute inset-0" style={{ opacity: sarBlend, mixBlendMode: 'screen' }}>
-              {sarUrl ? (
-                <img src={sarUrl} alt="SAR Overlay" className="w-full h-full object-cover grayscale contrast-150" />
+              {sarUrl && !sarError ? (
+                <img
+                  src={sarUrl}
+                  alt="SAR Overlay"
+                  className="w-full h-full object-cover grayscale contrast-150"
+                  onError={() => setSarError(true)}
+                />
               ) : (
                 <div
                   className="w-full h-full"

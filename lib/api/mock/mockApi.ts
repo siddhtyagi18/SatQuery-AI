@@ -25,6 +25,7 @@ import { generateId, sleep } from '@/lib/utils';
 const store = new Map<string, AnalysisResult>(
   allFixtures.map((r) => [r.id, { ...r }])
 );
+const uploadedImagesStore = new Map<string, UploadedImage>();
 
 // ---- Tool registry ----
 const MOCK_TOOLS: ToolDefinition[] = [
@@ -57,21 +58,21 @@ const MOCK_TOOLS: ToolDefinition[] = [
   },
   {
     id: 'change-det-v1',
-    name: 'Bi-temporal Change Detection Model',
+    name: 'Bi-temporal Change Detector',
     taskTypes: ['change_detection', 'change_description'],
     supportedModalities: ['optical', 'multispectral'],
-    status: 'mock',
-    version: '2.1.0-demo',
-    description: 'Change detection model for bi-temporal optical image pairs. Implements CVA (Change Vector Analysis) + NDVI/NDWI difference approaches. Produces per-pixel change masks with semantic class labels. Supports co-registration alignment for unregistered input pairs.',
+    status: 'available',
+    version: '0.3.0-p0',
+    description: 'Change detection for bi-temporal image pairs. Executes trained Siamese U-Net neural checkpoint (490K parameters, LEVIR-CD trained) producing pixel-level binary change probability masks.',
   },
   {
     id: 'change-vqa-v1',
     name: 'Change-VQA Language Model',
     taskTypes: ['change_vqa', 'change_description'],
     supportedModalities: ['optical', 'multispectral'],
-    status: 'mock',
-    version: '1.1.0-demo',
-    description: 'Specialised VQA head operating on bi-temporal image pairs and change masks. Answers natural-language questions about detected changes, generates human-readable change descriptions, and provides quantified change statistics (area, percentage, class-wise breakdown).',
+    status: 'available',
+    version: '0.3.0-p0',
+    description: 'Answers natural-language questions about bi-temporal scene changes by combining Siamese U-Net change detection with domain-adapted Vision-Language Model interpretation (SmolVLM-500M + LoRA).',
   },
   {
     id: 'sar-optical-fusion-v1',
@@ -153,7 +154,9 @@ export const mockApi: SatQueryApi = {
       gsdMeters: null,
       fileSizeBytes: file.size,
     };
-    return { id: generateId(), role, previewUrl, metadata };
+    const uploaded: UploadedImage = { id: generateId(), role, previewUrl, metadata };
+    uploadedImagesStore.set(uploaded.id, uploaded);
+    return uploaded;
   },
 
   async submitAnalysis(input: SubmitAnalysisInput): Promise<{ analysisId: string }> {
@@ -161,6 +164,26 @@ export const mockApi: SatQueryApi = {
     const analysisId = `analysis-${generateId()}`;
     const fixture = pickFixtureForMode(input.mode);
     const steps = buildPendingSteps(input.mode, input.query);
+
+    const matchedImages = (input.imageIds ?? [])
+      .map((id) => uploadedImagesStore.get(id))
+      .filter((img): img is UploadedImage => Boolean(img));
+
+    const finalImages: UploadedImage[] = matchedImages.length > 0
+      ? matchedImages.map((img, idx) => {
+          const fallbackRole = input.mode === 'bi_temporal'
+            ? (idx === 0 ? 'before' : 'after')
+            : input.mode === 'optical_sar'
+            ? (idx === 0 ? 'optical' : 'sar')
+            : 'single';
+          return {
+            ...img,
+            role: img.role || fallbackRole,
+            previewUrl: img.previewUrl ?? fixture.images[idx]?.previewUrl ?? null,
+          };
+        })
+      : fixture.images;
+
     const newResult: AnalysisResult = {
       ...fixture,
       id: analysisId,
@@ -168,6 +191,7 @@ export const mockApi: SatQueryApi = {
       query: input.query,
       status: 'queued',
       createdAt: new Date().toISOString(),
+      images: finalImages,
       answerText: null,
       confidence: null,
       boundingBoxes: null,
@@ -238,6 +262,8 @@ export const mockApi: SatQueryApi = {
       result.changeMap = finalFixture.changeMap;
       result.toolInvocations = finalFixture.toolInvocations;
       result.detectedTasks = finalFixture.detectedTasks;
+      result.isMock = finalFixture.isMock !== undefined ? finalFixture.isMock : false;
+      result.executionMode = finalFixture.executionMode ?? 'real';
       result.executionTrace.overallStatus = 'completed';
       result.executionTrace.totalElapsedMs = stepDelays.reduce((a, b) => a + b, 0);
       store.set(id, result);

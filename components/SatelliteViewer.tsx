@@ -3,7 +3,7 @@
 // HUD overlay with zoom level, coordinates, reset button, and reticle corner frame.
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Crosshair } from 'lucide-react';
 import { CornerFrame } from '@/components/ui/CornerFrame';
 import { cn } from '@/lib/utils';
@@ -31,7 +31,12 @@ export function SatelliteViewer({
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [imgError, setImgError] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [imageUrl]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -114,12 +119,13 @@ export function SatelliteViewer({
               transformOrigin: 'center center',
             }}
           >
-            {imageUrl ? (
+            {imageUrl && !imgError ? (
               <img
                 src={imageUrl}
                 alt={altText}
                 className="max-w-none w-[600px] h-[400px] object-cover rounded shadow-2xl pointer-events-none transition-opacity duration-300"
                 draggable={false}
+                onError={() => setImgError(true)}
               />
             ) : (
               <div className="w-[600px] h-[400px] bg-gradient-to-br from-[#0c1829] via-[#092237] to-[#04101e] rounded flex flex-col items-center justify-center p-6 border border-[var(--border-hairline)] text-center relative overflow-hidden">

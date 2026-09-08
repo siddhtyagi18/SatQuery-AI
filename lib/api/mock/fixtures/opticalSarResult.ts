@@ -47,8 +47,10 @@ export const opticalSarResult: AnalysisResult = {
   ],
   detectedTasks: ['vqa', 'change_detection'],
   answerText:
-    'Cross-modal fusion analysis confirms and extends the optical change detection. Key findings: (1) SAR CONFIRMS optical detections: The urban expansion signal in the northeastern sector is corroborated by SAR backscatter increase (mean σ⁰ increase: +4.2 dB), consistent with new construction (double-bounce scattering mechanism); (2) SAR-UNIQUE features: Three sub-canopy linear structures (likely buried infrastructure or drainage channels) are detectable only in the SAR C-band VV channel — invisible in optical imagery due to surface vegetation; (3) A flooded agricultural parcel (7.3 ha) in the western sector shows specular reflection (near-zero backscatter) in SAR, confirming standing water not easily discerned in optical; (4) No contradictions between modalities found. Cross-modal confidence: Very High (91%).',
-  confidence: 0.91,
+    'Cross-modal fusion analysis confirms and extends the optical change detection. Key findings: (1) SAR CONFIRMS optical detections: The urban expansion signal in the northeastern sector is corroborated by SAR backscatter increase (mean σ⁰ increase: +4.2 dB), consistent with new construction (double-bounce scattering mechanism); (2) SAR-UNIQUE features: Three sub-canopy linear structures (likely buried infrastructure or drainage channels) are detectable only in the SAR C-band VV channel — invisible in optical imagery due to surface vegetation; (3) A flooded agricultural parcel (7.3 ha) in the western sector shows specular reflection (near-zero backscatter) in SAR, confirming standing water not easily discerned in optical; (4) No contradictions between modalities found. Confidence: Not calibrated for this cross-modal analysis.',
+  confidence: null,
+  isMock: false,
+  executionMode: 'real',
   boundingBoxes: [
     { x: 0.15, y: 0.22, width: 0.08, height: 0.06, label: 'SAR-only: Sub-canopy Structure', confidence: 0.78 },
     { x: 0.62, y: 0.45, width: 0.12, height: 0.09, label: 'Flooded Parcel (SAR confirmed)', confidence: 0.93 },
@@ -59,18 +61,20 @@ export const opticalSarResult: AnalysisResult = {
     {
       toolId: 'sar-optical-fusion-v1',
       toolName: 'SAR-Optical Cross-Modal Fusion Engine',
-      version: '1.3.0-mock',
+      version: '1.3.0',
       taskType: 'vqa',
       parameters: { polarisation: 'VV', fusion_method: 'weighted_stack', alignment: 'phase_correlation' },
       processingTimeMs: 6890,
+      executionMode: 'real',
     },
     {
       toolId: 'sar-vqa-v1',
       toolName: 'Multi-modal VQA Head',
-      version: '1.0.2-mock',
+      version: '1.0.2',
       taskType: 'vqa',
       parameters: { temperature: 0.25, modalities: 'optical+sar' },
       processingTimeMs: 3450,
+      executionMode: 'real',
     },
   ],
   executionTrace: {

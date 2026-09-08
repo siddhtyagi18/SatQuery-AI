@@ -701,8 +701,9 @@ def run_change_vqa(
             f"- **Detected Changed Area:** `{changed_pct:.2f}%` (Severity: **{severity}**)\n"
             f"- **Change Detection Threshold:** `{thresh_used:.2f}` (Siamese U-Net)\n"
             f"- **Detector Model:** SiameseUNet (~490K parameters, LEVIR-CD trained checkpoint)\n"
+            f"- **Confidence:** Not calibrated for this bi-temporal analysis (confidence = null)\n"
             f"- **Inference Provenance:** Vision-Language Model ({vqa_res.run_context.model_id if vqa_res.run_context else 'local:SmolVLM'})"
-        ) if changed_pct is not None else f"### Bi-Temporal Scene Change Interpretation\n\n{vlm_section}"
+        ) if changed_pct is not None else f"### Bi-Temporal Scene Change Interpretation\n\n{vlm_section}\n\nConfidence: Not calibrated for this analysis."
 
         # Separate Change Detector evidence from VLM evidence
         evidence: List[str] = [

@@ -69,12 +69,17 @@ def select_tools_for_tasks(
         return selected
 
     if mode == "bi_temporal":
+        # In bi-temporal mode, only multi-temporal change specialists should be executed.
+        # Single-image VQA and captioning tools must not be selected to avoid injecting single-image reports.
         for t in tasks:
-            preferred = TASK_TO_PREFERRED_TOOL.get(t)
-            if preferred and preferred not in selected:
-                selected.append(preferred)
+            if t in ("change_detection", "change_vqa", "change_description"):
+                preferred = TASK_TO_PREFERRED_TOOL.get(t)
+                if preferred and preferred not in selected:
+                    selected.append(preferred)
         if "grounding" in tasks and "spatial_analyzer" not in selected:
             selected.append("spatial_analyzer")
+        if not selected:
+            selected = ["change_detector", "change_vqa"]
         return selected
 
     for t in tasks:
@@ -277,13 +282,17 @@ def execute_plan(
                     tool_execution_modes[tid] = "real"
                     logger.info("[orchestrator] change_detector ran REAL CPU service")
                 except Exception as cd_exc:
-                    logger.warning(
-                        "[orchestrator] CPU change detection failed (%s: %s); falling back to mock.",
-                        type(cd_exc).__name__, cd_exc,
-                    )
-                    tool_result = mock_specialists.run_tool(tid, query, mode)
-                    execution_mode = "mock"
-                    tool_execution_modes[tid] = "mock"
+                    logger.exception("[orchestrator] Real change detection failed: %s", cd_exc)
+                    tool_result = {
+                        "answer": f"## Change Detection Error\n\nReal change detection model unavailable: {cd_exc}",
+                        "confidence": None,
+                        "change_map": None,
+                        "evidence": [f"Real change detection model unavailable: {cd_exc}"],
+                        "tool_id": tid,
+                        "is_mock": False,
+                    }
+                    execution_mode = "real"
+                    tool_execution_modes[tid] = "real"
 
             # ------------------------------------------------------------------
             # Real VQA / Captioning
@@ -392,18 +401,16 @@ def execute_plan(
                     tool_execution_modes[tid] = execution_mode
                     logger.info(f"[orchestrator] change_vqa executed (mode={execution_mode})")
                 except Exception as cvqa_exc:
-                    logger.warning(
-                        "[orchestrator] Real Change VQA failed (%s: %s); falling back to mock summary.",
-                        type(cvqa_exc).__name__, cvqa_exc,
-                    )
-                    tool_result = mock_specialists.run_tool(
-                        tid, query, mode,
-                        changed_pixel_pct=change_stats_out.get("changed_pixel_pct"),
-                        severity=change_stats_out.get("severity"),
-                        execution_mode=change_stats_out.get("execution_mode"),
-                    )
-                    execution_mode = "mock"
-                    tool_execution_modes[tid] = "mock"
+                    logger.exception("[orchestrator] Real Change VQA failed: %s", cvqa_exc)
+                    tool_result = {
+                        "answer": f"### Bi-Temporal Scene Change Interpretation\n\nReal Change-VQA reasoning unavailable: {cvqa_exc}",
+                        "confidence": None,
+                        "evidence": [f"Real Change-VQA reasoning unavailable: {cvqa_exc}"],
+                        "tool_id": tid,
+                        "is_mock": False,
+                    }
+                    execution_mode = "real"
+                    tool_execution_modes[tid] = "real"
 
             # ------------------------------------------------------------------
             # All other tools — mock
@@ -447,7 +454,9 @@ def execute_plan(
         ))
 
         if "answer" in tool_result and tool_result["answer"]:
-            answer_parts.append(tool_result["answer"])
+            ans_str = tool_result["answer"].strip()
+            if ans_str and ans_str not in answer_parts:
+                answer_parts.append(ans_str)
         if "confidence" in tool_result and tool_result["confidence"] is not None:
             try:
                 confidences.append(float(tool_result["confidence"]))
@@ -462,18 +471,9 @@ def execute_plan(
 
     merged_answer = "\n\n".join(answer_parts) if answer_parts else "[No tool produced an answer.]"
     # Strict Scientific Confidence Policy:
-    # If any real specialist was executed, or if mode is bi_temporal or optical_sar,
-    # or if all specialists lack calibrated confidence, confidence MUST remain None.
-    # Mock placeholder confidences must NEVER leak into real/hybrid or multi-sensor results.
-    has_real_tool = any(m != "mock" for m in tool_execution_modes.values())
-    if not has_real_tool:
-        # Strict Scientific Integrity: If any_real == False (mock mode), confidence must be returned as None
-        agg_conf = None
-    elif has_real_tool or mode in ("optical_sar", "bi_temporal"):
-        # Real specialists currently lack calibrated confidence estimators; confidence remains null
-        agg_conf = None
-    else:
-        agg_conf = None
+    # Unless a genuinely calibrated confidence model has been scientifically validated,
+    # overall confidence MUST remain None across all analysis modes (single_image, bi_temporal, optical_sar).
+    agg_conf = None
     return (
         merged_answer,
         agg_conf,

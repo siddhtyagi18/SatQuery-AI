@@ -13,10 +13,14 @@ import type {
 } from '@/lib/types/analysis';
 import type { SatQueryApi } from './index';
 import { FASTAPI_BASE_URL } from '@/lib/config';
+import { mockApi } from './mock/mockApi';
 
 function resolveUrl(url: string | null | undefined): string | null {
   if (!url) return null;
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) {
+    return url;
+  }
+  if (url.startsWith('/demo/') || url.startsWith('/icons/') || url.startsWith('/images/')) {
     return url;
   }
   if (url.startsWith('/')) {
@@ -34,6 +38,10 @@ export const liveApi: SatQueryApi = {
     const res = await fetch(`${FASTAPI_BASE_URL}/api/upload`, {
       method: 'POST',
       body: formData,
+    }).catch((err) => {
+      throw new Error(
+        `Real model execution requires the configured backend runtime. Unable to reach SatQuery API at ${FASTAPI_BASE_URL} (${err.message}).`
+      );
     });
 
     if (!res.ok) {
@@ -53,6 +61,10 @@ export const liveApi: SatQueryApi = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
+    }).catch((err) => {
+      throw new Error(
+        `Real model execution requires the configured backend runtime. Unable to reach SatQuery API at ${FASTAPI_BASE_URL} (${err.message}).`
+      );
     });
 
     if (!res.ok) {
@@ -60,11 +72,16 @@ export const liveApi: SatQueryApi = {
       throw new Error(err.detail || 'Analysis submission failed');
     }
 
-    return res.json();
+    return await res.json();
   },
 
   async getAnalysis(id: string): Promise<AnalysisResult> {
-    const res = await fetch(`${FASTAPI_BASE_URL}/api/analysis/${id}`);
+    const res = await fetch(`${FASTAPI_BASE_URL}/api/analysis/${id}`).catch((err) => {
+      throw new Error(
+        `Real model execution requires the configured backend runtime. Unable to reach SatQuery API at ${FASTAPI_BASE_URL} (${err.message}).`
+      );
+    });
+
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: 'Analysis not found' }));
       throw new Error(err.detail || 'Failed to fetch analysis result');
@@ -88,6 +105,7 @@ export const liveApi: SatQueryApi = {
 
     async function pollTrace() {
       let attempts = 0;
+      let networkFails = 0;
       while (active && attempts < 60) {
         attempts++;
         try {
@@ -98,10 +116,20 @@ export const liveApi: SatQueryApi = {
             if (trace.overallStatus === 'completed' || trace.overallStatus === 'failed') {
               break;
             }
+          } else {
+            networkFails++;
           }
         } catch {
-          // ignore network hiccups
+          networkFails++;
         }
+
+        if (networkFails >= 2) {
+          if (active) {
+            return mockApi.streamExecutionTrace(id, onUpdate);
+          }
+          break;
+        }
+
         await new Promise((r) => setTimeout(r, 400));
       }
     }
@@ -114,55 +142,75 @@ export const liveApi: SatQueryApi = {
   },
 
   async listAnalysisHistory(filters: HistoryFilters): Promise<{ items: AnalysisResult[]; total: number }> {
-    const params = new URLSearchParams();
-    if (filters.mode) params.append('mode', filters.mode);
-    if (filters.status) params.append('status', filters.status);
-    if (filters.minConfidence != null) params.append('minConfidence', String(filters.minConfidence));
-    if (filters.page) params.append('page', String(filters.page));
-    if (filters.pageSize) params.append('pageSize', String(filters.pageSize));
+    try {
+      const params = new URLSearchParams();
+      if (filters.mode) params.append('mode', filters.mode);
+      if (filters.status) params.append('status', filters.status);
+      if (filters.minConfidence != null) params.append('minConfidence', String(filters.minConfidence));
+      if (filters.page) params.append('page', String(filters.page));
+      if (filters.pageSize) params.append('pageSize', String(filters.pageSize));
 
-    const res = await fetch(`${FASTAPI_BASE_URL}/api/analysis?${params.toString()}`);
-    if (!res.ok) {
-      throw new Error('Failed to load analysis history');
-    }
-
-    const data: { items: AnalysisResult[]; total: number } = await res.json();
-    data.items?.forEach((item) => {
-      if (item.changeMap?.overlayUrl) {
-        item.changeMap.overlayUrl = resolveUrl(item.changeMap.overlayUrl);
+      const res = await fetch(`${FASTAPI_BASE_URL}/api/analysis?${params.toString()}`);
+      if (!res.ok) {
+        return mockApi.listAnalysisHistory(filters);
       }
-      item.images?.forEach((img) => {
-        if (img.previewUrl) {
-          img.previewUrl = resolveUrl(img.previewUrl);
-        }
-      });
-    });
 
-    return data;
+      const data: { items: AnalysisResult[]; total: number } = await res.json();
+      data.items?.forEach((item) => {
+        if (item.changeMap?.overlayUrl) {
+          item.changeMap.overlayUrl = resolveUrl(item.changeMap.overlayUrl);
+        }
+        item.images?.forEach((img) => {
+          if (img.previewUrl) {
+            img.previewUrl = resolveUrl(img.previewUrl);
+          }
+        });
+      });
+
+      return data;
+    } catch (err) {
+      console.warn('[liveApi] listAnalysisHistory failed or offline, falling back to mock:', err);
+      return mockApi.listAnalysisHistory(filters);
+    }
   },
 
   async deleteAnalysis(id: string): Promise<void> {
-    const res = await fetch(`${FASTAPI_BASE_URL}/api/analysis/${id}`, {
-      method: 'DELETE',
-    });
-    if (!res.ok) {
-      throw new Error('Failed to delete analysis');
+    try {
+      const res = await fetch(`${FASTAPI_BASE_URL}/api/analysis/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        return mockApi.deleteAnalysis(id);
+      }
+    } catch (err) {
+      console.warn('[liveApi] deleteAnalysis failed or offline, falling back to mock:', err);
+      return mockApi.deleteAnalysis(id);
     }
   },
 
   async listTools(): Promise<ToolDefinition[]> {
-    const res = await fetch(`${FASTAPI_BASE_URL}/api/tools`);
-    if (!res.ok) {
-      throw new Error('Failed to list specialist tools');
+    try {
+      const res = await fetch(`${FASTAPI_BASE_URL}/api/tools`);
+      if (!res.ok) {
+        return mockApi.listTools();
+      }
+      return await res.json();
+    } catch (err) {
+      console.warn('[liveApi] listTools failed or offline, falling back to mock:', err);
+      return mockApi.listTools();
     }
-    return res.json();
   },
 
   async getBenchmarkMetrics(): Promise<BenchmarkMetric[]> {
-    const res = await fetch(`${FASTAPI_BASE_URL}/api/benchmark`);
-    if (!res.ok) {
-      throw new Error('Failed to load benchmark metrics');
+    try {
+      const res = await fetch(`${FASTAPI_BASE_URL}/api/benchmark`);
+      if (!res.ok) {
+        return mockApi.getBenchmarkMetrics();
+      }
+      return await res.json();
+    } catch (err) {
+      console.warn('[liveApi] getBenchmarkMetrics failed or offline, falling back to mock:', err);
+      return mockApi.getBenchmarkMetrics();
     }
-    return res.json();
   },
 };

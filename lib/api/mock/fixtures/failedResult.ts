@@ -54,7 +54,7 @@ export const failedResult: AnalysisResult = {
     {
       toolId: 'change-det-v1',
       toolName: 'Bi-temporal Change Detection Model',
-      version: '2.1.0-mock',
+      version: '0.3.0-p0',
       taskType: 'change_detection',
       parameters: { algorithm: 'CVA+NDWI', threshold: 0.12, co_registration: true },
       processingTimeMs: null,

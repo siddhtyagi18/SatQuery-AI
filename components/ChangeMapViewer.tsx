@@ -2,7 +2,7 @@
 // Change detection mask overlay with opacity control, toggle, and class legend.
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CornerFrame } from '@/components/ui/CornerFrame';
 import { Eye, EyeOff, Layers, Sliders } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -36,6 +36,16 @@ export function ChangeMapViewer({
 }: ChangeMapViewerProps) {
   const [showMask, setShowMask] = useState(true);
   const [opacity, setOpacity] = useState(0.75);
+  const [baseError, setBaseError] = useState(false);
+  const [maskError, setMaskError] = useState(false);
+
+  useEffect(() => {
+    setBaseError(false);
+  }, [baseImageUrl]);
+
+  useEffect(() => {
+    setMaskError(false);
+  }, [changeMaskUrl]);
 
   return (
     <CornerFrame label="CHANGE DETECTION HEATMAP" domain="magenta" className={cn('w-full', className)}>
@@ -93,8 +103,13 @@ export function ChangeMapViewer({
           <div className="viewer-scan-line opacity-60" aria-hidden="true" />
 
           {/* Base Layer */}
-          {baseImageUrl ? (
-            <img src={baseImageUrl} alt="Base imagery" className="w-full h-full object-cover" />
+          {baseImageUrl && !baseError ? (
+            <img
+              src={baseImageUrl}
+              alt="Base imagery"
+              className="w-full h-full object-cover"
+              onError={() => setBaseError(true)}
+            />
           ) : (
             <div className="w-full h-full bg-[#081320] flex items-center justify-center">
               <span className="text-xs font-mono text-[var(--text-faint)]">
@@ -109,8 +124,13 @@ export function ChangeMapViewer({
               className="absolute inset-0 transition-opacity duration-150 pointer-events-none"
               style={{ opacity }}
             >
-              {changeMaskUrl ? (
-                <img src={changeMaskUrl} alt="Change detection mask" className="w-full h-full object-cover" />
+              {changeMaskUrl && !maskError ? (
+                <img
+                  src={changeMaskUrl}
+                  alt="Change detection mask"
+                  className="w-full h-full object-cover"
+                  onError={() => setMaskError(true)}
+                />
               ) : (
                 /* Simulated raster heatmap with CSS radial gradients */
                 <div

@@ -295,7 +295,7 @@ export function AnalysisSummary({
           ) : (
             <div className="flex items-center gap-1.5 text-[var(--green)] font-medium">
               <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>Verified by Specialist Ensemble</span>
+              <span>Real Specialist Execution</span>
             </div>
           )}
           {createdAt && (

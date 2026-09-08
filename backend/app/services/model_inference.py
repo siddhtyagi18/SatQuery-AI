@@ -318,18 +318,19 @@ def _run_model_inference(
         f"**Interpretation:** This result reflects the model's learned change representation. "
         f"The model was trained on building-related changes in bi-temporal satellite imagery. "
         f"Results outside that domain may be less reliable.\n\n"
-        f"*Analysis performed by trained SiameseUNet checkpoint: {checkpoint_path_str} (threshold: {threshold:.2f})*"
+        f"*Analysis performed by trained SiameseUNet checkpoint: {checkpoint_path_str} (operating threshold: {threshold:.2f}; confidence: uncalibrated / null)*"
     )
 
     evidence = [
         f"Inference mode: trained SiameseUNet model checkpoint ({checkpoint_path_str}).",
         f"Tile size: {_TILE_SIZE}×{_TILE_SIZE}px with {_TILE_OVERLAP}px overlap (probability averaging).",
-        f"Inference threshold: {threshold:.2f} (calibrated on LEVIR-CD validation split).",
+        f"Inference threshold: {threshold:.2f} (operating decision boundary on LEVIR-CD validation split; not a model confidence score).",
         f"Changed pixels (model prediction): {changed_pixels:,} / {total_pixels:,} ({changed_pct:.2f}%).",
         f"Unchanged pixels: {total_pixels - changed_pixels:,} / {total_pixels:,} ({unchanged_pct:.2f}%).",
         f"Severity label: {severity} (heuristic: low <5%, moderate 5–25%, high >25%).",
         f"Reference image dimensions: {W}×{H} px.",
         f"Change mask overlay saved to: {overlay_url}",
+        "Confidence score is not produced by the change detection model; confidence field preserved as null.",
         "Output is from a trained model checkpoint, not fabricated or from a template.",
     ]
 
@@ -434,12 +435,11 @@ def run_change_detection(
             )
             return result
         except Exception as exc:
-            logger.warning(
-                "[model_inference] Checkpoint inference failed (%s: %s). "
-                "Falling back to CPU classical baseline.",
+            logger.exception(
+                "[model_inference] Checkpoint inference failed (%s: %s).",
                 type(exc).__name__, exc,
             )
-            # Fall through to classical
+            raise RuntimeError(f"Real change detection model unavailable: {exc}") from exc
 
     # --- CPU classical fallback ---
     classical_threshold = threshold if threshold is not None else (35.0 / 255.0)

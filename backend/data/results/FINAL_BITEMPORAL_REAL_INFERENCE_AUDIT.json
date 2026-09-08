@@ -1,0 +1,342 @@
+{
+  "id": "541e1654-5dc9-4b32-bb9f-365a7b806df8",
+  "mode": "bi_temporal",
+  "query": "Identify and report any land cover changes or new building structures between the baseline and follow-up acquisitions.",
+  "status": "completed",
+  "createdAt": "2026-09-08T05:52:03.515783",
+  "images": [
+    {
+      "id": "80cbf27a-3016-4296-890f-62d79d0c0695",
+      "role": "before",
+      "previewUrl": "/api/files/80cbf27a-3016-4296-890f-62d79d0c0695",
+      "metadata": {
+        "fileName": "real_levir_crop_before.png",
+        "fileFormat": "PNG",
+        "modality": "optical",
+        "modalityDetectionConfidence": null,
+        "acquisitionDate": null,
+        "widthPx": 256,
+        "heightPx": 256,
+        "bandCount": 3,
+        "crs": null,
+        "gsdMeters": null,
+        "fileSizeBytes": 136443
+      }
+    },
+    {
+      "id": "f9166d89-4da0-405d-b006-390601a4cd56",
+      "role": "after",
+      "previewUrl": "/api/files/f9166d89-4da0-405d-b006-390601a4cd56",
+      "metadata": {
+        "fileName": "real_levir_crop_after.png",
+        "fileFormat": "PNG",
+        "modality": "optical",
+        "modalityDetectionConfidence": null,
+        "acquisitionDate": null,
+        "widthPx": 256,
+        "heightPx": 256,
+        "bandCount": 3,
+        "crs": null,
+        "gsdMeters": null,
+        "fileSizeBytes": 130536
+      }
+    }
+  ],
+  "detectedTasks": [
+    "vqa",
+    "captioning",
+    "change_detection",
+    "change_vqa",
+    "change_description"
+  ],
+  "answerText": "## Change Detection Report (Siamese U-Net Model)\n\n**Trained SiameseUNet model detected change across 20.2% of the image area** (13,240 of 65,536 pixels), indicating moderate scene change (severity: **moderate**).\n\nThe remaining 79.8% of pixels were classified as unchanged.\n\n**Model details:** Lightweight Siamese U-Net (~490K parameters) trained on the LEVIR-CD building change detection dataset (1024\u00d71024 RGB image pairs, binary change masks). Inference uses overlapping 256\u00d7256 tile sliding with 32px overlap.\n\n**Interpretation:** This result reflects the model's learned change representation. The model was trained on building-related changes in bi-temporal satellite imagery. Results outside that domain may be less reliable.\n\n*Analysis performed by trained SiameseUNet checkpoint: C:\\Users\\Lenovo\\Desktop\\SatQuery-AI\\backend\\checkpoints\\best_model.pt (operating threshold: 0.70; confidence: uncalibrated / null)*\n\n### Bi-Temporal Scene Change Interpretation\n\n**Qualitative Visual Interpretation (VLM):**\nBefore: no land cover changes or new building structures\nAfter: new land cover\n\n**VLM Interpretation Validation:** `ACCEPTED` (Temporal change transition validated)\n\n**Quantitative Detection Telemetry:**\n- **Detected Changed Area:** `20.20%` (Severity: **moderate**)\n- **Change Detection Threshold:** `0.70` (Siamese U-Net)\n- **Detector Model:** SiameseUNet (~490K parameters, LEVIR-CD trained checkpoint)\n- **Confidence:** Not calibrated for this bi-temporal analysis (confidence = null)\n- **Inference Provenance:** Vision-Language Model (local:HuggingFaceTB/SmolVLM-500M-Instruct)",
+  "confidence": null,
+  "boundingBoxes": null,
+  "changeMap": {
+    "overlayUrl": "/api/results/541e1654-5dc9-4b32-bb9f-365a7b806df8_changemap.png",
+    "legend": [
+      {
+        "label": "Changed region (20.2% of area)",
+        "color": "#FF3C3C"
+      },
+      {
+        "label": "No change detected (79.8% of area)",
+        "color": "transparent"
+      }
+    ]
+  },
+  "toolInvocations": [
+    {
+      "toolId": "change_detector",
+      "toolName": "Bi-temporal Change Detector",
+      "version": "0.3.0-p0",
+      "taskType": "change_detection",
+      "parameters": {
+        "algorithm": "siamese-unet-model",
+        "tile_size": 256,
+        "tile_overlap": 32,
+        "threshold": 0.7
+      },
+      "processingTimeMs": 271,
+      "executionMode": "real"
+    },
+    {
+      "toolId": "change_vqa",
+      "toolName": "Change-VQA Language Model",
+      "version": "0.3.0-p0",
+      "taskType": "change_vqa",
+      "parameters": {
+        "temperature": 0.2,
+        "max_tokens": 768,
+        "provider": "local"
+      },
+      "processingTimeMs": 55681,
+      "executionMode": "real"
+    }
+  ],
+  "executionTrace": {
+    "steps": [
+      {
+        "id": "step-1",
+        "title": "Query Received",
+        "detail": "Query accepted: \"Identify and report any land cover changes or new building structures between th\u2026\" | Mode: bi_temporal | Images: 2",
+        "status": "done",
+        "startedAt": null,
+        "completedAt": "2026-09-08T05:52:03.523793",
+        "meta": null
+      },
+      {
+        "id": "step-2",
+        "title": "Input Validation",
+        "detail": "real_levir_crop_before.png: PNG | Modality=rgb_optical | file_exists=\u2713 (136443 B) | 256\u00d7256px | bands=3 ; real_levir_crop_after.png: PNG | Modality=rgb_optical | file_exists=\u2713 (130536 B) | 256\u00d7256px | bands=3 ; Pair Compatibility: COMPATIBLE ; Temporal: unknown",
+        "status": "done",
+        "startedAt": "2026-09-08T05:52:03.524794",
+        "completedAt": "2026-09-08T05:52:03.543403",
+        "meta": {
+          "compatibility_status": "compatible",
+          "required_adaptations": [],
+          "warnings_count": 0,
+          "temporal_status": "unknown"
+        }
+      },
+      {
+        "id": "step-3",
+        "title": "Task Classification",
+        "detail": "Detected intents: [vqa: 2.00] | [captioning: 1.00] | [change_detection: 1.00] | [change_vqa: 2.00] | [change_description: 0.70] | Tasks: vqa, captioning, change_detection, change_vqa, change_description",
+        "status": "done",
+        "startedAt": "2026-09-08T05:52:03.545403",
+        "completedAt": "2026-09-08T05:52:03.548399",
+        "meta": {
+          "vqa": 2.0,
+          "captioning": 1.0,
+          "change_detection": 1.0,
+          "change_vqa": 2.0,
+          "change_description": 0.7
+        }
+      },
+      {
+        "id": "step-4",
+        "title": "Tool Selection",
+        "detail": "change_detector[REAL] \u2192 Bi-temporal Change Detector 0.3.0-p0 || change_vqa[REAL] \u2192 Change-VQA Language Model 0.3.0-p0",
+        "status": "done",
+        "startedAt": "2026-09-08T05:52:03.548990",
+        "completedAt": "2026-09-08T05:52:03.626999",
+        "meta": {
+          "tool_count": 2
+        }
+      },
+      {
+        "id": "step-5",
+        "title": "Parameters",
+        "detail": "change_detector: algorithm=siamese-unet-model, tile_size=256, tile_overlap=32, threshold=0.7 || change_vqa: temperature=0.2, max_tokens=768, provider=local",
+        "status": "done",
+        "startedAt": "2026-09-08T05:52:03.628075",
+        "completedAt": "2026-09-08T05:52:03.628075",
+        "meta": {
+          "algorithm": "siamese-unet-model",
+          "tile_size": 256,
+          "tile_overlap": 32,
+          "threshold": 0.7,
+          "temperature": 0.2,
+          "max_tokens": 768,
+          "provider": "local"
+        }
+      },
+      {
+        "id": "step-6",
+        "title": "Processing",
+        "detail": "Bi-temporal Change Detector[REAL]: 271ms || Change-VQA Language Model[REAL]: 55681ms || real SiameseUNet model change map generated (LEVIR-CD trained checkpoint)",
+        "status": "done",
+        "startedAt": "2026-09-08T05:52:03.628612",
+        "completedAt": "2026-09-08T05:52:59.584807",
+        "meta": {
+          "tools_run": 2,
+          "total_tool_ms": 55952,
+          "boxes": 0,
+          "any_real": true,
+          "threshold_used": 0.7,
+          "total_pixel_count": 65536,
+          "changed_pixel_count": 13240,
+          "checkpoint_path": "C:\\Users\\Lenovo\\Desktop\\SatQuery-AI\\backend\\checkpoints\\best_model.pt",
+          "threshold_raw_255": 178,
+          "severity": "moderate",
+          "processing_time_ms": 181,
+          "image_size_str": "256x256",
+          "changed_pixel_pct": 20.2,
+          "unchanged_pixel_count": 52296,
+          "overlay_url": "/api/results/541e1654-5dc9-4b32-bb9f-365a7b806df8_changemap.png",
+          "unchanged_pixel_pct": 79.8,
+          "size_mismatch_corrected": false,
+          "execution_mode": "model_checkpoint"
+        }
+      },
+      {
+        "id": "step-7",
+        "title": "Aggregation",
+        "detail": "Merging tool outputs | Concatenating answer sections | Confidence: null (no calibrated model-reported score)",
+        "status": "done",
+        "startedAt": "2026-09-08T05:52:59.586546",
+        "completedAt": "2026-09-08T05:52:59.588390",
+        "meta": null
+      },
+      {
+        "id": "step-8",
+        "title": "Completion",
+        "detail": "Analysis complete | Confidence: null | Total elapsed: 56.06s | tools=[change_detector=real, change_vqa=real]",
+        "status": "done",
+        "startedAt": "2026-09-08T05:52:59.590149",
+        "completedAt": "2026-09-08T05:52:59.606067",
+        "meta": {
+          "confidence": null,
+          "elapsed_ms": 56063,
+          "boxes": 0,
+          "tool_execution_modes": {
+            "change_detector": "real",
+            "change_vqa": "real"
+          },
+          "validation_warnings": []
+        }
+      }
+    ],
+    "totalElapsedMs": 56081,
+    "overallStatus": "completed"
+  },
+  "errorReason": null,
+  "task": "vqa",
+  "selectedTools": [
+    "change_detector",
+    "change_vqa"
+  ],
+  "evidence": [
+    "Model Limitation: Current change detector is validated primarily on LEVIR-CD-style optical building/structural change.",
+    "Inference mode: trained SiameseUNet model checkpoint (C:\\Users\\Lenovo\\Desktop\\SatQuery-AI\\backend\\checkpoints\\best_model.pt).",
+    "Tile size: 256\u00d7256px with 32px overlap (probability averaging).",
+    "Inference threshold: 0.70 (operating decision boundary on LEVIR-CD validation split; not a model confidence score).",
+    "Changed pixels (model prediction): 13,240 / 65,536 (20.20%).",
+    "Unchanged pixels: 52,296 / 65,536 (79.80%).",
+    "Severity label: moderate (heuristic: low <5%, moderate 5\u201325%, high >25%).",
+    "Reference image dimensions: 256\u00d7256 px.",
+    "Change mask overlay saved to: /api/results/541e1654-5dc9-4b32-bb9f-365a7b806df8_changemap.png",
+    "Confidence score is not produced by the change detection model; confidence field preserved as null.",
+    "Output is from a trained model checkpoint, not fabricated or from a template.",
+    "[Change Detector] Model: SiameseUNet (~490K params, LEVIR-CD trained checkpoint).",
+    "[Change Detector] Measured change area: 20.20% (severity: moderate, threshold: 0.70).",
+    "[Change Visualizer] Reasoning image passed to VLM: 2-panel (T1 | T2) (512x256px).",
+    "[Change Visualizer] Evidence visualization synthesized: 3-panel contour strip (768x256px).",
+    "[VLM Reasoning] Provider: local (SmolVLM with domain-adapted LoRA).",
+    "[VLM Reasoning] Model 'HuggingFaceTB/SmolVLM-500M-Instruct' ready (37.8s load; params=507.5M, device=cpu).",
+    "[VLM Reasoning] PEFT LoRA domain adaptation active from checkpoint: C:\\Users\\Lenovo\\Desktop\\SatQuery-AI\\backend\\checkpoints\\vqa_lora_experiment_01\\best (trained on BigEarthNet).",
+    "[VLM Reasoning] Model does not emit a calibrated confidence score; confidence=null.",
+    "[VLM Reasoning] [validation] Confidence not produced by model; confidence field preserved as null.",
+    "[VLM Validation] Output passed temporal change quality validation.",
+    "[Integrity] The change mask was generated by SiameseUNet; qualitative interpretation was processed by domain-adapted VLM.",
+    "Model does not emit a calibrated confidence score; confidence=null."
+  ],
+  "analysisStatus": "completed",
+  "compatibility": {
+    "status": "compatible",
+    "reasons": [
+      "Optical bi-temporal imagery verified."
+    ],
+    "warnings": [],
+    "required_adaptations": [],
+    "specialist_candidates": [
+      "change_detector",
+      "change_vqa"
+    ],
+    "temporal_status": "unknown",
+    "temporal_notes": "Acquisition dates could not be verified from metadata (A=unknown, B=unknown). Temporal ordering is assumed per user designation.",
+    "spatial_overlap_pct": null,
+    "crs_status": "unreferenced_raster",
+    "dimension_status": "match",
+    "limitations": [
+      "Current change detector is validated primarily on LEVIR-CD-style optical building/structural change."
+    ],
+    "modality_pair": [
+      "rgb_optical",
+      "rgb_optical"
+    ]
+  },
+  "limitations": [
+    "Current change detector is validated primarily on LEVIR-CD-style optical building/structural change."
+  ],
+  "adaptation": null,
+  "specialistSelected": "change_detector",
+  "inputSummary": {
+    "image_count": 2,
+    "inspections": [
+      {
+        "file_path": "C:\\Users\\Lenovo\\Desktop\\SatQuery-AI\\uploads\\ec368d89b72a4ecd9b87634e16829151.png",
+        "file_name": "ec368d89b72a4ecd9b87634e16829151.png",
+        "format": "PNG",
+        "width": 256,
+        "height": 256,
+        "band_count": 3,
+        "dtype": "RGB",
+        "bit_depth": 8,
+        "min_val": 0.0,
+        "max_val": 231.0,
+        "mean_val": 45.451171875,
+        "nodata_value": null,
+        "nodata_pct": 0.0,
+        "crs": null,
+        "bounds": null,
+        "resolution": null,
+        "geotransform": null,
+        "modality_hint": "rgb_optical",
+        "sensor_hint": "unknown",
+        "is_geotiff": false,
+        "is_corrupted": false,
+        "error_message": null,
+        "band_metadata": []
+      },
+      {
+        "file_path": "C:\\Users\\Lenovo\\Desktop\\SatQuery-AI\\uploads\\f33c4bf3c1244b2cbc732a6ca355b9e3.png",
+        "file_name": "f33c4bf3c1244b2cbc732a6ca355b9e3.png",
+        "format": "PNG",
+        "width": 256,
+        "height": 256,
+        "band_count": 3,
+        "dtype": "RGB",
+        "bit_depth": 8,
+        "min_val": 0.0,
+        "max_val": 255.0,
+        "mean_val": 88.45999654134114,
+        "nodata_value": null,
+        "nodata_pct": 0.0,
+        "crs": null,
+        "bounds": null,
+        "resolution": null,
+        "geotransform": null,
+        "modality_hint": "rgb_optical",
+        "sensor_hint": "unknown",
+        "is_geotiff": false,
+        "is_corrupted": false,
+        "error_message": null,
+        "band_metadata": []
+      }
+    ]
+  },
+  "isMock": false,
+  "executionMode": "real"
+}

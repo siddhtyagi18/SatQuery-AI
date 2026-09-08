@@ -2,7 +2,7 @@
 // Bi-temporal comparison viewer with interactive slider/swipe or side-by-side mode.
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { CornerFrame } from '@/components/ui/CornerFrame';
 import { Split, Columns, Calendar, MoveHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -26,6 +26,17 @@ export function BeforeAfterViewer({
   const [sliderPos, setSliderPos] = useState(50); // percentage
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [beforeError, setBeforeError] = useState(false);
+  const [afterError, setAfterError] = useState(false);
+
+  // Reset error states when URLs change
+  useEffect(() => {
+    setBeforeError(false);
+  }, [beforeUrl]);
+
+  useEffect(() => {
+    setAfterError(false);
+  }, [afterUrl]);
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -99,8 +110,13 @@ export function BeforeAfterViewer({
           >
             {/* After Image (Background) */}
             <div className="absolute inset-0 flex items-center justify-center">
-              {afterUrl ? (
-                <img src={afterUrl} alt="After state" className="w-full h-full object-cover" />
+              {afterUrl && !afterError ? (
+                <img
+                  src={afterUrl}
+                  alt="After state"
+                  className="w-full h-full object-cover"
+                  onError={() => setAfterError(true)}
+                />
               ) : (
                 <div className="w-full h-full bg-gradient-to-tr from-[#160d2b] to-[#251347] flex items-center justify-center">
                   <span className="font-mono text-xs text-[var(--accent-change)] opacity-70">
@@ -116,12 +132,13 @@ export function BeforeAfterViewer({
               style={{ width: `${sliderPos}%` }}
             >
               <div className="absolute top-0 left-0 w-full h-full min-w-[100%] min-h-full">
-                {beforeUrl ? (
+                {beforeUrl && !beforeError ? (
                   <img
                     src={beforeUrl}
                     alt="Before state"
                     className="w-full h-full object-cover"
                     style={{ width: containerRef.current?.clientWidth ?? '100%' }}
+                    onError={() => setBeforeError(true)}
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-tr from-[#091b29] to-[#0d3447] flex items-center justify-center">
@@ -155,8 +172,13 @@ export function BeforeAfterViewer({
           /* Side by side */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-[var(--border-hairline)] h-[400px]">
             <div className="relative h-full bg-[#091b29] overflow-hidden flex items-center justify-center">
-              {beforeUrl ? (
-                <img src={beforeUrl} alt="Before" className="w-full h-full object-cover" />
+              {beforeUrl && !beforeError ? (
+                <img
+                  src={beforeUrl}
+                  alt="Before"
+                  className="w-full h-full object-cover"
+                  onError={() => setBeforeError(true)}
+                />
               ) : (
                 <span className="font-mono text-xs text-[var(--accent-signal)]">
                   {beforeDate} Baseline
@@ -168,8 +190,13 @@ export function BeforeAfterViewer({
             </div>
 
             <div className="relative h-full bg-[#160d2b] overflow-hidden flex items-center justify-center">
-              {afterUrl ? (
-                <img src={afterUrl} alt="After" className="w-full h-full object-cover" />
+              {afterUrl && !afterError ? (
+                <img
+                  src={afterUrl}
+                  alt="After"
+                  className="w-full h-full object-cover"
+                  onError={() => setAfterError(true)}
+                />
               ) : (
                 <span className="font-mono text-xs text-[var(--accent-change)]">
                   {afterDate} Target

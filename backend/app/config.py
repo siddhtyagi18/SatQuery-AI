@@ -7,6 +7,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=(".env", "backend/.env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
     APP_NAME: str = "SatQuery-AI Backend"
     APP_VERSION: str = "0.3.0-datasets"
     DEBUG: bool = True
@@ -30,7 +36,7 @@ class Settings(BaseSettings):
     FIREBASE_SERVICE_ACCOUNT_JSON: Optional[str] = None
     FIREBASE_COLLECTION_ANALYSES: str = "analyses"
 
-    VQA_MODE: str = os.getenv("VQA_MODE", "mock")
+    VQA_MODE: str = os.getenv("VQA_MODE", "real")
     VQA_MODEL_ID: str = "HuggingFaceTB/SmolVLM-500M-Instruct"
     VQA_DEVICE: str = "cpu"
     VQA_PRECISION: str = "fp32"
@@ -92,8 +98,6 @@ class Settings(BaseSettings):
     # Inference probability threshold for binary change mask.
     # Experiment 01 validation-selected optimal threshold = 0.70.
     CHANGE_DETECTION_THRESHOLD: float = 0.70
-
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     @property
     def cors_origins_list(self) -> List[str]:

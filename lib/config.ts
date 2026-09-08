@@ -2,12 +2,31 @@
 // Set NEXT_PUBLIC_API_MODE=mock in .env.local to use the mock layer for
 // offline development without the FastAPI backend.
 // Defaults to 'live' so the real backend is used out of the box.
-export const API_MODE = (
-  (process.env.NEXT_PUBLIC_API_MODE as 'mock' | 'live' | undefined) ?? 'live'
-) as 'mock' | 'live';
-
-
 export const FASTAPI_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+
+const isRemoteWithoutBackend = (() => {
+  if (typeof window === 'undefined') {
+    if (process.env.VERCEL || process.env.NEXT_PUBLIC_VERCEL_ENV) {
+      return !process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL.includes('localhost');
+    }
+    return false;
+  }
+  const host = window.location.hostname;
+  const isLocalHost = host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0';
+  const backendIsLocal = FASTAPI_BASE_URL.includes('localhost') || FASTAPI_BASE_URL.includes('127.0.0.1');
+  return !isLocalHost && backendIsLocal;
+})();
+
+export const API_MODE: 'mock' | 'live' = (() => {
+  const explicit = process.env.NEXT_PUBLIC_API_MODE as 'mock' | 'live' | undefined;
+  if (explicit === 'mock' || explicit === 'live') {
+    return explicit;
+  }
+  if (isRemoteWithoutBackend) {
+    return 'mock';
+  }
+  return 'live';
+})();
 
 export const APP_VERSION = '0.1.0-demo';
 

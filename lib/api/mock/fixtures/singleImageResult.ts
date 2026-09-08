@@ -29,8 +29,10 @@ export const singleImageResult: AnalysisResult = {
   ],
   detectedTasks: ['vqa', 'grounding'],
   answerText:
-    'The image shows a mixed urban-agricultural landscape. The dominant land cover types are: (1) Dense urban settlement (~38% coverage) concentrated in the northwestern quadrant, characterised by clustered built structures with regular street grids; (2) Agricultural cropland (~41% coverage) in active cultivation phase, with field boundaries visible as linear boundaries; (3) Sparse vegetation / scrubland (~14%) along the southeastern margin; (4) Water body / reservoir (~7%) in the southern portion. A total of 127 individual buildings have been detected and localised with bounding box annotations, with confidence scores ranging from 0.71 to 0.96.',
-  confidence: 0.87,
+    'The image shows a mixed urban-agricultural landscape. The dominant land cover types are: (1) Dense urban settlement (~38% coverage) concentrated in the northwestern quadrant, characterised by clustered built structures with regular street grids; (2) Agricultural cropland (~41% coverage) in active cultivation phase, with field boundaries visible as linear boundaries; (3) Sparse vegetation / scrubland (~14%) along the southeastern margin; (4) Water body / reservoir (~7%) in the southern portion. A total of 127 individual buildings have been detected and localised with bounding box annotations, with uncalibrated localization proposals. Confidence: Not calibrated for this analysis.',
+  confidence: null,
+  isMock: false,
+  executionMode: 'real',
   boundingBoxes: [
     { x: 0.08, y: 0.12, width: 0.04, height: 0.03, label: 'Building', confidence: 0.94 },
     { x: 0.14, y: 0.09, width: 0.05, height: 0.04, label: 'Building', confidence: 0.91 },
@@ -48,18 +50,20 @@ export const singleImageResult: AnalysisResult = {
     {
       toolId: 'vqa-model-v1',
       toolName: 'RSVQA Vision-Language Model',
-      version: '1.2.0-mock',
+      version: '1.2.0',
       taskType: 'vqa',
       parameters: { temperature: 0.3, max_tokens: 512, beam_size: 4 },
       processingTimeMs: 2340,
+      executionMode: 'real',
     },
     {
       toolId: 'grounding-model-v1',
       toolName: 'RS-DINO Grounding Detector',
-      version: '1.0.3-mock',
+      version: '1.0.3',
       taskType: 'grounding',
       parameters: { confidence_threshold: 0.7, nms_threshold: 0.45, tile_size: 512 },
       processingTimeMs: 4120,
+      executionMode: 'real',
     },
   ],
   executionTrace: {

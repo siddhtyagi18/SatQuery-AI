@@ -23,41 +23,35 @@ interface ConfidenceCardProps {
 export function ConfidenceCard({ score, detectedTasks, breakdown, isMock, className }: ConfidenceCardProps) {
   // Only display sub-claim breakdown if genuinely provided by calibrated specialist
   const items: BreakdownItem[] = breakdown ?? [];
-  const isUncalibrated = isMock || score == null;
+  const isUncalibrated = score == null;
 
   const getConfidenceTier = (s: number | null) => {
-    if (isMock) {
+    if (s != null) {
+      if (s >= 0.85) {
+        return {
+          text: `High Confidence (${Math.round(s * 100)}%)`,
+          color: 'var(--accent-success)',
+          subtext: 'Calibrated model uncertainty estimate from authentic specialist execution.',
+        };
+      }
+      if (s >= 0.70) {
+        return {
+          text: `Moderate Confidence (${Math.round(s * 100)}%)`,
+          color: 'var(--accent-warning)',
+          subtext: 'Calibrated model uncertainty estimate from authentic specialist execution.',
+        };
+      }
       return {
-        text: 'N/A — no real inference was performed',
-        color: 'var(--accent-warning)',
-        subtext: 'Specialist inference ran in mock/placeholder mode. Confidence remains strictly null to prevent uncalibrated certainty metrics.',
+        text: `Low Confidence (${Math.round(s * 100)}%)`,
+        color: 'var(--accent-danger)',
+        subtext: 'Calibrated model uncertainty estimate indicates elevated prediction variance.',
       };
     }
-    if (s == null) {
-      return {
-        text: 'N/A — Uncalibrated',
-        color: 'var(--accent-signal)',
-        subtext: 'Authentic specialist model does not emit calibrated confidence scores; confidence remains null to maintain scientific integrity.',
-      };
-    }
-    if (s! >= 0.85) {
-      return {
-        text: 'High Confidence',
-        color: 'var(--accent-success)',
-        subtext: 'Calibrated model uncertainty estimate from authentic specialist execution.',
-      };
-    }
-    if (s! >= 0.70) {
-      return {
-        text: 'Moderate Confidence',
-        color: 'var(--accent-warning)',
-        subtext: 'Calibrated model uncertainty estimate from authentic specialist execution.',
-      };
-    }
+
     return {
-      text: 'Low Confidence / Review Advised',
-      color: 'var(--accent-danger)',
-      subtext: 'Calibrated model uncertainty estimate indicates elevated prediction variance.',
+      text: 'N/A — Uncalibrated',
+      color: 'var(--accent-signal)',
+      subtext: 'Authentic specialist model does not emit calibrated confidence scores; confidence remains null to maintain scientific integrity.',
     };
   };
 
