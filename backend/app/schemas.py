@@ -76,6 +76,23 @@ class ChangeMap(BaseModel):
     legend: List[Dict[str, str]]
 
 
+class MultilingualSummaries(BaseModel):
+    """Additive-only multilingual view of an analysis result.
+
+    All fields are optional (None means "not computed / not applicable")
+    so existing API consumers see no behavioural change.  The summaries
+    are computed once and cached into Analysis.adaptation["multilingual_summaries"]
+    so this struct is O(1) to serve on subsequent GETs.
+    """
+
+    language: Optional[Literal["en", "hi"]] = None
+    summary_en: Optional[str] = None
+    summary_hi: Optional[str] = None
+    bullet_en: Optional[List[str]] = None
+    bullet_hi: Optional[List[str]] = None
+    generated_via_llm: Optional[bool] = None
+
+
 class AnalysisResult(BaseModel):
     id: str
     mode: AnalysisMode
@@ -105,12 +122,15 @@ class AnalysisResult(BaseModel):
     isMock: Optional[bool] = None
     executionMode: Optional[Literal["real", "mock", "mixed"]] = None
 
+    multilingualSummaries: Optional[MultilingualSummaries] = None
+
 
 class SubmitAnalysisInput(BaseModel):
     mode: AnalysisMode
     imageIds: List[str]
     query: str
     provider: Optional[str] = None  # 'local', 'gemini', 'openrouter', 'auto'
+    language: Optional[str] = None  # 'en' (default), 'hi' — optional multilingual layer
 
 
 class ToolDefinition(BaseModel):
@@ -155,3 +175,30 @@ class HealthResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     detail: str
+
+
+class FollowUpHistoryItem(BaseModel):
+    role: str
+    text: str
+
+
+class FollowUpRequest(BaseModel):
+    query: str
+    language: Optional[str] = "en"
+    conversationHistory: Optional[List[FollowUpHistoryItem]] = None
+
+
+class SpatialActionOut(BaseModel):
+    action: str
+    target: Optional[str] = None
+    boxIndex: Optional[int] = None
+    note: Optional[str] = None
+
+
+class FollowUpResponse(BaseModel):
+    answer: str
+    answer_hi: Optional[str] = None
+    language: str = "en"
+    referencedMetrics: Optional[Dict[str, Any]] = None
+    spatialAction: Optional[SpatialActionOut] = None
+    rerunPerformed: bool = False

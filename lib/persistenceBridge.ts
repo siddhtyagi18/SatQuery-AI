@@ -245,6 +245,8 @@ export function createPersistedApi(underlying: SatQueryApi): SatQueryApi {
 
   const listTools: SatQueryApi['listTools'] = () => underlying.listTools();
   const getBenchmarkMetrics: SatQueryApi['getBenchmarkMetrics'] = () => underlying.getBenchmarkMetrics();
+  const askFollowUp: SatQueryApi['askFollowUp'] = (analysisId, query, history, language) =>
+    underlying.askFollowUp(analysisId, query, history, language);
 
   return {
     uploadImage,
@@ -255,5 +257,6 @@ export function createPersistedApi(underlying: SatQueryApi): SatQueryApi {
     deleteAnalysis,
     listTools,
     getBenchmarkMetrics,
+    askFollowUp,
   };
 }

@@ -42,7 +42,7 @@ export interface ExecutionStep {
   status: StepStatus;
   startedAt: string | null;
   completedAt: string | null;
-  meta?: Record<string, string | number | boolean>;
+  meta?: Record<string, string | number | boolean | null>;
 }
 
 export interface ExecutionTrace {
@@ -95,6 +95,16 @@ export interface AnalysisResult {
   inputSummary?: Record<string, any> | null;
   isMock?: boolean;
   executionMode?: 'real' | 'mock' | 'mixed';
+  multilingualSummaries?: MultilingualSummaries | null;
+}
+
+export interface MultilingualSummaries {
+  language?: 'en' | 'hi' | null;
+  summary_en?: string | null;
+  summary_hi?: string | null;
+  bullet_en?: string[] | null;
+  bullet_hi?: string[] | null;
+  generated_via_llm?: boolean | null;
 }
 
 export interface ToolDefinition {
@@ -121,6 +131,7 @@ export interface SubmitAnalysisInput {
   mode: AnalysisMode;
   imageIds: string[];
   query: string;
+  language?: 'en' | 'hi';
 }
 
 export interface HistoryFilters {
@@ -131,4 +142,48 @@ export interface HistoryFilters {
   minConfidence?: number;
   page?: number;
   pageSize?: number;
+}
+
+// ---- Contextual Follow-up & Smart Insights Types ----
+
+export interface SpatialAction {
+  action: 'highlight' | 'zoom' | 'scroll' | 'none';
+  target?: 'change_map' | 'bounding_box' | 'optical_sar';
+  boxIndex?: number | null;
+  note?: string | null;
+}
+
+export interface FollowUpMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+  timestamp: string;
+  language?: 'en' | 'hi';
+  spatialAction?: SpatialAction | null;
+  referencedMetrics?: Record<string, string | number | null> | null;
+}
+
+export interface FollowUpRequest {
+  query: string;
+  language?: 'en' | 'hi';
+  conversationHistory?: { role: 'user' | 'assistant'; text: string }[];
+}
+
+export interface FollowUpResponse {
+  answer: string;
+  answer_hi?: string | null;
+  language: 'en' | 'hi';
+  referencedMetrics?: Record<string, string | number | null> | null;
+  spatialAction?: SpatialAction | null;
+  rerunPerformed: false;
+}
+
+export interface SmartInsightsData {
+  changeStatus?: string | null;
+  changedArea?: string | null;
+  severity?: string | null;
+  confidence?: string | null;
+  primaryFinding: string;
+  dateComparison?: string | null;
+  locationAoi?: string | null;
 }

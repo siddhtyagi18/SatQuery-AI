@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { AnalysisModeSelector } from '@/components/AnalysisModeSelector';
 import { ImageUploader } from '@/components/ImageUploader';
 import { ImageMetadata } from '@/components/ImageMetadata';
-import { QueryInput } from '@/components/QueryInput';
+import { QueryInput, type QueryLanguage } from '@/components/QueryInput';
 import { AgentExecutionTrace } from '@/components/AgentExecutionTrace';
 import { api } from '@/lib/api';
 import type { AnalysisMode, ExecutionTrace, UploadedImage } from '@/lib/types/analysis';
@@ -67,6 +67,7 @@ function NewAnalysisContent() {
   }, [searchParams]);
 
   const [query, setQuery] = useState('');
+  const [language, setLanguage] = useState<QueryLanguage>('en');
   const [uploads, setUploads] = useState<Partial<Record<UploadedImage['role'], UploadedImage>>>({});
   const [uploading, setUploading] = useState<Partial<Record<UploadedImage['role'], boolean>>>({});
   const [errors, setErrors] = useState<Partial<Record<UploadedImage['role'], string>>>({});
@@ -165,6 +166,7 @@ function NewAnalysisContent() {
         mode,
         query: query.trim(),
         imageIds,
+        language,
       });
 
       let redirected = false;
@@ -309,6 +311,8 @@ function NewAnalysisContent() {
           disabled={isSubmitting}
           canSubmit={canSubmit}
           isSubmitting={isSubmitting}
+          language={language}
+          onLanguageChange={setLanguage}
         />
       </section>
 

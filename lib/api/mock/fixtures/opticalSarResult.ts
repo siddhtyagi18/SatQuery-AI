@@ -127,4 +127,22 @@ export const opticalSarResult: AnalysisResult = {
     ],
   },
   errorReason: null,
+  multilingualSummaries: {
+    language: 'en',
+    summary_en:
+      'Optical and SAR cross-modal fusion confirms urban expansion (+4.2 dB backscatter increase) in the northeastern sector and detects 3 sub-canopy linear structures invisible in optical data. A flooded parcel of 7.3 ha is confirmed via radar specular reflection.',
+    summary_hi:
+      'ऑप्टिकल और रडार (SAR) तस्वीरों के विश्लेषण से उत्तर-पूर्व में शहरी विस्तार (+4.2 dB रडार परावर्तन) की पुष्टि हुई है। रडार ने हरियाली के नीचे 3 छिपे ढांचे और 7.3 हेक्टेयर का जलमग्न खेत (बाढ़ का पानी) भी पहचाना है।',
+    bullet_en: [
+      'Urban expansion corroborated by SAR backscatter increase (+4.2 dB).',
+      'Three sub-canopy linear structures identified only in SAR C-band VV.',
+      'Flooded agricultural parcel (7.3 ha) confirmed via specular reflection.',
+    ],
+    bullet_hi: [
+      'रडार (SAR) बैकस्कैटर में +4.2 dB वृद्धि से शहरी विस्तार की पुष्टि हुई।',
+      'पेड़ों के नीचे 3 छिपे बुनियादी ढांचे केवल रडार तस्वीर में दिखाई दिए।',
+      '7.3 हेक्टेयर का जलमग्न खेत (बाढ़ का पानी) रडार द्वारा सत्यापित हुआ।',
+    ],
+    generated_via_llm: true,
+  },
 };

@@ -26,6 +26,8 @@ import type {
   AnalysisResult,
   BenchmarkMetric,
   ExecutionTrace,
+  FollowUpMessage,
+  FollowUpResponse,
   HistoryFilters,
   SubmitAnalysisInput,
   ToolDefinition,
@@ -46,6 +48,12 @@ export interface SatQueryApi {
   deleteAnalysis(id: string): Promise<void>;
   listTools(): Promise<ToolDefinition[]>;
   getBenchmarkMetrics(): Promise<BenchmarkMetric[]>;
+  askFollowUp(
+    analysisId: string,
+    query: string,
+    history?: FollowUpMessage[],
+    language?: 'en' | 'hi'
+  ): Promise<FollowUpResponse>;
 }
 
 // Automatically uses liveApi when API_MODE === 'live', mock otherwise.

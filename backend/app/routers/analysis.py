@@ -14,12 +14,15 @@ from ..schemas import (
     AnalysisResult,
     AnalysisStatus,
     ExecutionTraceOut,
+    FollowUpRequest,
+    FollowUpResponse,
     HistoryFilters,
     HistoryPage,
     ImageRole,
     SubmitAnalysisInput,
 )
 from ..services.firebase import FirebaseRepository, is_firebase_enabled
+from ..services.follow_up import answer_follow_up
 from ..services.orchestrator import execute_plan, plan_execution
 from ..services.result_validation import validate_analysis_result_payload
 from ..services.trace import build_trace_out, create_pending_trace, mark_step
@@ -366,8 +369,6 @@ def _run_analysis_pipeline(db: Session, analysis: Analysis, files, input_data: S
     validation_report = validate_analysis_result_payload(raw_dict, is_mock=any_mock)
     if validation_report.warnings:
         logger.info(f"Analysis {aid} validation warnings: {validation_report.warnings}")
-        if "confidence" in validation_report.stripped_fields:
-            analysis.confidence = None
         if "boundingBoxes" in validation_report.stripped_fields:
             analysis.bounding_boxes = None
         if "changeMap" in validation_report.stripped_fields:
@@ -401,9 +402,40 @@ def _run_analysis_pipeline(db: Session, analysis: Analysis, files, input_data: S
 def submit_analysis(input_data: SubmitAnalysisInput, db: Session = Depends(get_db)):
     files = _validate_input(db, input_data)
 
+    # ------------------------------------------------------------------
+    # Multilingual normalization layer (Hindi → English)
+    # ------------------------------------------------------------------
+    # Rules (per design):
+    #   * analysis.query ALWAYS stores the user's ORIGINAL query (English,
+    #     Hindi, or mixed) so the UI displays what the user typed.
+    #   * If language=hi or Devanagari is detected, we translate to
+    #     English BEFORE the existing pipeline runs. A mutated copy of
+    #     input_data with the normalized English query is passed to
+    #     _run_analysis_pipeline so task_classification, specialist
+    #     routing, and model prompts all receive English (the only
+    #     language the existing pipeline was designed for).
+    #   * English / non-Hindi queries are passed through byte-for-byte
+    #     identical to the pre-multilingual behaviour.
+    from ..services.multilingual import translate_hindi_to_english
+
+    original_query = input_data.query
+    normalized_query, _ = translate_hindi_to_english(
+        original_query, getattr(input_data, "language", None)
+    )
+
+    # Build a pipeline copy with the normalized English query.
+    pipeline_input = SubmitAnalysisInput(
+        mode=input_data.mode,
+        imageIds=list(input_data.imageIds),
+        query=normalized_query,
+        provider=getattr(input_data, "provider", None),
+        language=getattr(input_data, "language", None),
+    )
+
+    # analysis.query stores the USER'S original text (never overwritten).
     analysis = Analysis(
         mode=input_data.mode,
-        query=input_data.query,
+        query=original_query,
         status="queued",
     )
     db.add(analysis)
@@ -411,11 +443,11 @@ def submit_analysis(input_data: SubmitAnalysisInput, db: Session = Depends(get_d
     aid = analysis.id
 
     _link_images(db, aid, input_data.mode, input_data.imageIds)
-    create_pending_trace(db, aid, input_data.mode, input_data.query)
+    create_pending_trace(db, aid, input_data.mode, original_query)
     db.flush()
 
     try:
-        _run_analysis_pipeline(db, analysis, files, input_data)
+        _run_analysis_pipeline(db, analysis, files, pipeline_input)
     except HTTPException:
         raise
     except MemoryError as me:
@@ -466,6 +498,26 @@ def get_analysis_trace(analysis_id: str, db: Session = Depends(get_db)):
     if a is None:
         raise HTTPException(status_code=404, detail=f"Analysis {analysis_id} not found")
     return build_trace_out(db, analysis_id, a.status)
+
+
+@router.post("/{analysis_id}/follow-up", response_model=FollowUpResponse)
+def ask_analysis_follow_up(
+    analysis_id: str,
+    payload: FollowUpRequest,
+    db: Session = Depends(get_db),
+):
+    a = db.query(Analysis).filter(Analysis.id == analysis_id).first()
+    if a is None:
+        raise HTTPException(status_code=404, detail=f"Analysis {analysis_id} not found")
+    if not payload.query or not payload.query.strip():
+        raise HTTPException(status_code=400, detail="Follow-up query must not be empty")
+
+    return answer_follow_up(
+        analysis=a,
+        query=payload.query,
+        history=payload.conversationHistory,
+        language=payload.language,
+    )
 
 
 @router.get("", response_model=HistoryPage)

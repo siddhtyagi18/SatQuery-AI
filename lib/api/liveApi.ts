@@ -6,6 +6,8 @@ import type {
   AnalysisResult,
   BenchmarkMetric,
   ExecutionTrace,
+  FollowUpMessage,
+  FollowUpResponse,
   HistoryFilters,
   SubmitAnalysisInput,
   ToolDefinition,
@@ -243,6 +245,34 @@ export const liveApi: SatQueryApi = {
     } catch (err) {
       console.warn('[liveApi] getBenchmarkMetrics failed or offline, falling back to mock:', err);
       return mockApi.getBenchmarkMetrics();
+    }
+  },
+
+  async askFollowUp(
+    analysisId: string,
+    query: string,
+    history: FollowUpMessage[] = [],
+    language: 'en' | 'hi' = 'en'
+  ): Promise<FollowUpResponse> {
+    try {
+      const res = await fetch(`${FASTAPI_BASE_URL}/api/analysis/${analysisId}/follow-up`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query,
+          language,
+          conversationHistory: history.map((h) => ({ role: h.role, text: h.text })),
+        }),
+      });
+
+      if (!res.ok) {
+        return mockApi.askFollowUp(analysisId, query, history, language);
+      }
+
+      return await res.json();
+    } catch (err) {
+      console.warn('[liveApi] askFollowUp failed or offline, falling back to mock:', err);
+      return mockApi.askFollowUp(analysisId, query, history, language);
     }
   },
 };

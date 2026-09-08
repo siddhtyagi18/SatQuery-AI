@@ -117,4 +117,22 @@ export const singleImageResult: AnalysisResult = {
     ],
   },
   errorReason: null,
+  multilingualSummaries: {
+    language: 'en',
+    summary_en:
+      'The image shows a mixed urban-agricultural landscape with dense urban settlement (~38%), agricultural cropland (~41%), sparse vegetation (~14%), and a water body (~7%). A total of 127 individual buildings have been detected and localized.',
+    summary_hi:
+      'तस्वीर में मिश्रित शहरी और ग्रामीण परिदृश्य दिखाई दे रहा है: सघन शहरी क्षेत्र (~38%), खेती की जमीन (~41%), हरियाली (~14%) और जल निकाय (~7%)। कुल 127 भवनों की पहचान और स्थान निर्धारण किया गया है।',
+    bullet_en: [
+      'Dense urban settlement covers approximately 38% in the northwestern quadrant.',
+      'Active agricultural cropland covers 41% of the scene.',
+      '127 individual building structures localized with bounding proposals.',
+    ],
+    bullet_hi: [
+      'उत्तर-पश्चिम हिस्से में लगभग 38% सघन शहरी बसावट है।',
+      'तस्वीर के लगभग 41% भाग पर सक्रिय खेती की जमीन है।',
+      'कुल 127 भवनों की पहचान और स्थान निर्धारण किया गया है।',
+    ],
+    generated_via_llm: true,
+  },
 };

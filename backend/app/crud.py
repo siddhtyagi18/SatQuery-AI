@@ -15,6 +15,7 @@ from .schemas import (
     HistoryPage,
     ImageMetadataType,
     ImageRole,
+    MultilingualSummaries,
     ToolInvocation,
     UploadedImage,
 )
@@ -22,6 +23,83 @@ from .services.trace import build_trace_out
 from .config import get_settings
 
 settings = get_settings()
+
+
+def _attach_multilingual_summaries(
+    db: Session,
+    a: Analysis,
+) -> Optional[MultilingualSummaries]:
+    """Build-or-read multilingual summaries for an Analysis row.
+
+    Strictly additive:
+      * Never triggers re-analysis.
+      * Only reads: answer_text, detected_tasks, confidence, query,
+        adaptation (namespaced sub-key only).
+      * Writes: Analysis.adaptation["multilingual_summaries"] ONLY if
+        the key is missing.  Never overwrites any other adaptation key
+        (teammate data protected).
+      * Cache write is best-effort.  A cache failure is logged and does
+        NOT break the API — we still return the freshly-built struct.
+    """
+    from .services.result_multilingual import (
+        build_multilingual_summaries,
+        cached_summaries,
+        store_cached_summaries,
+    )
+
+    # Only populate once the analysis has produced an answer.
+    # For failed / queued / processing rows, return None (no display).
+    if a.status != "completed":
+        return None
+    if not a.answer_text:
+        return None
+
+    # 1) Fast path: already cached inside adaptation JSON.
+    cached = cached_summaries(a)
+    if cached:
+        try:
+            return MultilingualSummaries(**cached)
+        except Exception:  # noqa: BLE001 — defensive, never break read
+            cached = None
+
+    # 2) Slow path: build summaries (dict fallback guaranteed to return
+    #    valid text even if LLM is unreachable).
+    try:
+        summaries_dict = build_multilingual_summaries(
+            answer_text=a.answer_text or "",
+            detected_tasks=list(a.detected_tasks or []),
+            confidence=a.confidence,
+            query=a.query or "",
+        )
+    except Exception as exc:  # noqa: BLE001 — never break the read API
+        from .logging_setup import logger
+        logger.warning("[crud.multi] build failed (%s: %s)", type(exc).__name__, exc)
+        return None
+
+    # 3) Write-through cache into the namespaced adaptation key.
+    #    store_cached_summaries calls db.flush() but does NOT commit.
+    wrote_cache = False
+    try:
+        before = a.adaptation
+        store_cached_summaries(db, a, summaries_dict)
+        after = a.adaptation
+        wrote_cache = (before != after)
+    except Exception:  # noqa: BLE001 — caching is non-critical
+        wrote_cache = False
+
+    # If we mutated the adaptation column (cache miss), commit once so the
+    # cache actually persists to disk.  This runs at most ONCE per analysis
+    # row in its entire lifetime (subsequent reads hit the cached dict).
+    if wrote_cache:
+        try:
+            db.commit()
+        except Exception:  # noqa: BLE001 — persistence failure is non-fatal
+            pass
+
+    try:
+        return MultilingualSummaries(**summaries_dict)
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _iso(dt: Optional[datetime]) -> str:
@@ -136,6 +214,7 @@ def analysis_to_result(db: Session, a: Analysis) -> AnalysisResult:
         inputSummary=getattr(a, "input_summary", None),
         isMock=is_mock,
         executionMode=exec_mode,
+        multilingualSummaries=_attach_multilingual_summaries(db, a),
     )
 
 
