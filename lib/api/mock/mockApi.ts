@@ -122,7 +122,7 @@ function buildPendingSteps(mode: string, query: string): ExecutionStep[] {
     { id: 'step-4', title: 'Tool Selection', detail: 'Routing to specialist model(s) based on detected tasks…', status: 'pending', startedAt: null, completedAt: null },
     { id: 'step-5', title: 'Parameters', detail: 'Configuring inference parameters…', status: 'pending', startedAt: null, completedAt: null },
     { id: 'step-6', title: 'Processing', detail: 'Running model inference…', status: 'pending', startedAt: null, completedAt: null },
-    { id: 'step-7', title: 'Aggregation', detail: 'Merging outputs and calibrating confidence…', status: 'pending', startedAt: null, completedAt: null },
+    { id: 'step-7', title: 'Aggregation', detail: 'Merging outputs | Confidence: null (uncalibrated)', status: 'pending', startedAt: null, completedAt: null },
     { id: 'step-8', title: 'Completion', detail: 'Finalising result…', status: 'pending', startedAt: null, completedAt: null },
   ];
 }

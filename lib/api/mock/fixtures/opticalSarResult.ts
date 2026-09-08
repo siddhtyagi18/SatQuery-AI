@@ -120,9 +120,9 @@ export const opticalSarResult: AnalysisResult = {
       },
       {
         id: 'step-8', title: 'Completion',
-        detail: 'Analysis complete | Overall confidence: 91.0% | Total elapsed: 12.10s | 3 cross-modal annotations',
+        detail: 'Analysis complete | Confidence: uncalibrated (null) | Total elapsed: 12.10s | 3 cross-modal annotations',
         status: 'done', startedAt: new Date(Date.now() - 350).toISOString(), completedAt: new Date(Date.now() - 60).toISOString(),
-        meta: { confidence: 0.91, elapsed_ms: 12100 },
+        meta: { confidence: null, elapsed_ms: 12100 },
       },
     ],
   },

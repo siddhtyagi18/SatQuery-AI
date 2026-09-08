@@ -105,14 +105,14 @@ export const singleImageResult: AnalysisResult = {
       },
       {
         id: 'step-7', title: 'Aggregation',
-        detail: 'Merging VQA answer with grounding annotations | NMS applied across tiles | Confidence calibration applied',
+        detail: 'Merging VQA answer with grounding annotations | NMS applied across tiles | Confidence: null (uncalibrated)',
         status: 'done', startedAt: new Date(Date.now() - 980).toISOString(), completedAt: new Date(Date.now() - 400).toISOString(),
       },
       {
         id: 'step-8', title: 'Completion',
-        detail: 'Analysis complete | Overall confidence: 87.0% | Total elapsed: 7.84s | 127 bounding boxes generated',
+        detail: 'Analysis complete | Confidence: uncalibrated (null) | Total elapsed: 7.84s | 127 bounding boxes generated',
         status: 'done', startedAt: new Date(Date.now() - 400).toISOString(), completedAt: new Date(Date.now() - 100).toISOString(),
-        meta: { confidence: 0.87, elapsed_ms: 7840, boxes: 127 },
+        meta: { confidence: null, elapsed_ms: 7840, boxes: 127 },
       },
     ],
   },

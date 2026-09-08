@@ -151,3 +151,81 @@ def test_bi_temporal_tool_isolation():
     assert "change_vqa" in tools, "change_vqa must be selected for bi_temporal"
     assert "rs_vqa" not in tools, "rs_vqa must not be selected in bi_temporal mode"
     assert "rs_caption" not in tools, "rs_caption must not be selected in bi_temporal mode"
+
+
+def test_executive_report_contains_no_fabricated_confidence(sample_optical_pair):
+    """Generated executive report text must not contain fabricated confidence percentages."""
+    p_before, _ = sample_optical_pair
+    res = analyze_satellite_image(p_before, query="Describe land cover types visible")
+
+    answer = res["answer"]
+    forbidden_phrases = [
+        "calibrated at 93%",
+        "calibrated at 82%",
+        "calibrated confidence",
+        "High Confidence",
+        "observation certainty",
+        "93% confidence",
+        "82% confidence",
+        "87% confidence",
+        "91% confidence",
+    ]
+    for phrase in forbidden_phrases:
+        assert phrase.lower() not in answer.lower(), (
+            f"Fabricated confidence phrase '{phrase}' found in executive report answer"
+        )
+
+
+def test_threshold_not_exposed_as_confidence(sample_optical_pair):
+    """The Siamese U-Net operating threshold 0.70 must never be labelled as confidence."""
+    p_before, p_after = sample_optical_pair
+    res = run_change_detection(p_before, p_after, analysis_id="test_threshold_check")
+
+    combined = f"{res.answer} {' '.join(res.evidence)}"
+    assert "confidence = 70%" not in combined.lower()
+    assert "confidence: 70%" not in combined.lower()
+    assert "70% confidence" not in combined.lower()
+    assert "confidence = 0.70" not in combined.lower()
+    assert "confidence: 0.70" not in combined.lower()
+    # But the threshold itself should be documented
+    assert "0.70" in combined, "Threshold 0.70 should be mentioned for transparency"
+
+
+def test_heuristic_quality_score_separate_from_confidence(sample_optical_pair):
+    """image_quality_score must remain in stats as an internal metric, never leak as model confidence."""
+    p_before, _ = sample_optical_pair
+    res = analyze_satellite_image(p_before, query="What is visible?")
+
+    # Top-level confidence must be None
+    assert res["confidence"] is None
+
+    # image_quality_score may exist internally but must not be called 'confidence'
+    stats = res.get("stats", {})
+    assert "image_quality_score" in stats, "Internal quality score should be named image_quality_score"
+    assert stats.get("confidence") is None or "confidence" not in stats, (
+        "Stats dict must not contain a non-None 'confidence' key"
+    )
+
+    # The answer must not expose the quality score as if it were confidence
+    answer = res["answer"]
+    iq_score = stats.get("image_quality_score")
+    if iq_score is not None:
+        pct_str = f"{int(round(iq_score * 100))}%"
+        assert f"confidence: {pct_str}" not in answer.lower() and f"calibrated at {pct_str}" not in answer.lower(), (
+            f"image_quality_score ({iq_score}) must not appear as confidence in the answer"
+        )
+
+
+def test_change_vqa_confidence_is_none(sample_optical_pair):
+    """Change VQA specialist must always return confidence=None."""
+    p_before, p_after = sample_optical_pair
+    vqa = get_vqa_service()
+    res = vqa.run_real_or_fallback(
+        query="What urban changes occurred between these two images?",
+        mode="bi_temporal",
+        image_file_paths=[p_before, p_after],
+        tasks=["change_vqa"],
+        tool_id="change_vqa",
+    )
+    assert res.confidence is None, "Change VQA must return confidence=None"
+
