@@ -64,7 +64,7 @@ export function GeoSpatialChangeAnalytics({
 
   // Physical Area calculation
   const pixelAreaM2 = gsdMeters * gsdMeters;
-  const calcChangedM2 = changedCount * pixelAreaM2;
+  const calcChangedM2 = (changedCount ?? 0) * pixelAreaM2;
   const calcChangedHa = calcChangedM2 / 10000;
   const isPhysicalAreaAvailable: boolean = true;
   const physicalAreaSummary: string =

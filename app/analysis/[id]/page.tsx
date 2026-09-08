@@ -49,7 +49,6 @@ export default function AnalysisResultPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-<<<<<<< HEAD
   // Phase 2: Region of Interest (ROI) State
   const [selectedRoi, setSelectedRoi] = useState<ROIBounds | null>(null);
   const [roiData, setRoiData] = useState<ROIAnalysisResponse | null>(null);
@@ -86,7 +85,7 @@ export default function AnalysisResultPage() {
     setSelectedRoi(null);
     setRoiData(null);
   };
-=======
+
   // Spatial highlighting & viewer focus link for contextual follow-up
   const [mapHighlighted, setMapHighlighted] = useState(false);
   const visualViewerRef = useRef<HTMLDivElement>(null);
@@ -101,7 +100,6 @@ export default function AnalysisResultPage() {
       setTimeout(() => setMapHighlighted(false), 2600);
     }
   }, []);
->>>>>>> ea5973e743ab33fff00001a6c7b6d09f4c9b612a
 
   // Derived: execution mode of the change detection step (from trace step-6 meta)
   const changeExecMode: string | null = (() => {
@@ -372,11 +370,35 @@ export default function AnalysisResultPage() {
                     changeMaskUrl={result.changeMap?.overlayUrl ?? '/demo/change_mask.png'}
                     legend={result.changeMap?.legend}
                     algorithmLabel={changeAlgorithmLabel}
+                    roi={selectedRoi}
+                    onSelectRoi={handleSelectRoi}
+                    onClearRoi={handleClearRoi}
                   />
                 </div>
 
                 {/* Real Change Statistics Panel */}
                 <ChangeStatsPanel trace={result.executionTrace} />
+
+                {/* Geo-Spatial Change Analytics */}
+                <GeoSpatialChangeAnalytics
+                  analytics={result.changeMap?.analytics}
+                  trace={result.executionTrace}
+                />
+
+                {/* Phase 2: Interactive Region of Interest (ROI) Investigation */}
+                <RoiInvestigationPanel
+                  analysisId={result.id}
+                  roi={selectedRoi}
+                  roiData={roiData}
+                  loading={roiLoading}
+                  onClearRoi={handleClearRoi}
+                />
+
+                {/* Phase 3: Automated AI Mission Report / Evidence Report */}
+                <MissionReportCard
+                  analysisId={result.id}
+                  roiData={roiData}
+                />
               </div>
             )}
 
@@ -391,63 +413,11 @@ export default function AnalysisResultPage() {
             )}
           </div>
 
-<<<<<<< HEAD
-              {/* Change Detection Heatmap */}
-              <div className="flex flex-col gap-2">
-                <span className="hud-label">Change Detection Output</span>
-                <ChangeMapViewer
-                  baseImageUrl={result.images[1]?.previewUrl ?? '/demo/optical_after.jpg'}
-                  changeMaskUrl={result.changeMap?.overlayUrl ?? '/demo/change_mask.png'}
-                  legend={result.changeMap?.legend}
-                  algorithmLabel={changeAlgorithmLabel}
-                  roi={selectedRoi}
-                  onSelectRoi={handleSelectRoi}
-                  onClearRoi={handleClearRoi}
-                />
-              </div>
-
-              {/* Real Change Statistics Panel */}
-              <ChangeStatsPanel trace={result.executionTrace} />
-
-              {/* Geo-Spatial Change Analytics */}
-              <GeoSpatialChangeAnalytics
-                analytics={result.changeMap?.analytics}
-                trace={result.executionTrace}
-              />
-
-              {/* Phase 2: Interactive Region of Interest (ROI) Investigation */}
-              <RoiInvestigationPanel
-                analysisId={result.id}
-                roi={selectedRoi}
-                roiData={roiData}
-                loading={roiLoading}
-                onClearRoi={handleClearRoi}
-              />
-
-              {/* Phase 3: Automated AI Mission Report / Evidence Report */}
-              <MissionReportCard
-                analysisId={result.id}
-                roiData={roiData}
-              />
-            </div>
-          )}
-
-          {result.mode === 'optical_sar' && (
-            <div className="flex flex-col gap-2">
-              <span className="hud-label">Multimodal Cross-Sensor Fusion</span>
-              <OpticalSarViewer
-                opticalUrl={result.images[0]?.previewUrl ?? '/demo/optical_sample.jpg'}
-                sarUrl={result.images[1]?.previewUrl ?? '/demo/sar_sample.jpg'}
-              />
-            </div>
-          )}
-=======
-          {/* Contextual Follow-up Questions Console — Feature 1 */}
+          {/* Contextual Follow-up Questions Console */}
           <FollowUpPanel
             result={result}
             onSpatialAction={handleSpatialAction}
           />
->>>>>>> ea5973e743ab33fff00001a6c7b6d09f4c9b612a
         </div>
 
         {/* Right Rail (1 span): Confidence + Sticky Execution Trace & Tool Invocations */}

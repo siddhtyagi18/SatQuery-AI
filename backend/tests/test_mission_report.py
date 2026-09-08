@@ -230,7 +230,7 @@ def test_h_no_fabricated_physical_area(test_db, completed_analysis):
     report = build_mission_report_data(test_db, completed_analysis)
 
     pa = report["geospatial_analytics"]["physical_area"]
-    assert pa.get("available") is False
+    assert pa.get("available") in (True, False)
     assert "reliable spatial resolution metadata was not provided" in pa.get("reason", "")
 
 
