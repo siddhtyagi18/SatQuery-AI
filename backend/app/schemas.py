@@ -182,7 +182,6 @@ class ErrorResponse(BaseModel):
     detail: str
 
 
-<<<<<<< HEAD
 class ROIAnalysisInput(BaseModel):
     x1: float
     y1: float
@@ -272,7 +271,6 @@ class ReportResponse(BaseModel):
     pdf_filename: Optional[str] = None
 
 
-=======
 class FollowUpHistoryItem(BaseModel):
     role: str
     text: str
@@ -298,4 +296,4 @@ class FollowUpResponse(BaseModel):
     referencedMetrics: Optional[Dict[str, Any]] = None
     spatialAction: Optional[SpatialActionOut] = None
     rerunPerformed: bool = False
->>>>>>> ea5973e743ab33fff00001a6c7b6d09f4c9b612a
+

@@ -419,7 +419,6 @@ def run_change_detection(
 ) -> ChangeDetectionResult:
     """
     Dispatcher: run bi-temporal change detection using the best available method.
-<<<<<<< HEAD
 
     Decision tree:
     1. If a valid checkpoint is resolved (via settings or candidate discovery):
@@ -442,8 +441,6 @@ def run_change_detection(
     Returns
     -------
     ChangeDetectionResult — same schema regardless of which path ran.
-=======
->>>>>>> ea5973e743ab33fff00001a6c7b6d09f4c9b612a
     """
     resolved_ckpt = _resolve_checkpoint_path()
 

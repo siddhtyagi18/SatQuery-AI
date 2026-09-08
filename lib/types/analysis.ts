@@ -42,11 +42,7 @@ export interface ExecutionStep {
   status: StepStatus;
   startedAt: string | null;
   completedAt: string | null;
-<<<<<<< HEAD
   meta?: Record<string, string | number | boolean | null | undefined | any>;
-=======
-  meta?: Record<string, string | number | boolean | null>;
->>>>>>> ea5973e743ab33fff00001a6c7b6d09f4c9b612a
 }
 
 export interface ExecutionTrace {
@@ -149,7 +145,6 @@ export interface HistoryFilters {
   pageSize?: number;
 }
 
-<<<<<<< HEAD
 export interface ROIBounds {
   x1: number;
   y1: number;
@@ -282,7 +277,7 @@ export interface MissionReportResponse {
 }
 
 
-=======
+
 // ---- Contextual Follow-up & Smart Insights Types ----
 
 export interface SpatialAction {
@@ -326,4 +321,3 @@ export interface SmartInsightsData {
   dateComparison?: string | null;
   locationAoi?: string | null;
 }
->>>>>>> ea5973e743ab33fff00001a6c7b6d09f4c9b612a
