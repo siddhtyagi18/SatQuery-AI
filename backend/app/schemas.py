@@ -73,7 +73,7 @@ class ExecutionTraceOut(BaseModel):
 
 class ChangeMap(BaseModel):
     overlayUrl: Optional[str] = None
-    legend: List[Dict[str, str]]
+    legend: Optional[List[Dict[str, str]]] = None
     analytics: Optional[Dict[str, Any]] = None
     changedPixelPct: Optional[float] = None
     changedPixels: Optional[int] = None

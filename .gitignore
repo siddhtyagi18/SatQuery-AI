@@ -67,6 +67,7 @@ outputs/
 backend/outputs/
 backend/data/results/*.png
 backend/data/results/*.jpg
+backend/data/results/*.pdf
 backend/data/cache/
 
 # ============================================================
