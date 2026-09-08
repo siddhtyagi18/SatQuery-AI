@@ -257,6 +257,7 @@ def _run_model_inference(
     analysis_id: str,
     checkpoint_path_str: str,
     threshold: Optional[float] = None,
+    metadata: Optional[Dict[str, Any]] = None,
 ) -> ChangeDetectionResult:
     """Run model-based change detection and return a ChangeDetectionResult."""
     settings = get_settings()
@@ -340,6 +341,9 @@ def _run_model_inference(
             {"label": f"Changed region ({changed_pct:.1f}% of area)", "color": "#FF3C3C"},
             {"label": f"No change detected ({unchanged_pct:.1f}% of area)", "color": "transparent"},
         ],
+        "changedPixelPct": changed_pct,
+        "changedPixels": changed_pixels,
+        "totalPixels": total_pixels,
     }
 
     stats = {
@@ -359,6 +363,18 @@ def _run_model_inference(
         "execution_mode": "model_checkpoint",
         "checkpoint_path": checkpoint_path_str,
     }
+
+    try:
+        from .geospatial_change_analytics import compute_geospatial_change_analytics
+        geo_analytics = compute_geospatial_change_analytics(
+            binary_mask=binary_mask,
+            dimensions=(W, H),
+            metadata=metadata,
+        )
+        stats["geospatial_analytics"] = geo_analytics
+        change_map["analytics"] = geo_analytics
+    except Exception as ga_err:
+        logger.warning("[model_inference] Geospatial analytics computation failed: %s", ga_err)
 
     return ChangeDetectionResult(
         answer=answer,
@@ -391,6 +407,7 @@ def run_change_detection(
     after_path: Path,
     analysis_id: str,
     threshold: Optional[float] = None,
+    metadata: Optional[Dict[str, Any]] = None,
 ) -> ChangeDetectionResult:
     """
     Dispatcher: run bi-temporal change detection using the best available method.
@@ -411,6 +428,7 @@ def run_change_detection(
     after_path   : Path to the "after" (T2) image.
     analysis_id  : Unique ID for naming output files.
     threshold    : Optional override for probability/difference threshold.
+    metadata     : Optional geospatial metadata dictionary.
 
     Returns
     -------
@@ -428,6 +446,7 @@ def run_change_detection(
                 analysis_id=analysis_id,
                 checkpoint_path_str=str(resolved_ckpt),
                 threshold=threshold,
+                metadata=metadata,
             )
             logger.info(
                 "[model_inference] Dispatcher: used model_checkpoint path for analysis=%s",
@@ -448,6 +467,7 @@ def run_change_detection(
         after_path=after_path,
         analysis_id=analysis_id,
         threshold=classical_threshold,
+        metadata=metadata,
     )
     # Tag execution mode in stats
     result.stats["execution_mode"] = "cpu_classical"

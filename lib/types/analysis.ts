@@ -42,7 +42,7 @@ export interface ExecutionStep {
   status: StepStatus;
   startedAt: string | null;
   completedAt: string | null;
-  meta?: Record<string, string | number | boolean>;
+  meta?: Record<string, string | number | boolean | null | undefined | any>;
 }
 
 export interface ExecutionTrace {
@@ -84,6 +84,7 @@ export interface AnalysisResult {
   changeMap: {
     overlayUrl: string | null;
     legend: { label: string; color: string }[];
+    analytics?: Record<string, any> | null;
   } | null;
   toolInvocations: ToolInvocation[];
   executionTrace: ExecutionTrace;
@@ -132,3 +133,136 @@ export interface HistoryFilters {
   page?: number;
   pageSize?: number;
 }
+
+export interface ROIBounds {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+export interface ROIAnalysisResponse {
+  roi: {
+    pixel_coordinates: {
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+      width: number;
+      height: number;
+    };
+    normalized_coordinates: {
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+    };
+    image_dimensions: {
+      width: number;
+      height: number;
+    };
+  };
+  statistics: {
+    total_pixels: number;
+    changed_pixels: number;
+    unchanged_pixels: number;
+    changed_percentage: number;
+    unchanged_percentage: number;
+  };
+  physical_area: {
+    available: boolean;
+    gsd_meters?: number | null;
+    roi_total_area_m2?: number | null;
+    roi_total_area_hectares?: number | null;
+    roi_total_area_sqkm?: number | null;
+    roi_changed_area_m2?: number | null;
+    roi_changed_area_hectares?: number | null;
+    roi_changed_area_sqkm?: number | null;
+    reason?: string | null;
+    metadata_source?: string | null;
+  };
+  global_comparison: {
+    global_changed_percentage?: number | null;
+    roi_changed_percentage: number;
+    difference_percentage?: number | null;
+    relative_density_factor?: number | null;
+    summary?: string | null;
+  };
+  hotspots: {
+    hotspots_count_total: number;
+    hotspots_count_significant: number;
+    largest_hotspot?: {
+      id: number;
+      pixel_area: number;
+      pct_of_roi_change: number;
+      centroid_px: [number, number];
+      bbox_px: [number, number, number, number];
+    } | null;
+    hotspots: Array<{
+      id: number;
+      pixel_area: number;
+      pct_of_roi_change: number;
+      centroid_px: [number, number];
+      bbox_px: [number, number, number, number];
+    }>;
+  };
+  vqa?: {
+    answer: string;
+    confidence?: number | null;
+    confidence_label?: string;
+    evidence?: string[];
+    composite_url?: string;
+    is_mock?: boolean;
+  } | null;
+}
+
+export interface MissionReportResponse {
+  report: {
+    analysis_id: string;
+    created_at: string;
+    mode: string;
+    status: string;
+    query: string;
+    executive_summary: string;
+    input_images: Array<Record<string, any>>;
+    t1_path?: string | null;
+    t2_path?: string | null;
+    change_mask_path?: string | null;
+    compatibility: Record<string, any>;
+    adaptation: Record<string, any>;
+    change_detection: {
+      changed_pixel_pct?: number | null;
+      changed_pixel_count?: number | null;
+      total_pixel_count?: number | null;
+      unchanged_pixel_count?: number | null;
+      unchanged_pixel_pct?: number | null;
+      threshold_used: number;
+      execution_mode: string;
+      checkpoint: string;
+      confidence?: number | null;
+      confidence_label: string;
+    };
+    geospatial_analytics: Record<string, any>;
+    roi_investigation: {
+      performed: boolean;
+      details?: Record<string, any> | null;
+    };
+    ai_interpretation: {
+      executed: boolean;
+      answer?: string | null;
+      evidence: string[];
+      confidence_label: string;
+    };
+    trace_steps: Array<{
+      step_id: string;
+      title: string;
+      status: string;
+      detail: string;
+    }>;
+    limitations: string[];
+  };
+  pdf_url?: string | null;
+  pdf_filename?: string | null;
+}
+
+

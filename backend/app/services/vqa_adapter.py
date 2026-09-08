@@ -334,6 +334,8 @@ class SmolVLMHuggingFaceAdapter(VQAModelAdapter):
         generate_kwargs: Dict[str, Any] = {
             "max_new_tokens": max(1, min(inference_input.max_new_tokens, 4096)),
             "temperature": max(0.0, min(inference_input.temperature, 2.0)),
+            "repetition_penalty": 1.15,
+            "no_repeat_ngram_size": 3,
         }
         if generate_kwargs["temperature"] < 1e-3:
             generate_kwargs["do_sample"] = False

@@ -293,7 +293,7 @@ class VQAService:
         from .image_analysis import analyze_satellite_image
         spectral_analysis = analyze_satellite_image(preproc_path, query=query, mode=ctx.execution_mode, task_type=tool_id)
 
-        max_tokens = min(getattr(settings, "VQA_MAX_NEW_TOKENS", 128) or 128, 128)
+        max_tokens = min(getattr(settings, "VQA_MAX_NEW_TOKENS", 64) or 64, 64)
         inf_input = VQAInferenceInput(
             rgb_image=preproc.rgb_image,
             query_text=effective_query,

@@ -74,6 +74,11 @@ class ExecutionTraceOut(BaseModel):
 class ChangeMap(BaseModel):
     overlayUrl: Optional[str] = None
     legend: List[Dict[str, str]]
+    analytics: Optional[Dict[str, Any]] = None
+    changedPixelPct: Optional[float] = None
+    changedPixels: Optional[int] = None
+    totalPixels: Optional[int] = None
+
 
 
 class AnalysisResult(BaseModel):
@@ -155,3 +160,94 @@ class HealthResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     detail: str
+
+
+class ROIAnalysisInput(BaseModel):
+    x1: float
+    y1: float
+    x2: float
+    y2: float
+    is_normalized: bool = True
+    run_vqa: bool = False
+    vqa_query: Optional[str] = None
+    provider: Optional[str] = None
+
+
+class ROIPixelCoords(BaseModel):
+    x1: int
+    y1: int
+    x2: int
+    y2: int
+    width: int
+    height: int
+
+
+class ROINormalizedCoords(BaseModel):
+    x1: float
+    y1: float
+    x2: float
+    y2: float
+
+
+class ROIInfo(BaseModel):
+    pixel_coordinates: ROIPixelCoords
+    normalized_coordinates: ROINormalizedCoords
+    image_dimensions: Dict[str, int]
+
+
+class ROIStatistics(BaseModel):
+    total_pixels: int
+    changed_pixels: int
+    unchanged_pixels: int
+    changed_percentage: float
+    unchanged_percentage: float
+
+
+class ROIPhysicalArea(BaseModel):
+    available: bool
+    gsd_meters: Optional[float] = None
+    roi_total_area_m2: Optional[float] = None
+    roi_total_area_hectares: Optional[float] = None
+    roi_total_area_sqkm: Optional[float] = None
+    roi_changed_area_m2: Optional[float] = None
+    roi_changed_area_hectares: Optional[float] = None
+    roi_changed_area_sqkm: Optional[float] = None
+    reason: Optional[str] = None
+    metadata_source: Optional[str] = None
+
+
+class ROIGlobalComparison(BaseModel):
+    global_changed_percentage: Optional[float] = None
+    roi_changed_percentage: float
+    difference_percentage: Optional[float] = None
+    relative_density_factor: Optional[float] = None
+    summary: Optional[str] = None
+
+
+class ROIHotspotsResult(BaseModel):
+    hotspots_count_total: int
+    hotspots_count_significant: int
+    largest_hotspot: Optional[Dict[str, Any]] = None
+    hotspots: List[Dict[str, Any]] = []
+
+
+class ROIAnalysisOutput(BaseModel):
+    roi: ROIInfo
+    statistics: ROIStatistics
+    physical_area: ROIPhysicalArea
+    global_comparison: ROIGlobalComparison
+    hotspots: ROIHotspotsResult
+    vqa: Optional[Dict[str, Any]] = None
+
+
+class ReportGenerationInput(BaseModel):
+    roi: Optional[Dict[str, Any]] = None
+    generate_pdf: bool = True
+
+
+class ReportResponse(BaseModel):
+    report: Dict[str, Any]
+    pdf_url: Optional[str] = None
+    pdf_filename: Optional[str] = None
+
+

@@ -164,6 +164,7 @@ def run_cpu_change_detection(
     after_path: Path,
     analysis_id: str,
     threshold: float = 35.0 / 255.0,  # ~0.137; configurable per call
+    metadata: Optional[Dict[str, Any]] = None,
 ) -> ChangeDetectionResult:
     """
     Perform classical pixel-difference change detection between two images.
@@ -314,6 +315,18 @@ def run_cpu_change_detection(
         "severity": severity,
         "overlay_url": overlay_url,
     }
+
+    try:
+        from .geospatial_change_analytics import compute_geospatial_change_analytics
+        geo_analytics = compute_geospatial_change_analytics(
+            binary_mask=clean_mask,
+            dimensions=(w, h),
+            metadata=metadata,
+        )
+        stats["geospatial_analytics"] = geo_analytics
+        change_map["analytics"] = geo_analytics
+    except Exception as ga_err:
+        logger.warning("[change_detection] Geospatial analytics computation failed: %s", ga_err)
 
     return ChangeDetectionResult(
         answer=answer,

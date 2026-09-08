@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     VQA_MODEL_ID: str = "HuggingFaceTB/SmolVLM-500M-Instruct"
     VQA_DEVICE: str = "cpu"
     VQA_PRECISION: str = "fp32"
-    VQA_MAX_NEW_TOKENS: int = 512
+    VQA_MAX_NEW_TOKENS: int = 64
     VQA_TEMPERATURE: float = 0.2
     VQA_INFERENCE_TIMEOUT_SEC: int = 180
     VQA_CACHE_DIR: Optional[str] = None

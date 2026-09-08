@@ -21,6 +21,10 @@ import { BeforeAfterViewer } from '@/components/BeforeAfterViewer';
 import { ChangeMapViewer } from '@/components/ChangeMapViewer';
 import { OpticalSarViewer } from '@/components/OpticalSarViewer';
 import { ChangeStatsPanel } from '@/components/ChangeStatsPanel';
+import { GeoSpatialChangeAnalytics } from '@/components/GeoSpatialChangeAnalytics';
+import { RoiInvestigationPanel } from '@/components/RoiInvestigationPanel';
+import { MissionReportCard } from '@/components/MissionReportCard';
+import { ROIBounds, ROIAnalysisResponse } from '@/lib/types/analysis';
 import { Download, RotateCcw, ArrowLeft, Cpu, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabaseAnalysisService, SUPABASE_PERSISTENCE_ENABLED } from '@/lib/supabase/services';
@@ -40,6 +44,43 @@ export default function AnalysisResultPage() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Phase 2: Region of Interest (ROI) State
+  const [selectedRoi, setSelectedRoi] = useState<ROIBounds | null>(null);
+  const [roiData, setRoiData] = useState<ROIAnalysisResponse | null>(null);
+  const [roiLoading, setRoiLoading] = useState(false);
+
+  const handleSelectRoi = async (bounds: ROIBounds) => {
+    setSelectedRoi(bounds);
+    setRoiLoading(true);
+    try {
+      const res = await fetch(`/api/analysis/${id}/roi-analysis`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          x1: bounds.x1,
+          y1: bounds.y1,
+          x2: bounds.x2,
+          y2: bounds.y2,
+          is_normalized: true,
+          run_vqa: false,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRoiData(data);
+      }
+    } catch (err) {
+      console.error('Failed to calculate ROI change analytics:', err);
+    } finally {
+      setRoiLoading(false);
+    }
+  };
+
+  const handleClearRoi = () => {
+    setSelectedRoi(null);
+    setRoiData(null);
+  };
 
   // Derived: execution mode of the change detection step (from trace step-6 meta)
   const changeExecMode: string | null = (() => {
@@ -286,11 +327,35 @@ export default function AnalysisResultPage() {
                   changeMaskUrl={result.changeMap?.overlayUrl ?? '/demo/change_mask.png'}
                   legend={result.changeMap?.legend}
                   algorithmLabel={changeAlgorithmLabel}
+                  roi={selectedRoi}
+                  onSelectRoi={handleSelectRoi}
+                  onClearRoi={handleClearRoi}
                 />
               </div>
 
               {/* Real Change Statistics Panel */}
               <ChangeStatsPanel trace={result.executionTrace} />
+
+              {/* Geo-Spatial Change Analytics */}
+              <GeoSpatialChangeAnalytics
+                analytics={result.changeMap?.analytics}
+                trace={result.executionTrace}
+              />
+
+              {/* Phase 2: Interactive Region of Interest (ROI) Investigation */}
+              <RoiInvestigationPanel
+                analysisId={result.id}
+                roi={selectedRoi}
+                roiData={roiData}
+                loading={roiLoading}
+                onClearRoi={handleClearRoi}
+              />
+
+              {/* Phase 3: Automated AI Mission Report / Evidence Report */}
+              <MissionReportCard
+                analysisId={result.id}
+                roiData={roiData}
+              />
             </div>
           )}
 
