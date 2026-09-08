@@ -185,6 +185,7 @@ class SupabaseAuthService implements AuthService {
           access_type: 'offline',
           prompt: 'consent',
         },
+        skipBrowserRedirect: true,
       },
     });
 
@@ -432,12 +433,13 @@ export function onAuthStateChange(listener: AuthStateChangeListener): () => void
   if (HAS_SUPABASE && supabase) {
     const sbService = new SupabaseAuthService();
     const unsubSb = sbService.onAuthStateChange((event) => {
+      listener(event);
+    });
+    const unsubMock = authService.onAuthStateChange((event) => {
+      // Only emit mock session events if an explicit mock session exists
       if (event.session) {
         listener(event);
       }
-    });
-    const unsubMock = authService.onAuthStateChange((event) => {
-      listener(event);
     });
     return () => {
       unsubSb();

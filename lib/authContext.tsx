@@ -18,7 +18,7 @@ export type { AuthSession } from '@/lib/authService';
 interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
-  login: (email?: string, name?: string) => void;
+  login: (email?: string, name?: string, avatarUrl?: string) => void;
   signup: (email: string, name?: string, dob?: string) => void;
   loginWithGoogle: () => Promise<OAuthResult>;
   updateProfile: (data: Partial<AuthUser>) => void;
@@ -109,11 +109,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [loading, user, pathname, router]);
 
-  const login = (email?: string, name?: string) => {
+  const login = (email?: string, name?: string, avatarUrl?: string) => {
     const userEmail = email || 'controller@isro.gov.in';
     const u: AuthUser = {
       ...buildMockUser(userEmail),
       ...(name ? { name } : {}),
+      ...(avatarUrl ? { avatarUrl } : {}),
     };
     try {
       if (typeof window !== 'undefined') {

@@ -162,10 +162,11 @@ class RealSupabaseAnalysisService implements SupabaseAnalysisService {
         },
         { onConflict: 'id', ignoreDuplicates: true }
       );
-      if (error) throw error;
+      if (error) {
+        logWarn('ensureProfileForUser', error.message);
+      }
     } catch (err) {
       logWarn('ensureProfileForUser', err);
-      throw err;
     }
   }
 

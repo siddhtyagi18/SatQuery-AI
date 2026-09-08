@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase, HAS_SUPABASE } from '@/lib/supabase';
@@ -16,20 +16,41 @@ function AuthCallbackContent() {
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Guard against React 18 Strict Mode double-invocation & re-renders
+  const hasExecutedRef = useRef(false);
+
   useEffect(() => {
+    if (hasExecutedRef.current) return;
+    hasExecutedRef.current = true;
+
     let active = true;
 
     async function handleAuthCallback() {
-      // Check for error parameters in query string
-      const errorParam = searchParams.get('error');
-      const errorDescription = searchParams.get('error_description');
+      // Check for error parameters in query string and URL hash
+      const errorParam =
+        searchParams.get('error') ||
+        (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('error') : null);
+      const errorDescription =
+        searchParams.get('error_description') ||
+        (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('error_description') : null);
 
-      if (errorParam || errorDescription) {
+      let hashError: string | null = null;
+      let hashErrorDesc: string | null = null;
+      if (typeof window !== 'undefined' && window.location.hash) {
+        try {
+          const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+          hashError = hashParams.get('error');
+          hashErrorDesc = hashParams.get('error_description');
+        } catch {
+          // ignore hash parse errors
+        }
+      }
+
+      const finalError = errorDescription || errorParam || hashErrorDesc || hashError;
+      if (finalError) {
         if (!active) return;
         setStatus('error');
-        setErrorMessage(
-          errorDescription || errorParam || 'OAuth authorization was cancelled or failed.'
-        );
+        setErrorMessage(finalError);
         return;
       }
 
@@ -43,45 +64,62 @@ function AuthCallbackContent() {
       }
 
       try {
-        const code = searchParams.get('code');
+        const code =
+          searchParams.get('code') ||
+          (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('code') : null);
 
         let session = null;
-        if (code) {
-          // PKCE flow: Exchange authorization code for session
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error) throw error;
-          session = data.session;
+
+        // 1. Check if an active session is already established
+        const { data: initialData } = await supabase.auth.getSession();
+        if (initialData?.session?.user) {
+          session = initialData.session;
+        } else if (code) {
+          // 2. PKCE flow: Exchange authorization code for session
+          const { data: exchangeData, error: exchangeError } =
+            await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) {
+            // Check if code was already exchanged by concurrent internal listener
+            const { data: retryData } = await supabase.auth.getSession();
+            if (retryData?.session?.user) {
+              session = retryData.session;
+            } else {
+              throw exchangeError;
+            }
+          } else {
+            session = exchangeData.session;
+          }
         } else {
-          // Implicit flow: Check active session from URL hash or client state
-          const { data, error } = await supabase.auth.getSession();
-          if (error) throw error;
-          session = data.session;
+          // 3. Implicit flow: Check active session from URL hash or client state
+          const { data: fallbackData } = await supabase.auth.getSession();
+          session = fallbackData?.session ?? null;
         }
 
-        if (!session?.user) {
-          // Give onAuthStateChange a moment to parse hash tokens if present
-          const { data: authListener } = supabase.auth.onAuthStateChange(
-            async (event, currentSession) => {
-              if (currentSession?.user && active) {
-                authListener.subscription.unsubscribe();
-                await provisionUser(currentSession);
-              }
-            }
-          );
-
-          // Timeout after 4 seconds if no session is captured
-          setTimeout(() => {
-            if (active && status === 'processing') {
-              setStatus('error');
-              setErrorMessage('Could not establish a secure mission session from Google credentials.');
-            }
-          }, 4000);
+        if (session?.user) {
+          if (active) {
+            await provisionUser(session);
+          }
           return;
         }
 
-        if (active) {
-          await provisionUser(session);
-        }
+        // 4. If not yet resolved, listen for the incoming auth state change
+        const { data: authListener } = supabase.auth.onAuthStateChange(
+          async (event, currentSession) => {
+            if (currentSession?.user && active) {
+              authListener.subscription.unsubscribe();
+              await provisionUser(currentSession);
+            }
+          }
+        );
+
+        // Safety timeout after 5 seconds if no session is captured
+        setTimeout(() => {
+          authListener.subscription.unsubscribe();
+          if (active && status === 'processing') {
+            setStatus('error');
+            setErrorMessage('Could not establish a secure mission session from Google credentials.');
+          }
+        }, 5000);
       } catch (err) {
         if (!active) return;
         setStatus('error');
@@ -91,13 +129,18 @@ function AuthCallbackContent() {
       }
     }
 
-    async function provisionUser(session: { user: { id: string; email?: string; user_metadata?: Record<string, unknown> } }) {
+    async function provisionUser(session: {
+      user: { id: string; email?: string; user_metadata?: Record<string, unknown> };
+    }) {
       const email = session.user.email ?? 'operator@isro.gov.in';
       const fullName =
         (session.user.user_metadata?.['name'] as string | undefined) ||
         (session.user.user_metadata?.['full_name'] as string | undefined) ||
         email.split('@')[0] ||
         'Google Operator';
+      const avatarUrl =
+        (session.user.user_metadata?.['avatar_url'] as string | undefined) ||
+        (session.user.user_metadata?.['picture'] as string | undefined);
 
       try {
         await supabaseAnalysisService.ensureProfileForUser(session.user.id, email, fullName);
@@ -105,13 +148,13 @@ function AuthCallbackContent() {
         console.warn('[auth-callback] Profile creation note:', profileErr);
       }
 
-      login(email, fullName);
+      login(email, fullName, avatarUrl);
 
       if (!active) return;
       setStatus('success');
       setTimeout(() => {
         router.replace('/profile');
-      }, 700);
+      }, 600);
     }
 
     handleAuthCallback();
@@ -119,7 +162,7 @@ function AuthCallbackContent() {
     return () => {
       active = false;
     };
-  }, [searchParams, router, login, status]);
+  }, [searchParams, router, login]);
 
   return (
     <div className="min-h-screen w-full bg-[var(--surface-0)] flex items-center justify-center p-6 text-[var(--text-primary)]">
