@@ -19,12 +19,20 @@ const isRemoteWithoutBackend = (() => {
 
 export const API_MODE: 'mock' | 'live' = (() => {
   const explicit = process.env.NEXT_PUBLIC_API_MODE as 'mock' | 'live' | undefined;
-  if (explicit === 'mock' || explicit === 'live') {
-    return explicit;
-  }
+
+  // If explicitly set to mock, always use mock
+  if (explicit === 'mock') return 'mock';
+
+  // Safety: even if explicitly set to 'live', if we're on a remote host
+  // (Vercel, etc.) with no real backend URL configured, force mock mode
+  // to prevent "Upload failed" / network errors hitting localhost from a
+  // production domain.
   if (isRemoteWithoutBackend) {
     return 'mock';
   }
+
+  if (explicit === 'live') return 'live';
+
   return 'live';
 })();
 

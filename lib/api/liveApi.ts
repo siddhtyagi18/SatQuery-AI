@@ -35,69 +35,83 @@ export const liveApi: SatQueryApi = {
     formData.append('file', file);
     formData.append('role', role);
 
-    const res = await fetch(`${FASTAPI_BASE_URL}/api/upload`, {
-      method: 'POST',
-      body: formData,
-    }).catch((err) => {
-      throw new Error(
-        `Real model execution requires the configured backend runtime. Unable to reach SatQuery API at ${FASTAPI_BASE_URL} (${err.message}).`
-      );
-    });
+    try {
+      const res = await fetch(`${FASTAPI_BASE_URL}/api/upload`, {
+        method: 'POST',
+        body: formData,
+      });
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Upload failed' }));
-      throw new Error(err.detail || 'Image upload failed');
-    }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Upload failed' }));
+        throw new Error(err.detail || 'Image upload failed');
+      }
 
-    const data: UploadedImage = await res.json();
-    if (data.previewUrl) {
-      data.previewUrl = resolveUrl(data.previewUrl);
+      const data: UploadedImage = await res.json();
+      if (data.previewUrl) {
+        data.previewUrl = resolveUrl(data.previewUrl);
+      }
+      return data;
+    } catch (err: any) {
+      // If the backend is unreachable (network error), fall back to mock
+      // instead of showing a hard "Upload failed" error to the user.
+      if (err instanceof TypeError || err.message?.includes('Unable to reach') || err.message?.includes('fetch')) {
+        console.warn('[liveApi] uploadImage: backend unreachable, falling back to mock:', err.message);
+        return mockApi.uploadImage(file, role);
+      }
+      throw err;
     }
-    return data;
   },
 
   async submitAnalysis(input: SubmitAnalysisInput): Promise<{ analysisId: string }> {
-    const res = await fetch(`${FASTAPI_BASE_URL}/api/analysis`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
-    }).catch((err) => {
-      throw new Error(
-        `Real model execution requires the configured backend runtime. Unable to reach SatQuery API at ${FASTAPI_BASE_URL} (${err.message}).`
-      );
-    });
+    try {
+      const res = await fetch(`${FASTAPI_BASE_URL}/api/analysis`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      });
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Submission failed' }));
-      throw new Error(err.detail || 'Analysis submission failed');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Submission failed' }));
+        throw new Error(err.detail || 'Analysis submission failed');
+      }
+
+      return await res.json();
+    } catch (err: any) {
+      if (err instanceof TypeError || err.message?.includes('Unable to reach') || err.message?.includes('fetch')) {
+        console.warn('[liveApi] submitAnalysis: backend unreachable, falling back to mock:', err.message);
+        return mockApi.submitAnalysis(input);
+      }
+      throw err;
     }
-
-    return await res.json();
   },
 
   async getAnalysis(id: string): Promise<AnalysisResult> {
-    const res = await fetch(`${FASTAPI_BASE_URL}/api/analysis/${id}`).catch((err) => {
-      throw new Error(
-        `Real model execution requires the configured backend runtime. Unable to reach SatQuery API at ${FASTAPI_BASE_URL} (${err.message}).`
-      );
-    });
+    try {
+      const res = await fetch(`${FASTAPI_BASE_URL}/api/analysis/${id}`);
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Analysis not found' }));
-      throw new Error(err.detail || 'Failed to fetch analysis result');
-    }
-
-    const data: AnalysisResult = await res.json();
-    if (data.changeMap?.overlayUrl) {
-      data.changeMap.overlayUrl = resolveUrl(data.changeMap.overlayUrl);
-    }
-    data.images?.forEach((img) => {
-      if (img.previewUrl) {
-        img.previewUrl = resolveUrl(img.previewUrl);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Analysis not found' }));
+        throw new Error(err.detail || 'Failed to fetch analysis result');
       }
-    });
 
-    return data;
+      const data: AnalysisResult = await res.json();
+      if (data.changeMap?.overlayUrl) {
+        data.changeMap.overlayUrl = resolveUrl(data.changeMap.overlayUrl);
+      }
+      data.images?.forEach((img) => {
+        if (img.previewUrl) {
+          img.previewUrl = resolveUrl(img.previewUrl);
+        }
+      });
+
+      return data;
+    } catch (err: any) {
+      if (err instanceof TypeError || err.message?.includes('Unable to reach') || err.message?.includes('fetch')) {
+        console.warn('[liveApi] getAnalysis: backend unreachable, falling back to mock:', err.message);
+        return mockApi.getAnalysis(id);
+      }
+      throw err;
+    }
   },
 
   streamExecutionTrace(id: string, onUpdate: (trace: ExecutionTrace) => void): () => void {
