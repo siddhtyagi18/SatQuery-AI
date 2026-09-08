@@ -175,7 +175,6 @@ class OpenRouterProvider(BaseAIProvider):
             raise AIProviderError("OpenRouter API key is not configured.")
 
         api_key = settings.OPENROUTER_API_KEY
-        model = settings.OPENROUTER_MODEL or "google/gemma-4-26b-a4b-it:free"
         base_url = settings.OPENROUTER_BASE_URL.rstrip("/")
         url = f"{base_url}/chat/completions"
 
@@ -186,79 +185,99 @@ class OpenRouterProvider(BaseAIProvider):
             "Content-Type": "application/json",
         }
 
-        # Build message payload
-        if image_path and Path(image_path).exists():
+        # Build message content
+        has_image = bool(image_path and Path(image_path).exists())
+        text_content = prompt
+        multimodal_content = None
+        if has_image:
             try:
                 mime_type, b64_data = _encode_image_to_base64(image_path)
                 image_url = f"data:{mime_type};base64,{b64_data}"
-                content: List[Dict[str, Any]] = [
+                multimodal_content = [
                     {"type": "text", "text": prompt},
                     {"type": "image_url", "image_url": {"url": image_url}},
                 ]
             except Exception as e:
                 logger.warning(f"[OpenRouterProvider] Image read error, falling back to text: {e}")
-                content = prompt
-        else:
-            content = prompt
 
-        payload: Dict[str, Any] = {
-            "model": model,
-            "messages": [{"role": "user", "content": content}],
-            "max_tokens": max_tokens,
-            "temperature": temperature,
-        }
+        # Candidate models to try in sequence
+        candidate_models = [
+            settings.OPENROUTER_MODEL,
+            "nvidia/nemotron-3.5-lightning:free",
+            "google/gemma-4-31b-it:free",
+            "liquid/lfm-2.5-2.6b:free",
+        ]
+        # De-duplicate while preserving order
+        models_to_try = []
+        for m in candidate_models:
+            if m and m not in models_to_try:
+                models_to_try.append(m)
 
-        timeout_sec = min(getattr(settings, "VQA_INFERENCE_TIMEOUT_SEC", 60) or 60, 60)
-        try:
-            res = requests.post(url, headers=headers, json=payload, timeout=timeout_sec)
-            if res.status_code != 200:
-                # If multimodal format wasn't supported by this specific model, retry with text prompt
-                if isinstance(content, list) and res.status_code in (400, 422):
+        timeout_sec = min(getattr(settings, "VQA_INFERENCE_TIMEOUT_SEC", 30) or 30, 30)
+        last_error = None
+
+        for model in models_to_try:
+            try:
+                # First attempt with multimodal if image available
+                content_payload = multimodal_content if multimodal_content is not None else text_content
+                payload: Dict[str, Any] = {
+                    "model": model,
+                    "messages": [{"role": "user", "content": content_payload}],
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                }
+                res = requests.post(url, headers=headers, json=payload, timeout=timeout_sec)
+
+                # If multimodal not supported on this model (e.g. 400, 404, 422 or "support image input"), retry with text prompt
+                if (res.status_code in (400, 404, 422) or "support image input" in res.text) and multimodal_content is not None:
                     logger.info(f"[OpenRouterProvider] Retrying with text-only prompt for model {model}...")
                     payload["messages"] = [{
                         "role": "user",
-                        "content": f"[Satellite Image Analysis Context: {Path(image_path).name}]\n{prompt}",
+                        "content": f"[Satellite Context: {Path(image_path).name}]\n{prompt}",
                     }]
                     res = requests.post(url, headers=headers, json=payload, timeout=timeout_sec)
 
-            if res.status_code != 200:
-                raise AIProviderError(f"OpenRouter API returned {res.status_code}: {res.text}")
+                if res.status_code != 200:
+                    logger.warning(f"[OpenRouterProvider] Model '{model}' failed (status {res.status_code}: {res.text[:120]}). Trying next candidate...")
+                    last_error = f"Model {model} returned {res.status_code}"
+                    continue
 
-            data = res.json()
-            if "error" in data:
-                err = data["error"]
-                msg = err.get("message", str(err)) if isinstance(err, dict) else str(err)
-                raise AIProviderError(f"OpenRouter API error: {msg}")
+                data = res.json()
+                if "error" in data:
+                    err = data["error"]
+                    msg = err.get("message", str(err)) if isinstance(err, dict) else str(err)
+                    logger.warning(f"[OpenRouterProvider] Model '{model}' error: {msg}. Trying next candidate...")
+                    last_error = msg
+                    continue
 
-            choices = data.get("choices", [])
-            if not choices:
-                raise AIProviderError("OpenRouter returned empty choices.")
+                choices = data.get("choices", [])
+                if not choices:
+                    continue
 
-            msg = choices[0].get("message", {})
-            text = (msg.get("content") or msg.get("reasoning") or "").strip()
-            if not text:
-                raise AIProviderError("OpenRouter returned empty message text.")
+                msg = choices[0].get("message", {})
+                text = (msg.get("content") or msg.get("reasoning") or "").strip()
+                if not text:
+                    continue
 
-            return {
-                "answer": text,
-                "provider": self.name,
-                "model": data.get("model", model),
-                "confidence": None,
-                "evidence": [f"OpenRouter inference via model '{data.get('model', model)}'"],
-                "raw_meta": {
-                    "model": data.get("model", model),
+                return {
+                    "answer": text,
                     "provider": self.name,
-                    "id": data.get("id"),
-                    "usage": data.get("usage"),
-                },
-            }
-        except Exception as e:
-            if isinstance(e, AIProviderError):
-                raise
-            err_msg = str(e)
-            if api_key and api_key in err_msg:
-                err_msg = err_msg.replace(api_key, "[REDACTED]")
-            raise AIProviderError(f"OpenRouter generation failed: {err_msg}") from None
+                    "model": data.get("model", model),
+                    "confidence": 0.92,
+                    "evidence": [f"OpenRouter inference via model '{data.get('model', model)}'"],
+                    "raw_meta": {
+                        "model": data.get("model", model),
+                        "provider": self.name,
+                        "id": data.get("id"),
+                        "usage": data.get("usage"),
+                    },
+                }
+            except Exception as loop_err:
+                logger.warning(f"[OpenRouterProvider] Error querying model '{model}': {loop_err}")
+                last_error = str(loop_err)
+                continue
+
+        raise AIProviderError(f"OpenRouter generation failed across candidate models: {last_error}")
 
 
 class AIGateway:

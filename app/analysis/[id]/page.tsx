@@ -3,16 +3,19 @@
 // Two-column layout on desktop: Visual evidence + synthesis on the left, sticky execution trace on right rail.
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { api } from '@/lib/api';
-import type { AnalysisResult } from '@/lib/types/analysis';
+import type { AnalysisResult, SpatialAction } from '@/lib/types/analysis';
 import { ModeBadge } from '@/components/ui/ModeBadge';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { CornerFrame } from '@/components/ui/CornerFrame';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { AnalysisResultSkeleton } from '@/components/ui/LoadingSkeletonPanel';
 import { AnalysisSummary } from '@/components/AnalysisSummary';
+import { MultilingualSummaryPanel } from '@/components/MultilingualSummaryPanel';
+import { SmartInsightCards } from '@/components/SmartInsightCards';
+import { FollowUpPanel } from '@/components/FollowUpPanel';
 import { ConfidenceCard } from '@/components/ConfidenceCard';
 import { AgentExecutionTrace } from '@/components/AgentExecutionTrace';
 import { SatelliteViewer } from '@/components/SatelliteViewer';
@@ -27,6 +30,7 @@ import { MissionReportCard } from '@/components/MissionReportCard';
 import { ROIBounds, ROIAnalysisResponse } from '@/lib/types/analysis';
 import { Download, RotateCcw, ArrowLeft, Cpu, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { supabaseAnalysisService, SUPABASE_PERSISTENCE_ENABLED } from '@/lib/supabase/services';
 import { getCurrentUserId } from '@/lib/authService';
 
@@ -45,6 +49,7 @@ export default function AnalysisResultPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+<<<<<<< HEAD
   // Phase 2: Region of Interest (ROI) State
   const [selectedRoi, setSelectedRoi] = useState<ROIBounds | null>(null);
   const [roiData, setRoiData] = useState<ROIAnalysisResponse | null>(null);
@@ -81,6 +86,22 @@ export default function AnalysisResultPage() {
     setSelectedRoi(null);
     setRoiData(null);
   };
+=======
+  // Spatial highlighting & viewer focus link for contextual follow-up
+  const [mapHighlighted, setMapHighlighted] = useState(false);
+  const visualViewerRef = useRef<HTMLDivElement>(null);
+
+  const handleSpatialAction = useCallback((action: SpatialAction) => {
+    if (action && action.action !== 'none') {
+      visualViewerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setMapHighlighted(true);
+      if (action.note) {
+        toast.info(action.note);
+      }
+      setTimeout(() => setMapHighlighted(false), 2600);
+    }
+  }, []);
+>>>>>>> ea5973e743ab33fff00001a6c7b6d09f4c9b612a
 
   // Derived: execution mode of the change detection step (from trace step-6 meta)
   const changeExecMode: string | null = (() => {
@@ -100,23 +121,31 @@ export default function AnalysisResultPage() {
   useEffect(() => {
     if (!id) return;
     let isMounted = true;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
-    api.getAnalysis(id)
-      .then((data) => {
-        if (isMounted) {
-          setResult(data);
-          setLoading(false);
+    const fetchResult = async () => {
+      try {
+        const data = await api.getAnalysis(id);
+        if (!isMounted) return;
+        setResult(data);
+        setLoading(false);
+
+        // If analysis is still in progress, continue polling live until terminal state
+        if (data.status === 'queued' || data.status === 'processing' || (data.status as string) === 'running') {
+          timeoutId = setTimeout(fetchResult, 1000);
         }
-      })
-      .catch((err) => {
-        if (isMounted) {
-          setError(err.message || 'Analysis not found');
-          setLoading(false);
-        }
-      });
+      } catch (err: any) {
+        if (!isMounted) return;
+        setError(err.message || 'Analysis not found');
+        setLoading(false);
+      }
+    };
+
+    fetchResult();
 
     return () => {
       isMounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
     };
   }, [id]);
 
@@ -281,7 +310,16 @@ export default function AnalysisResultPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
         {/* Left Column (2 spans): Synthesis + Visual Evidence — gap-12 between major blocks */}
         <div className="lg:col-span-2 flex flex-col gap-12">
-          {/* Executive Summary */}
+          {/* Smart Insights & Telemetry Cards — Feature 2 (strictly extracted from existing result) */}
+          <SmartInsightCards result={result} />
+
+          {/* Bilingual Summary + TTS Playback (strictly additive layer — golden baseline preserved below) */}
+          <MultilingualSummaryPanel
+            summaries={result.multilingualSummaries}
+            fallbackAnswer={result.answerText}
+          />
+
+          {/* Executive Summary — full original technical report (UNCHANGED golden baseline) */}
           <AnalysisSummary
             answerText={result.answerText}
             detectedTasks={result.detectedTasks}
@@ -289,36 +327,71 @@ export default function AnalysisResultPage() {
             isMock={isMock}
           />
 
-          {/* Mode-Specific Visual Viewers */}
-          {result.mode === 'single_image' && (
-            <div className="flex flex-col gap-2">
-              <span className="hud-label">Visual Sensor Evidence & Grounding Annotations</span>
-              <SatelliteViewer
-                imageUrl={result.images[0]?.previewUrl ?? '/demo/optical_sample.jpg'}
-                crs={result.images[0]?.metadata.crs}
-                resolution={`${result.images[0]?.metadata.gsdMeters ?? 5.8}m`}
-                title="Single Scene Spatial Grounding"
-              >
-                {result.boundingBoxes && result.boundingBoxes.length > 0 && (
-                  <GroundingOverlay boxes={result.boundingBoxes} />
-                )}
-              </SatelliteViewer>
-            </div>
-          )}
-
-          {result.mode === 'bi_temporal' && (
-            <div className="flex flex-col gap-12">
-              {/* Slider & Dual View */}
+          {/* Mode-Specific Visual Viewers (wrapped with focus/highlight target for map-aware follow-up) */}
+          <div
+            ref={visualViewerRef}
+            className={cn(
+              'flex flex-col gap-12 transition-all duration-500 rounded-lg',
+              mapHighlighted && 'ring-2 ring-[var(--cyan)] shadow-[0_0_24px_rgba(34,211,238,0.35)]'
+            )}
+          >
+            {result.mode === 'single_image' && (
               <div className="flex flex-col gap-2">
-                <span className="hud-label">Bi-Temporal Visual Baseline Swipe</span>
-                <BeforeAfterViewer
-                  beforeUrl={result.images[0]?.previewUrl ?? '/demo/optical_before.jpg'}
-                  afterUrl={result.images[1]?.previewUrl ?? '/demo/optical_after.jpg'}
-                  beforeDate={result.images[0]?.metadata.acquisitionDate ?? 'T1 (Jan 2022)'}
-                  afterDate={result.images[1]?.metadata.acquisitionDate ?? 'T2 (Jan 2024)'}
+                <span className="hud-label">Visual Sensor Evidence & Grounding Annotations</span>
+                <SatelliteViewer
+                  imageUrl={result.images[0]?.previewUrl ?? '/demo/optical_sample.jpg'}
+                  crs={result.images[0]?.metadata.crs}
+                  resolution={`${result.images[0]?.metadata.gsdMeters ?? 5.8}m`}
+                  title="Single Scene Spatial Grounding"
+                >
+                  {result.boundingBoxes && result.boundingBoxes.length > 0 && (
+                    <GroundingOverlay boxes={result.boundingBoxes} />
+                  )}
+                </SatelliteViewer>
+              </div>
+            )}
+
+            {result.mode === 'bi_temporal' && (
+              <div className="flex flex-col gap-12">
+                {/* Slider & Dual View */}
+                <div className="flex flex-col gap-2">
+                  <span className="hud-label">Bi-Temporal Visual Baseline Swipe</span>
+                  <BeforeAfterViewer
+                    beforeUrl={result.images[0]?.previewUrl ?? '/demo/optical_before.jpg'}
+                    afterUrl={result.images[1]?.previewUrl ?? '/demo/optical_after.jpg'}
+                    beforeDate={result.images[0]?.metadata.acquisitionDate ?? 'T1 (Jan 2022)'}
+                    afterDate={result.images[1]?.metadata.acquisitionDate ?? 'T2 (Jan 2024)'}
+                  />
+                </div>
+
+                {/* Change Detection Heatmap */}
+                <div className="flex flex-col gap-2">
+                  <span className="hud-label">Change Detection Output</span>
+                  <ChangeMapViewer
+                    baseImageUrl={result.images[1]?.previewUrl ?? '/demo/optical_after.jpg'}
+                    changeMaskUrl={result.changeMap?.overlayUrl ?? '/demo/change_mask.png'}
+                    legend={result.changeMap?.legend}
+                    algorithmLabel={changeAlgorithmLabel}
+                  />
+                </div>
+
+                {/* Real Change Statistics Panel */}
+                <ChangeStatsPanel trace={result.executionTrace} />
+              </div>
+            )}
+
+            {result.mode === 'optical_sar' && (
+              <div className="flex flex-col gap-2">
+                <span className="hud-label">Multimodal Cross-Sensor Fusion</span>
+                <OpticalSarViewer
+                  opticalUrl={result.images[0]?.previewUrl ?? '/demo/optical_sample.jpg'}
+                  sarUrl={result.images[1]?.previewUrl ?? '/demo/sar_sample.jpg'}
                 />
               </div>
+            )}
+          </div>
 
+<<<<<<< HEAD
               {/* Change Detection Heatmap */}
               <div className="flex flex-col gap-2">
                 <span className="hud-label">Change Detection Output</span>
@@ -368,6 +441,13 @@ export default function AnalysisResultPage() {
               />
             </div>
           )}
+=======
+          {/* Contextual Follow-up Questions Console — Feature 1 */}
+          <FollowUpPanel
+            result={result}
+            onSpatialAction={handleSpatialAction}
+          />
+>>>>>>> ea5973e743ab33fff00001a6c7b6d09f4c9b612a
         </div>
 
         {/* Right Rail (1 span): Confidence + Sticky Execution Trace & Tool Invocations */}

@@ -10,6 +10,8 @@ import type {
   BenchmarkMetric,
   ExecutionStep,
   ExecutionTrace,
+  FollowUpMessage,
+  FollowUpResponse,
   HistoryFilters,
   ImageMetadataType,
   Modality,
@@ -260,6 +262,12 @@ export const mockApi: SatQueryApi = {
       result.confidence = finalFixture.confidence ?? (result.mode === 'optical_sar' ? 0.91 : result.mode === 'bi_temporal' ? 0.88 : 0.89);
       result.boundingBoxes = finalFixture.boundingBoxes;
       result.changeMap = finalFixture.changeMap;
+      result.multilingualSummaries = finalFixture.multilingualSummaries
+        ? {
+            ...finalFixture.multilingualSummaries,
+            language: /[\u0900-\u097F]/.test(result.query) ? 'hi' : 'en',
+          }
+        : undefined;
       result.toolInvocations = finalFixture.toolInvocations;
       result.detectedTasks = finalFixture.detectedTasks;
       result.isMock = finalFixture.isMock !== undefined ? finalFixture.isMock : false;
@@ -303,5 +311,214 @@ export const mockApi: SatQueryApi = {
   async getBenchmarkMetrics(): Promise<BenchmarkMetric[]> {
     await sleep(250);
     return MOCK_METRICS;
+  },
+
+  async askFollowUp(
+    analysisId: string,
+    query: string,
+    history: FollowUpMessage[] = [],
+    language: 'en' | 'hi' = 'en'
+  ): Promise<FollowUpResponse> {
+    await sleep(200);
+    const result = store.get(analysisId) ?? allFixtures.find((r) => r.id === analysisId) ?? allFixtures[0];
+    const qLower = (query || '').toLowerCase().trim();
+
+    // Check if query is in Hindi or explicitly requests Hindi
+    const isHindi =
+      language === 'hi' ||
+      /[\u0900-\u097F]/.test(query) ||
+      qLower.includes('hindi') ||
+      qLower.includes('हिन्दी') ||
+      qLower.includes('हिंदी');
+
+    // Extract structured data from existing result
+    const answerText = result.answerText || '';
+    const areaMatch = answerText.match(/Detected Changed Area:\s*`?([0-9.]+%)`?/i) ||
+      answerText.match(/([0-9.]+%)\s*area/i) ||
+      answerText.match(/(\d+(?:\.\d+)?%)/);
+    const changedArea = areaMatch ? areaMatch[1] : (result.mode === 'bi_temporal' ? '3.14%' : null);
+
+    const sevMatch = answerText.match(/Severity:\s*\*+([a-zA-Z]+)\*+/i) ||
+      answerText.match(/Severity:\s*([a-zA-Z]+)/i);
+    const severity = sevMatch ? sevMatch[1].toLowerCase() : (answerText.includes('Severity: **low**') ? 'low' : null);
+
+    const confidenceStr = result.confidence != null ? `${Math.round(result.confidence * 100)}%` : null;
+
+    // Intent routing strictly on existing result (ZERO re-run)
+    // 1. Area query
+    if (
+      qLower.includes('how much') ||
+      qLower.includes('area') ||
+      qLower.includes('percentage') ||
+      qLower.includes('compare') ||
+      qLower.includes('कितना') ||
+      qLower.includes('क्षेत्र') ||
+      qLower.includes('प्रतिशत')
+    ) {
+      if (changedArea) {
+        const areaNum = parseFloat(changedArea);
+        const unchanged = isNaN(areaNum) ? '96.86%' : `${(100 - areaNum).toFixed(2)}%`;
+        const enAnswer = `Approximately ${changedArea} of the selected area shows detected change, while ${unchanged} remains unchanged.`;
+        const hiAnswer = `विश्लेषण के अनुसार लगभग ${changedArea} क्षेत्र में बदलाव दर्ज किया गया है (बाकी ${unchanged} क्षेत्र सुरक्षित और अपरिवर्तित है)।`;
+        return {
+          answer: isHindi ? hiAnswer : enAnswer,
+          answer_hi: hiAnswer,
+          language: isHindi ? 'hi' : 'en',
+          referencedMetrics: { changed_area: changedArea, unchanged_area: unchanged },
+          spatialAction: { action: 'highlight', target: 'change_map', note: `Changed region: ${changedArea}` },
+          rerunPerformed: false,
+        };
+      } else {
+        const enAnswer = 'No changed area percentage is reported for this single scene analysis.';
+        const hiAnswer = 'इस एकल दृश्य विश्लेषण के लिए कोई परिवर्तित क्षेत्र प्रतिशत उपलब्ध नहीं है।';
+        return {
+          answer: isHindi ? hiAnswer : enAnswer,
+          answer_hi: hiAnswer,
+          language: isHindi ? 'hi' : 'en',
+          referencedMetrics: null,
+          spatialAction: null,
+          rerunPerformed: false,
+        };
+      }
+    }
+
+    // 2. Spatial location query
+    if (
+      qLower.includes('where') ||
+      qLower.includes('region') ||
+      qLower.includes('location') ||
+      qLower.includes('show me') ||
+      qLower.includes('कहाँ') ||
+      qLower.includes('स्थान') ||
+      qLower.includes('जगह') ||
+      qLower.includes('दिखाओ')
+    ) {
+      if (result.mode === 'bi_temporal' || result.changeMap) {
+        const enAnswer = 'Built-up expansion and localized changes were detected primarily in the north-eastern portion of the selected scene along transit access boundaries.';
+        const hiAnswer = 'निर्माण कार्य और जमीनी बदलाव मुख्य रूप से चयनित क्षेत्र के उत्तर-पूर्वी हिस्से में पाए गए हैं।';
+        return {
+          answer: isHindi ? hiAnswer : enAnswer,
+          answer_hi: hiAnswer,
+          language: isHindi ? 'hi' : 'en',
+          referencedMetrics: { region: 'north-eastern quadrant' },
+          spatialAction: { action: 'highlight', target: 'change_map', note: 'North-eastern change zone' },
+          rerunPerformed: false,
+        };
+      } else if (result.boundingBoxes && result.boundingBoxes.length > 0) {
+        const boxCount = result.boundingBoxes.length;
+        const enAnswer = `${boxCount} detected structures have been localized with bounding box coordinates, concentrated predominantly in the northwestern quadrant.`;
+        const hiAnswer = `तस्वीर में ${boxCount} संरचनाओं को चिह्नित किया गया है, जो मुख्य रूप से उत्तर-पश्चिमी हिस्से में स्थित हैं।`;
+        return {
+          answer: isHindi ? hiAnswer : enAnswer,
+          answer_hi: hiAnswer,
+          language: isHindi ? 'hi' : 'en',
+          referencedMetrics: { bounding_boxes_count: boxCount },
+          spatialAction: { action: 'highlight', target: 'bounding_box', boxIndex: 0 },
+          rerunPerformed: false,
+        };
+      } else {
+        const enAnswer = 'Exact spatial highlighting is not available for this result as no bounding geometry or pixel mask was generated.';
+        const hiAnswer = 'इस विश्लेषण परिणाम के लिए सटीक स्थानिक ज्यामिति (जियोमेट्री या बाउंडिंग बॉक्स) उपलब्ध नहीं है।';
+        return {
+          answer: isHindi ? hiAnswer : enAnswer,
+          answer_hi: hiAnswer,
+          language: isHindi ? 'hi' : 'en',
+          referencedMetrics: null,
+          spatialAction: null,
+          rerunPerformed: false,
+        };
+      }
+    }
+
+    // 3. Confidence query
+    if (
+      qLower.includes('confidence') ||
+      qLower.includes('accuracy') ||
+      qLower.includes('विश्वसनीयता') ||
+      qLower.includes('कॉन्फिडेंस') ||
+      qLower.includes('सटीकता')
+    ) {
+      if (confidenceStr) {
+        const enAnswer = `The overall confidence score for this analysis is ${confidenceStr}.`;
+        const hiAnswer = `इस विश्लेषण का समग्र विश्वास स्तर (कॉन्फिडेंस) ${confidenceStr} है।`;
+        return {
+          answer: isHindi ? hiAnswer : enAnswer,
+          answer_hi: hiAnswer,
+          language: isHindi ? 'hi' : 'en',
+          referencedMetrics: { confidence: confidenceStr },
+          spatialAction: null,
+          rerunPerformed: false,
+        };
+      } else {
+        const enAnswer = 'Confidence is not calibrated for this analysis checkpoint (confidence = null).';
+        const hiAnswer = 'इस विश्लेषण मॉडल के लिए कॉन्फिडेंस स्कोर कैलिब्रेटेड नहीं है (null)।';
+        return {
+          answer: isHindi ? hiAnswer : enAnswer,
+          answer_hi: hiAnswer,
+          language: isHindi ? 'hi' : 'en',
+          referencedMetrics: { confidence: 'Not calibrated' },
+          spatialAction: null,
+          rerunPerformed: false,
+        };
+      }
+    }
+
+    // 4. Severity query
+    if (qLower.includes('severity') || qLower.includes('गंभीरता') || qLower.includes('severe')) {
+      if (severity) {
+        const enAnswer = `The detected change severity is classified as ${severity.toUpperCase()} (${changedArea ?? '3.14%'} area impacted).`;
+        const hiAnswer = `बदलाव की गंभीरता '${severity.toUpperCase()}' स्तर की पाई गई है (${changedArea ?? '3.14%'} क्षेत्र प्रभावित)।`;
+        return {
+          answer: isHindi ? hiAnswer : enAnswer,
+          answer_hi: hiAnswer,
+          language: isHindi ? 'hi' : 'en',
+          referencedMetrics: { severity, changed_area: changedArea },
+          spatialAction: null,
+          rerunPerformed: false,
+        };
+      } else {
+        const enAnswer = 'Severity classification is not available for this analysis.';
+        const hiAnswer = 'इस विश्लेषण के लिए गंभीरता वर्गीकरण उपलब्ध नहीं है।';
+        return {
+          answer: isHindi ? hiAnswer : enAnswer,
+          answer_hi: hiAnswer,
+          language: isHindi ? 'hi' : 'en',
+          referencedMetrics: null,
+          spatialAction: null,
+          rerunPerformed: false,
+        };
+      }
+    }
+
+    // 5. Explicit Hindi explanation query
+    if (qLower.includes('hindi') || qLower.includes('हिंदी') || qLower.includes('हिन्दी')) {
+      const hiSummary =
+        result.multilingualSummaries?.summary_hi ||
+        (result.mode === 'bi_temporal'
+          ? `विश्लेषण के अनुसार दो अवधियों के बीच लगभग ${changedArea ?? '3.14%'} क्षेत्र में निर्माण और बुनियादी ढांचे का विकास देखा गया है।`
+          : 'उपग्रह दृश्य में शहरी बस्तियों और कृषि क्षेत्रों की पहचान की गई है। मुख्य विवरण ऊपर उपलब्ध है।');
+      return {
+        answer: hiSummary,
+        answer_hi: hiSummary,
+        language: 'hi',
+        referencedMetrics: { changed_area: changedArea, confidence: confidenceStr },
+        spatialAction: null,
+        rerunPerformed: false,
+      };
+    }
+
+    // 6. Default contextual follow-up (grounded in existing analysis facts)
+    const enDefault = `Based on the completed analysis for query "${result.query}": ${answerText.replace(/[#*`]+/g, ' ').slice(0, 220).trim()}...`;
+    const hiDefault = result.multilingualSummaries?.summary_hi ||
+      `पूर्व विश्लेषण के आधार पर: ${answerText.replace(/[#*`]+/g, ' ').slice(0, 180).trim()}...`;
+
+    return {
+      answer: isHindi ? hiDefault : enDefault,
+      answer_hi: hiDefault,
+      language: isHindi ? 'hi' : 'en',
+      referencedMetrics: { changed_area: changedArea, confidence: confidenceStr },
+      spatialAction: null,
+      rerunPerformed: false,
+    };
   },
 };

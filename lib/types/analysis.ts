@@ -42,7 +42,11 @@ export interface ExecutionStep {
   status: StepStatus;
   startedAt: string | null;
   completedAt: string | null;
+<<<<<<< HEAD
   meta?: Record<string, string | number | boolean | null | undefined | any>;
+=======
+  meta?: Record<string, string | number | boolean | null>;
+>>>>>>> ea5973e743ab33fff00001a6c7b6d09f4c9b612a
 }
 
 export interface ExecutionTrace {
@@ -96,6 +100,16 @@ export interface AnalysisResult {
   inputSummary?: Record<string, any> | null;
   isMock?: boolean;
   executionMode?: 'real' | 'mock' | 'mixed';
+  multilingualSummaries?: MultilingualSummaries | null;
+}
+
+export interface MultilingualSummaries {
+  language?: 'en' | 'hi' | null;
+  summary_en?: string | null;
+  summary_hi?: string | null;
+  bullet_en?: string[] | null;
+  bullet_hi?: string[] | null;
+  generated_via_llm?: boolean | null;
 }
 
 export interface ToolDefinition {
@@ -122,6 +136,7 @@ export interface SubmitAnalysisInput {
   mode: AnalysisMode;
   imageIds: string[];
   query: string;
+  language?: 'en' | 'hi';
 }
 
 export interface HistoryFilters {
@@ -134,6 +149,7 @@ export interface HistoryFilters {
   pageSize?: number;
 }
 
+<<<<<<< HEAD
 export interface ROIBounds {
   x1: number;
   y1: number;
@@ -266,3 +282,48 @@ export interface MissionReportResponse {
 }
 
 
+=======
+// ---- Contextual Follow-up & Smart Insights Types ----
+
+export interface SpatialAction {
+  action: 'highlight' | 'zoom' | 'scroll' | 'none';
+  target?: 'change_map' | 'bounding_box' | 'optical_sar';
+  boxIndex?: number | null;
+  note?: string | null;
+}
+
+export interface FollowUpMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+  timestamp: string;
+  language?: 'en' | 'hi';
+  spatialAction?: SpatialAction | null;
+  referencedMetrics?: Record<string, string | number | null> | null;
+}
+
+export interface FollowUpRequest {
+  query: string;
+  language?: 'en' | 'hi';
+  conversationHistory?: { role: 'user' | 'assistant'; text: string }[];
+}
+
+export interface FollowUpResponse {
+  answer: string;
+  answer_hi?: string | null;
+  language: 'en' | 'hi';
+  referencedMetrics?: Record<string, string | number | null> | null;
+  spatialAction?: SpatialAction | null;
+  rerunPerformed: false;
+}
+
+export interface SmartInsightsData {
+  changeStatus?: string | null;
+  changedArea?: string | null;
+  severity?: string | null;
+  confidence?: string | null;
+  primaryFinding: string;
+  dateComparison?: string | null;
+  locationAoi?: string | null;
+}
+>>>>>>> ea5973e743ab33fff00001a6c7b6d09f4c9b612a

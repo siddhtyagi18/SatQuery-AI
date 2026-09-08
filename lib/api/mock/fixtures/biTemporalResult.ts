@@ -192,4 +192,22 @@ export const biTemporalResult: AnalysisResult = {
     ],
   },
   errorReason: null,
+  multilingualSummaries: {
+    language: 'en',
+    summary_en:
+      'Comparing the earlier acquisition (T1) with the later acquisition (T2), localized structural changes are observable in the scene. The quantitative analysis indicates a detected changed area of 3.14% along transit access boundaries.',
+    summary_hi:
+      'पहले (T1) और बाद (T2) की उपग्रह तस्वीरों की तुलना करने पर, इस क्षेत्र में कुछ जगहों पर संरचनात्मक बदलाव दिखाई दे रहे हैं। बदला हुआ क्षेत्र: 3.14% है, जो रास्तों और नए निर्माण के पास देखा गया है।',
+    bullet_en: [
+      'Localized structural changes are observable in the scene.',
+      'Detected Changed Area: 3.14% across the temporal pair.',
+      'Engineered building structures appear along transit access boundaries.',
+    ],
+    bullet_hi: [
+      'इस क्षेत्र में कुछ जगहों पर संरचनात्मक बदलाव दिखाई दे रहे हैं।',
+      'बदला हुआ क्षेत्र: 3.14% (कम फैलाव)।',
+      'रास्तों के किनारे नए भवन और निर्माण कार्य पहचाने गए हैं।',
+    ],
+    generated_via_llm: true,
+  },
 };
