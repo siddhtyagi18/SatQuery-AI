@@ -3,6 +3,8 @@
 // All UI components consume these types exclusively — never inline API shapes.
 
 export type AnalysisMode = 'single_image' | 'bi_temporal' | 'optical_sar';
+export type AnalysisMissionMode = 'general_change' | 'disaster_assessment';
+export type DisasterType = 'flood' | 'earthquake' | 'wildfire' | 'cyclone' | 'landslide';
 export type Modality = 'optical' | 'sar' | 'multispectral' | 'unknown';
 export type TaskType =
   | 'vqa'
@@ -97,6 +99,8 @@ export interface AnalysisResult {
   isMock?: boolean;
   executionMode?: 'real' | 'mock' | 'mixed';
   multilingualSummaries?: MultilingualSummaries | null;
+  analysisMissionMode?: AnalysisMissionMode | null;
+  disasterType?: DisasterType | null;
 }
 
 export interface MultilingualSummaries {
@@ -133,6 +137,8 @@ export interface SubmitAnalysisInput {
   imageIds: string[];
   query: string;
   language?: 'en' | 'hi';
+  analysisMissionMode?: AnalysisMissionMode;
+  disasterType?: DisasterType | null;
 }
 
 export interface HistoryFilters {

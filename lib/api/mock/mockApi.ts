@@ -259,7 +259,7 @@ export const mockApi: SatQueryApi = {
       const finalFixture = fixture;
       result.status = 'completed';
       result.answerText = finalFixture.answerText;
-      result.confidence = finalFixture.confidence ?? (result.mode === 'optical_sar' ? 0.91 : result.mode === 'bi_temporal' ? 0.88 : 0.89);
+      result.confidence = finalFixture.confidence !== undefined ? finalFixture.confidence : null;
       result.boundingBoxes = finalFixture.boundingBoxes;
       result.changeMap = finalFixture.changeMap;
       result.multilingualSummaries = finalFixture.multilingualSummaries

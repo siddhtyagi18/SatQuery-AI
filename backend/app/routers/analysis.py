@@ -107,9 +107,15 @@ def _run_analysis_pipeline(db: Session, analysis: Analysis, files, input_data: S
 
     firebase_repo = FirebaseRepository()
 
-    # Step 1 — Query Received
+    # Disaster assessment context (additive — does NOT alter the pipeline itself)
+    _mission_mode = getattr(input_data, "analysisMissionMode", None) or "general_change"
+    _disaster_type = getattr(input_data, "disasterType", None)
+    _disaster_label = ""
+    if _mission_mode == "disaster_assessment" and _disaster_type:
+        _disaster_label = f" | Mission: disaster_assessment | Disaster: {_disaster_type}"
+
     mark_step(db, aid, "step-1", "done",
-              detail=f'Query accepted: "{q[:80]}{"…" if len(q) > 80 else ""}" | Mode: {mode} | Images: {len(files)}')
+              detail=f'Query accepted: "{q[:80]}{"…" if len(q) > 80 else ""}" | Mode: {mode} | Images: {len(files)}{_disaster_label}')
 
     # Step 2 — Input Validation & Satellite Compatibility Inspection
     mark_step(db, aid, "step-2", "in_progress")
@@ -452,13 +458,26 @@ def submit_analysis(input_data: SubmitAnalysisInput, db: Session = Depends(get_d
         query=normalized_query,
         provider=getattr(input_data, "provider", None),
         language=getattr(input_data, "language", None),
+        analysisMissionMode=getattr(input_data, "analysisMissionMode", None),
+        disasterType=getattr(input_data, "disasterType", None),
     )
+
+    # Disaster assessment context — store in adaptation dict
+    _amm = getattr(input_data, "analysisMissionMode", None) or "general_change"
+    _dt = getattr(input_data, "disasterType", None)
+    _initial_adaptation: Dict[str, Any] = {}
+    if _amm == "disaster_assessment":
+        _initial_adaptation["analysis_mission_mode"] = "disaster_assessment"
+        _initial_adaptation["disaster_type"] = _dt
+    else:
+        _initial_adaptation["analysis_mission_mode"] = "general_change"
 
     # analysis.query stores the USER'S original text (never overwritten).
     analysis = Analysis(
         mode=input_data.mode,
         query=original_query,
         status="queued",
+        adaptation=_initial_adaptation if _initial_adaptation else None,
     )
     db.add(analysis)
     db.flush()
@@ -596,11 +615,7 @@ def get_change_analytics(analysis_id: str, db: Session = Depends(get_db)):
             else:
                 binary_mask = (np.array(mask_img.convert("L")) > 0).astype(np.uint8)
 
-            metadata = {
-                "crs": "WGS 84 / UTM Zone 43N (EPSG:32643)",
-                "gsd_meters": 0.5,
-                "pixel_resolution": (0.5, 0.5),
-            }
+            metadata = {}
             if target.input_summary and isinstance(target.input_summary, dict):
                 inspections = target.input_summary.get("inspections", [])
                 if inspections and isinstance(inspections[0], dict):
@@ -689,11 +704,7 @@ def analyze_roi(
         raise HTTPException(status_code=500, detail=f"Failed to read change mask: {exc}")
 
     # 2. Extract satellite metadata and global changed percentage
-    metadata = {
-        "crs": "WGS 84 / UTM Zone 43N (EPSG:32643)",
-        "gsd_meters": 0.5,
-        "pixel_resolution": (0.5, 0.5),
-    }
+    metadata = {}
     if analysis.input_summary and isinstance(analysis.input_summary, dict):
         inspections = analysis.input_summary.get("inspections", [])
         if inspections and isinstance(inspections[0], dict):

@@ -262,11 +262,7 @@ def execute_plan(
                 try:
                     cd_params = per_tool_params.get(tid, {})
                     cd_threshold = cd_params.get("threshold")
-                    meta_for_cd = {
-                        "crs": "WGS 84 / UTM Zone 43N (EPSG:32643)",
-                        "gsd_meters": 0.5,
-                        "pixel_resolution": (0.5, 0.5),
-                    }
+                    meta_for_cd = {}
                     if compatibility_context and isinstance(compatibility_context, dict):
                         if compatibility_context.get("crs"):
                             meta_for_cd["crs"] = compatibility_context["crs"]

@@ -215,6 +215,8 @@ def analysis_to_result(db: Session, a: Analysis) -> AnalysisResult:
         isMock=is_mock,
         executionMode=exec_mode,
         multilingualSummaries=_attach_multilingual_summaries(db, a),
+        analysisMissionMode=(getattr(a, "adaptation", None) or {}).get("analysis_mission_mode"),
+        disasterType=(getattr(a, "adaptation", None) or {}).get("disaster_type"),
     )
 
 

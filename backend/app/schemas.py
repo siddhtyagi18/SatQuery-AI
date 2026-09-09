@@ -13,6 +13,8 @@ StepStatus = Literal["pending", "in_progress", "done", "error"]
 FileFormat = Literal["GeoTIFF", "TIFF", "PNG", "JPEG"]
 ImageRole = Literal["single", "before", "after", "optical", "sar"]
 ToolStatus = Literal["available", "mock", "planned"]
+AnalysisMissionMode = Literal["general_change", "disaster_assessment"]
+DisasterType = Literal["flood", "earthquake", "wildfire", "cyclone", "landslide"]
 
 
 class ImageMetadataType(BaseModel):
@@ -129,6 +131,9 @@ class AnalysisResult(BaseModel):
 
     multilingualSummaries: Optional[MultilingualSummaries] = None
 
+    analysisMissionMode: Optional[AnalysisMissionMode] = None
+    disasterType: Optional[DisasterType] = None
+
 
 class SubmitAnalysisInput(BaseModel):
     mode: AnalysisMode
@@ -136,6 +141,8 @@ class SubmitAnalysisInput(BaseModel):
     query: str
     provider: Optional[str] = None  # 'local', 'gemini', 'openrouter', 'auto'
     language: Optional[str] = None  # 'en' (default), 'hi' — optional multilingual layer
+    analysisMissionMode: Optional[AnalysisMissionMode] = "general_change"
+    disasterType: Optional[DisasterType] = None
 
 
 class ToolDefinition(BaseModel):

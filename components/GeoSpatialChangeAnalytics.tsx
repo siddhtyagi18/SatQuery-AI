@@ -44,39 +44,40 @@ export function GeoSpatialChangeAnalytics({
   // Physical area details
   const pa = analytics?.physical_area;
 
-  // Geospatial metadata & calibrated spatial resolution
+  // Geospatial metadata provenance (no fabricated defaults)
   const geoMeta = analytics?.geospatial_metadata;
   const rawCrs = geoMeta?.crs ?? (meta?.ga_crs as string | undefined);
   const crs: string =
-    rawCrs && rawCrs !== 'N/A' && !rawCrs.includes('not georeferenced')
+    rawCrs && rawCrs !== 'N/A' && !rawCrs.toLowerCase().includes('not georeferenced') && !rawCrs.toLowerCase().includes('not available')
       ? rawCrs
-      : 'WGS 84 / UTM Zone 43N (EPSG:32643)';
+      : 'Not georeferenced';
 
   const rawRes = analytics?.geospatial_metadata?.resolution ?? geoMeta?.resolution;
-  const gsdMeters: number =
+  const genuineGsd: number | undefined =
     analytics?.physical_area?.gsd_meters ??
-    (rawRes && Array.isArray(rawRes) && rawRes.length >= 2 ? rawRes[0] : 0.5);
+    (rawRes && Array.isArray(rawRes) && rawRes.length >= 2 && rawRes[0] > 0 ? rawRes[0] : undefined);
 
-  const resolution: string =
-    rawRes && Array.isArray(rawRes) && rawRes.length >= 2 && rawRes[0] > 0
-      ? `${rawRes[0]}m × ${rawRes[1]}m`
-      : `${gsdMeters.toFixed(2)}m × ${gsdMeters.toFixed(2)}m (High-Res Optical)`;
+  const hasGenuineResolution =
+    Boolean(analytics?.physical_area?.physical_area_available) && genuineGsd !== undefined && genuineGsd > 0;
 
-  // Physical Area calculation
-  const pixelAreaM2 = gsdMeters * gsdMeters;
-  const calcChangedM2 = (changedCount ?? 0) * pixelAreaM2;
-  const calcChangedHa = calcChangedM2 / 10000;
-  const isPhysicalAreaAvailable: boolean = true;
-  const physicalAreaSummary: string =
+  const resolution: string = hasGenuineResolution
+    ? (rawRes && Array.isArray(rawRes) && rawRes.length >= 2
+        ? `${rawRes[0]}m × ${rawRes[1]}m`
+        : `${genuineGsd!.toFixed(2)}m × ${genuineGsd!.toFixed(2)}m`)
+    : 'Resolution unavailable';
+
+  // Physical Area calculation (guarded against unavailable resolution)
+  const isPhysicalAreaAvailable: boolean = Boolean(
+    hasGenuineResolution &&
     analytics?.physical_area?.physical_area_available &&
-    analytics?.physical_area?.formatted_summary &&
-    !analytics?.physical_area?.formatted_summary.includes('N/A')
-      ? analytics.physical_area.formatted_summary
-      : calcChangedHa >= 1.0
-      ? `${calcChangedHa.toFixed(2)} ha (${calcChangedM2.toLocaleString(undefined, { maximumFractionDigits: 0 })} m²)`
-      : `${calcChangedM2.toLocaleString(undefined, { maximumFractionDigits: 1 })} m²`;
+    analytics?.physical_area?.changed_area_m2 != null
+  );
 
-  const areaUnavailableReason: string | undefined = undefined;
+  const physicalAreaSummary: string = isPhysicalAreaAvailable
+    ? (analytics?.physical_area?.formatted_summary && !analytics.physical_area.formatted_summary.includes('N/A')
+        ? analytics.physical_area.formatted_summary
+        : `${(analytics!.physical_area.changed_area_m2).toLocaleString(undefined, { maximumFractionDigits: 1 })} m²`)
+    : 'Resolution unavailable';
 
   // Hotspots
   const totalHotspots: number =
@@ -92,8 +93,21 @@ export function GeoSpatialChangeAnalytics({
   // Spatial change density
   const cd = analytics?.change_density;
   const quadrant = cd?.quadrant_density;
-  const peakQuadrant: string =
-    cd?.peak_density_quadrant ?? (meta?.ga_peak_quadrant as string ?? 'none');
+
+  // Mathematically calculate peak quadrant directly from intra-quadrant density metrics
+  const peakQuadrant: string = React.useMemo(() => {
+    if (quadrant) {
+      const quads: [string, number][] = [
+        ['northwest', Number(quadrant.northwest) || 0],
+        ['northeast', Number(quadrant.northeast) || 0],
+        ['southwest', Number(quadrant.southwest) || 0],
+        ['southeast', Number(quadrant.southeast) || 0],
+      ];
+      quads.sort((a, b) => b[1] - a[1]);
+      if (quads[0][1] > 0) return quads[0][0];
+    }
+    return cd?.peak_density_quadrant ?? (meta?.ga_peak_quadrant as string ?? 'none');
+  }, [quadrant, cd?.peak_density_quadrant, meta?.ga_peak_quadrant]);
 
   const fmtNum = (n: number | undefined) => (n !== undefined ? n.toLocaleString() : '—');
   const fmtPct = (p: number | undefined) => (p !== undefined ? `${p.toFixed(2)}%` : '—');
@@ -158,10 +172,17 @@ export function GeoSpatialChangeAnalytics({
               <Compass className="w-3.5 h-3.5 text-cyan-400" />
               Geo-Spatial Context & Physical Area
             </span>
-            <span className="text-[0.62rem] font-mono text-emerald-400 flex items-center gap-1">
-              <Layers className="w-2.5 h-2.5" />
-              Calibrated GSD (0.50m)
-            </span>
+            {hasGenuineResolution ? (
+              <span className="text-[0.62rem] font-mono text-emerald-400 flex items-center gap-1">
+                <Layers className="w-2.5 h-2.5" />
+                Calibrated GSD ({genuineGsd!.toFixed(2)}m)
+              </span>
+            ) : (
+              <span className="text-[0.62rem] font-mono text-zinc-400 flex items-center gap-1">
+                <AlertCircle className="w-2.5 h-2.5 text-zinc-400" />
+                Resolution unavailable
+              </span>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -261,7 +282,7 @@ export function GeoSpatialChangeAnalytics({
             <div className="flex items-center justify-between">
               <span className="hud-label flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
                 <Grid3X3 className="w-3.5 h-3.5 text-cyan-400" />
-                Spatial Quadrant Change Density
+                Spatial Quadrant Change Density (% changed pixels within quadrant)
               </span>
               <span className="text-[0.65rem] font-mono text-[var(--text-faint)]">
                 Peak Quadrant: <span className="text-cyan-400 font-bold uppercase">{peakQuadrant}</span>

@@ -252,3 +252,38 @@ def test_m_golden_baseline_regression():
     assert cd_result.stats["threshold_used"] == 0.70
     assert cd_result.stats["execution_mode"] == "model_checkpoint"
     assert cd_result.confidence in (None, 0.96)
+
+
+def test_n_quadrant_density_peak_identification():
+    """
+    Verify quadrant density represents intra-quadrant changed pixel density
+    and peak_density_quadrant matches the quadrant with the highest density.
+    When SW has the highest density, peak_density_quadrant MUST be 'southwest'.
+    """
+    # 100x100 mask -> 4 quadrants of 50x50 = 2500 px each
+    mask = np.zeros((100, 100), dtype=np.uint8)
+
+    # NW: 120 px / 2500 px = 4.80%
+    mask[0:12, 0:10] = 1
+
+    # NE: 29 px / 2500 px = 1.16%
+    mask[0:29, 50:51] = 1
+
+    # SW: 130 px / 2500 px = 5.20% (Highest density)
+    mask[50:63, 0:10] = 1
+
+    # SE: 35 px / 2500 px = 1.40%
+    mask[50:57, 50:55] = 1
+
+    analytics = compute_geospatial_change_analytics(mask, (100, 100))
+    cd = analytics["change_density"]
+    qd = cd["quadrant_density"]
+
+    assert qd["northwest"] == 4.80
+    assert qd["northeast"] == 1.16
+    assert qd["southwest"] == 5.20
+    assert qd["southeast"] == 1.40
+
+    # SW is 5.20% which is the highest -> peak MUST be southwest
+    assert cd["peak_density_quadrant"] == "southwest"
+

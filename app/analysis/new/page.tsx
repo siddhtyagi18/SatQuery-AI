@@ -10,8 +10,8 @@ import { ImageMetadata } from '@/components/ImageMetadata';
 import { QueryInput, type QueryLanguage } from '@/components/QueryInput';
 import { AgentExecutionTrace } from '@/components/AgentExecutionTrace';
 import { api } from '@/lib/api';
-import type { AnalysisMode, ExecutionTrace, UploadedImage } from '@/lib/types/analysis';
-import { Play, BookmarkCheck, AlertCircle } from 'lucide-react';
+import type { AnalysisMode, AnalysisMissionMode, DisasterType, ExecutionTrace, UploadedImage } from '@/lib/types/analysis';
+import { Play, BookmarkCheck, AlertCircle, ShieldAlert } from 'lucide-react';
 import { singleImageResult, biTemporalResult, opticalSarResult } from '@/lib/api/mock/fixtures';
 import { API_MODE } from '@/lib/config';
 import { toast } from 'sonner';
@@ -72,6 +72,10 @@ function NewAnalysisContent() {
   const [uploading, setUploading] = useState<Partial<Record<UploadedImage['role'], boolean>>>({});
   const [errors, setErrors] = useState<Partial<Record<UploadedImage['role'], string>>>({});
 
+  // Disaster Assessment Mode state
+  const [analysisMissionMode, setAnalysisMissionMode] = useState<AnalysisMissionMode>('general_change');
+  const [disasterType, setDisasterType] = useState<DisasterType | null>(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTrace, setActiveTrace] = useState<ExecutionTrace | null>(null);
 
@@ -79,6 +83,25 @@ function NewAnalysisContent() {
     setMode(newMode);
     setUploads({});
     setErrors({});
+    // When switching to non-bi_temporal mode, reset disaster state
+    if (newMode !== 'bi_temporal') {
+      setAnalysisMissionMode('general_change');
+      setDisasterType(null);
+    }
+  };
+
+  const handleMissionModeChange = (mm: AnalysisMissionMode) => {
+    setAnalysisMissionMode(mm);
+    if (mm === 'disaster_assessment') {
+      // Force bi-temporal mode for disaster assessment
+      if (mode !== 'bi_temporal') {
+        setMode('bi_temporal');
+        setUploads({});
+        setErrors({});
+      }
+    } else {
+      setDisasterType(null);
+    }
   };
 
   const handleFileUpload = async (file: File, role: UploadedImage['role']) => {
@@ -167,6 +190,8 @@ function NewAnalysisContent() {
         query: query.trim(),
         imageIds,
         language,
+        analysisMissionMode,
+        disasterType: analysisMissionMode === 'disaster_assessment' ? disasterType : undefined,
       });
 
       let redirected = false;
@@ -240,8 +265,122 @@ function NewAnalysisContent() {
         <AnalysisModeSelector
           value={mode}
           onChange={handleModeChange}
-          disabled={isSubmitting}
+          disabled={isSubmitting || analysisMissionMode === 'disaster_assessment'}
         />
+      </section>
+
+      {/* STEP 1.5: Mission Mode — General vs Disaster Assessment */}
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <span className="badge badge-amber">MISSION</span>
+          <h2 className="text-sm font-semibold uppercase tracking-wider font-heading text-[var(--text-primary)]">
+            Select Mission Context
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* General Change Analysis */}
+          <button
+            type="button"
+            onClick={() => handleMissionModeChange('general_change')}
+            disabled={isSubmitting}
+            className={`relative flex flex-col gap-2 p-4 text-left rounded transition-all duration-200 cursor-pointer ${
+              analysisMissionMode === 'general_change'
+                ? 'panel-selected-cyan'
+                : ''
+            }`}
+            style={{
+              background: analysisMissionMode === 'general_change'
+                ? 'color-mix(in srgb, var(--cyan) 5%, var(--surface-2))'
+                : 'var(--surface-1)',
+              border: analysisMissionMode === 'general_change'
+                ? '2px solid var(--cyan)'
+                : '1px solid var(--border-hairline)',
+              opacity: analysisMissionMode === 'general_change' ? 1 : 0.82,
+            }}
+          >
+            {analysisMissionMode === 'general_change' && (
+              <div className="top-accent-bar" data-domain="cyan" aria-hidden />
+            )}
+            <span className="text-base font-semibold" style={{ fontFamily: 'var(--font-heading)', color: analysisMissionMode === 'general_change' ? 'var(--cyan)' : 'var(--text-primary)' }}>
+              General Change Analysis
+            </span>
+            <span className="text-sm text-[var(--text-muted)] leading-relaxed">
+              Standard bi-temporal change detection for general land-use, construction, or environmental monitoring.
+            </span>
+          </button>
+
+          {/* Disaster Assessment */}
+          <button
+            type="button"
+            onClick={() => handleMissionModeChange('disaster_assessment')}
+            disabled={isSubmitting}
+            className={`relative flex flex-col gap-2 p-4 text-left rounded transition-all duration-200 cursor-pointer ${
+              analysisMissionMode === 'disaster_assessment'
+                ? 'panel-selected-amber'
+                : ''
+            }`}
+            style={{
+              background: analysisMissionMode === 'disaster_assessment'
+                ? 'color-mix(in srgb, var(--amber) 5%, var(--surface-2))'
+                : 'var(--surface-1)',
+              border: analysisMissionMode === 'disaster_assessment'
+                ? '2px solid var(--amber)'
+                : '1px solid var(--border-hairline)',
+              opacity: analysisMissionMode === 'disaster_assessment' ? 1 : 0.82,
+            }}
+          >
+            {analysisMissionMode === 'disaster_assessment' && (
+              <div className="top-accent-bar" data-domain="amber" aria-hidden />
+            )}
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5" style={{ color: analysisMissionMode === 'disaster_assessment' ? 'var(--amber)' : 'var(--text-muted)' }} />
+              <span className="text-base font-semibold" style={{ fontFamily: 'var(--font-heading)', color: analysisMissionMode === 'disaster_assessment' ? 'var(--amber)' : 'var(--text-primary)' }}>
+                Disaster Assessment
+              </span>
+            </div>
+            <span className="text-sm text-[var(--text-muted)] leading-relaxed">
+              Analyze before/after imagery under a disaster context. Change regions highlighted for operator investigation.
+            </span>
+          </button>
+        </div>
+
+        {/* Disaster Type Selector */}
+        {analysisMissionMode === 'disaster_assessment' && (
+          <div className="flex flex-col gap-2 animate-fade-in-up">
+            <span className="hud-label text-[var(--amber)]">Select Disaster Type</span>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              {([
+                { value: 'flood' as DisasterType, icon: '🌊', label: 'Flood' },
+                { value: 'earthquake' as DisasterType, icon: '🏚️', label: 'Earthquake' },
+                { value: 'wildfire' as DisasterType, icon: '🔥', label: 'Wildfire' },
+                { value: 'cyclone' as DisasterType, icon: '🌀', label: 'Cyclone' },
+                { value: 'landslide' as DisasterType, icon: '⛰️', label: 'Landslide' },
+              ]).map((d) => (
+                <button
+                  key={d.value}
+                  type="button"
+                  onClick={() => setDisasterType(d.value)}
+                  disabled={isSubmitting}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded text-sm font-medium transition-all cursor-pointer ${
+                    disasterType === d.value ? 'ring-2 ring-[var(--amber)] shadow-[0_0_12px_rgba(251,191,36,0.25)]' : ''
+                  }`}
+                  style={{
+                    background: disasterType === d.value
+                      ? 'color-mix(in srgb, var(--amber) 12%, var(--surface-2))'
+                      : 'var(--surface-1)',
+                    border: disasterType === d.value
+                      ? '2px solid var(--amber)'
+                      : '1px solid var(--border-hairline)',
+                    color: disasterType === d.value ? 'var(--amber)' : 'var(--text-primary)',
+                  }}
+                >
+                  <span className="text-lg">{d.icon}</span>
+                  <span>{d.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* STEP 2: Image Ingest Area */}

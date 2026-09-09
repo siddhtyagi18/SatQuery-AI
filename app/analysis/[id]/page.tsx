@@ -304,6 +304,65 @@ export default function AnalysisResultPage() {
         </div>
       </CornerFrame>
 
+      {/* Disaster Assessment Banner (shown only when disaster mode) */}
+      {result.analysisMissionMode === 'disaster_assessment' && result.disasterType && (
+        <div
+          className="p-5 rounded-lg border-2 border-[var(--amber)]/50 animate-fade-in-up"
+          style={{
+            background: 'color-mix(in srgb, var(--amber) 6%, var(--bg-base))',
+            boxShadow: '0 0 20px rgba(251,191,36,0.12)',
+          }}
+        >
+          <div className="flex items-center gap-3 mb-3">
+            <span className="font-mono text-[0.65rem] font-bold tracking-widest uppercase px-2.5 py-1 rounded bg-[var(--amber)]/15 border border-[var(--amber)]/40 text-[var(--amber)]">
+              DISASTER ASSESSMENT
+            </span>
+          </div>
+          <div className="flex flex-col gap-1.5 mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[0.7rem] font-mono text-[var(--text-muted)] uppercase">Selected Mission:</span>
+              <span className="text-base font-bold text-[var(--amber)] font-heading">
+                {result.disasterType === 'flood' && '🌊 '}
+                {result.disasterType === 'earthquake' && '🏚️ '}
+                {result.disasterType === 'wildfire' && '🔥 '}
+                {result.disasterType === 'cyclone' && '🌀 '}
+                {result.disasterType === 'landslide' && '⛰️ '}
+                {result.disasterType.charAt(0).toUpperCase() + result.disasterType.slice(1)}
+              </span>
+            </div>
+          </div>
+
+          {/* Disaster Assessment Context */}
+          <div className="p-3.5 rounded bg-[var(--surface-2)] border border-[var(--border-hairline)]">
+            <span className="hud-label text-[var(--amber)] mb-2 block">DISASTER ASSESSMENT CONTEXT</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+              <div>
+                <span className="text-[var(--text-muted)]">Selected disaster: </span>
+                <span className="text-[var(--text-primary)] font-semibold">
+                  {result.disasterType.charAt(0).toUpperCase() + result.disasterType.slice(1)}
+                </span>
+              </div>
+              <div>
+                <span className="text-[var(--text-muted)]">Analysis basis: </span>
+                <span className="text-[var(--text-primary)] font-semibold">Bi-temporal change detection</span>
+              </div>
+            </div>
+            <p className="text-xs text-[var(--text-muted)] mt-2.5 leading-relaxed">
+              {result.disasterType === 'flood' &&
+                'Flood assessment context selected. Detected visual change regions are highlighted for operator investigation.'}
+              {result.disasterType === 'earthquake' &&
+                'Earthquake assessment context selected. Detected structural/visual change regions are highlighted for operator investigation.'}
+              {result.disasterType === 'wildfire' &&
+                'Wildfire assessment context selected. Detected change regions are highlighted for investigation.'}
+              {result.disasterType === 'cyclone' &&
+                'Cyclone assessment context selected. Detected change regions are highlighted for investigation.'}
+              {result.disasterType === 'landslide' &&
+                'Landslide assessment context selected. Detected change regions are highlighted for investigation.'}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Main Two-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-7 items-start">
         {/* Left Column (2 spans): Synthesis + Visual Evidence */}

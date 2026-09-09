@@ -22,56 +22,30 @@ interface ConfidenceCardProps {
 }
 
 export function ConfidenceCard({ score, detectedTasks, breakdown, isMock, className }: ConfidenceCardProps) {
-  const effectiveScore = useMemo(() => {
-    if (score != null && !isNaN(score) && score > 0) {
-      return Math.min(1, Math.max(0, score));
-    }
-    const tasks = detectedTasks ?? [];
-    if (tasks.includes('optical_sar' as any)) return 0.93;
-    if (tasks.includes('change_detection') || tasks.includes('change_vqa')) return 0.91;
-    if (tasks.includes('grounding')) return 0.89;
-    if (tasks.includes('captioning')) return 0.88;
-    if (tasks.includes('vqa')) return 0.92;
-    return 0.91;
-  }, [score, detectedTasks]);
+  const isCalibrated = score != null && !isNaN(score) && score > 0;
 
-  const isCalibrated = true;
+  const effectiveScore = useMemo(() => {
+    if (isCalibrated) {
+      return Math.min(1, Math.max(0, score!));
+    }
+    return null;
+  }, [score, isCalibrated]);
 
   const effectiveBreakdown = useMemo((): BreakdownItem[] => {
     if (breakdown && breakdown.length > 0) {
       return breakdown;
     }
-    const base = effectiveScore;
-    const tasks = detectedTasks ?? [];
+    return [];
+  }, [breakdown]);
 
-    if (tasks.includes('change_detection') || tasks.includes('change_vqa')) {
-      return [
-        { label: 'Bi-Temporal Co-Registration', score: Math.min(0.97, Number((base + 0.04).toFixed(2))) },
-        { label: 'Siamese Feature Similarity', score: Math.min(0.95, Number(base.toFixed(2))) },
-        { label: 'Change Mask Boundary Certainty', score: Math.max(0.85, Number((base - 0.03).toFixed(2))) },
-        { label: 'False-Alarm Rejection Filter', score: Math.min(0.96, Number((base + 0.03).toFixed(2))) },
-      ];
+  const getConfidenceTier = (s: number | null) => {
+    if (s == null) {
+      return {
+        text: 'N/A — Uncalibrated',
+        color: 'var(--text-muted)',
+        subtext: 'Model confidence is not calibrated for this analysis mode (confidence = null). Operational outputs reflect topological and feature measurements without probabilistic calibration.',
+      };
     }
-
-    if (tasks.includes('optical_sar' as any)) {
-      return [
-        { label: 'Cross-Modal Feature Alignment', score: Math.min(0.98, Number((base + 0.03).toFixed(2))) },
-        { label: 'Optical-SAR Structural Coherence', score: Math.min(0.95, Number(base.toFixed(2))) },
-        { label: 'Speckle Noise Rejection', score: Math.max(0.84, Number((base - 0.03).toFixed(2))) },
-        { label: 'Target Signature Verification', score: Math.min(0.96, Number((base + 0.02).toFixed(2))) },
-      ];
-    }
-
-    // Default / Single Image / VQA / Captioning / Grounding
-    return [
-      { label: 'Feature Extraction Quality', score: Math.min(0.96, Number((base + 0.03).toFixed(2))) },
-      { label: 'Spatial Morphology & Grounding', score: Math.max(0.85, Number((base - 0.02).toFixed(2))) },
-      { label: 'Vision-Language Semantic Alignment', score: Math.min(0.95, Number(base.toFixed(2))) },
-      { label: 'Radiometric & Contrast Clarity', score: Math.min(0.98, Number((base + 0.04).toFixed(2))) },
-    ];
-  }, [breakdown, effectiveScore, detectedTasks]);
-
-  const getConfidenceTier = (s: number) => {
     if (s >= 0.85) {
       return {
         text: `High Confidence (${Math.round(s * 100)}%)`,
@@ -101,11 +75,18 @@ export function ConfidenceCard({ score, detectedTasks, breakdown, isMock, classN
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-              <span className="hud-label">Overall Model Confidence</span>
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[0.6rem] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 uppercase tracking-wider">
-                <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                CALIBRATED
-              </span>
+              <span className="hud-label">Model Confidence</span>
+              {isCalibrated ? (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[0.6rem] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 uppercase tracking-wider">
+                  <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                  CALIBRATED
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[0.6rem] font-mono bg-zinc-800/80 text-zinc-400 border border-zinc-700/60 uppercase tracking-wider">
+                  <Activity className="w-3 h-3 text-zinc-400" />
+                  UNCALIBRATED
+                </span>
+              )}
             </div>
             <span className="text-base font-semibold font-mono" style={{ color: tier.color }}>
               {tier.text}
@@ -117,13 +98,13 @@ export function ConfidenceCard({ score, detectedTasks, breakdown, isMock, classN
           <ConfidenceGauge score={effectiveScore} size="md" />
         </div>
 
-        {effectiveBreakdown.length > 0 && (
+        {effectiveBreakdown.length > 0 ? (
           <div className="flex flex-col gap-2.5 pt-3 border-t border-[var(--border-hairline)]">
             <div className="flex items-center justify-between">
-              <span className="hud-label">Sub-claim Breakdown</span>
+              <span className="hud-label">Diagnostic Signals</span>
               <span className="text-[0.65rem] font-mono text-[var(--text-faint)] flex items-center gap-1">
-                <Activity className="w-2.5 h-2.5 text-emerald-400" />
-                Verified Signals
+                <Activity className="w-2.5 h-2.5 text-zinc-400" />
+                Uncalibrated Heuristics
               </span>
             </div>
             <div className="flex flex-col gap-2.5">
@@ -144,12 +125,6 @@ export function ConfidenceCard({ score, detectedTasks, breakdown, isMock, classN
                             : item.score >= 0.70
                             ? 'linear-gradient(90deg, #F59E0B, #FBBF24)'
                             : 'linear-gradient(90deg, #EF4444, #F87171)',
-                        boxShadow:
-                          item.score >= 0.85
-                            ? '0 0 6px rgba(16, 185, 129, 0.4)'
-                            : item.score >= 0.70
-                            ? '0 0 6px rgba(245, 158, 11, 0.4)'
-                            : '0 0 6px rgba(239, 68, 68, 0.4)',
                       }}
                     />
                   </div>
@@ -157,7 +132,11 @@ export function ConfidenceCard({ score, detectedTasks, breakdown, isMock, classN
               ))}
             </div>
           </div>
-        )}
+        ) : !isCalibrated ? (
+          <div className="pt-2 border-t border-[var(--border-hairline)] text-[0.68rem] font-mono text-[var(--text-faint)]">
+            ℹ Probabilistic sub-claim breakdown unavailable for uncalibrated models.
+          </div>
+        ) : null}
       </div>
     </CornerFrame>
   );

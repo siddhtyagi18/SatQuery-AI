@@ -32,18 +32,7 @@ function resolveUrl(url: string | null | undefined): string | null {
 }
 
 function ensureConfidence(data: AnalysisResult): AnalysisResult {
-  if (data.status === 'completed' && (data.confidence == null || data.confidence === 0)) {
-    const tasks = data.detectedTasks || [];
-    if (data.mode === 'optical_sar' || tasks.includes('optical_sar' as any)) {
-      data.confidence = 0.93;
-    } else if (data.mode === 'bi_temporal' || tasks.includes('change_detection') || tasks.includes('change_vqa')) {
-      data.confidence = 0.91;
-    } else if (tasks.includes('captioning')) {
-      data.confidence = 0.88;
-    } else {
-      data.confidence = 0.92;
-    }
-  }
+  // Respect backend confidence value. If null/uncalibrated, preserve null.
   return data;
 }
 

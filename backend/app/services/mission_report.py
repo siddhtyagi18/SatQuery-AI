@@ -150,18 +150,14 @@ def build_mission_report_data(
     if not isinstance(phys_area, dict):
         phys_area = {}
     phys_area_available = bool(phys_area.get("available") or phys_area.get("physical_area_available"))
-    if not phys_area_available and raw_changed_px is not None:
-        calc_ha = round((raw_changed_px * 0.25) / 10000.0, 2)
-        phys_area["changed_area_hectares"] = calc_ha
-        phys_area["total_area_hectares"] = round(((raw_total_px or 0) * 0.25) / 10000.0, 2)
-        phys_area["available"] = True
-        phys_area["physical_area_available"] = True
-        phys_area_available = True
+    if not phys_area_available:
+        phys_area["available"] = False
+        phys_area["physical_area_available"] = False
 
     if not geo_meta.get("crs") or geo_meta.get("crs") == "N/A":
-        geo_meta["crs"] = "WGS 84 / UTM Zone 43N (EPSG:32643)"
+        geo_meta["crs"] = "Not available"
     if not geo_meta.get("resolution") or geo_meta.get("resolution") == "N/A":
-        geo_meta["resolution"] = "0.50m × 0.50m (High-Res Optical)"
+        geo_meta["resolution"] = "Resolution unavailable"
 
     # 6. ROI Investigation (Phase 2)
     roi_report: Dict[str, Any] = {"performed": False, "details": None}
@@ -217,6 +213,15 @@ def build_mission_report_data(
     if not vqa_report["executed"]:
         limitations.append("Natural-language AI interpretation (Change VQA) was not requested.")
 
+    # Disaster assessment context (additive)
+    _da_mode = adaptation_data.get("analysis_mission_mode", "general_change")
+    _da_disaster = adaptation_data.get("disaster_type")
+    if _da_mode == "disaster_assessment":
+        limitations.append(
+            "Disaster-specific classification/damage certainty is not claimed "
+            "unless supported by a dedicated validated specialist model."
+        )
+
     # 9. Formulate Executive Summary
     formatted_changed_pct = f"{raw_changed_pct:.2f}%" if raw_changed_pct is not None else "Not computed"
     formatted_changed_px = f"{raw_changed_px:,}" if raw_changed_px is not None else "Not computed"
@@ -227,6 +232,12 @@ def build_mission_report_data(
         f"The Siamese U-Net detector identified {formatted_changed_pct} changed pixels "
         f"({formatted_changed_px} of {formatted_total_px} total pixels) between the supplied acquisitions."
     )
+    if _da_mode == "disaster_assessment" and _da_disaster:
+        exec_summary += (
+            f" This analysis was conducted under Disaster Assessment context "
+            f"(selected disaster: {_da_disaster.capitalize()}). "
+            f"Detected change regions are highlighted as candidate affected areas for operator investigation."
+        )
     if phys_area_available and isinstance(phys_area, dict):
         ha = phys_area.get("changed_area_hectares")
         if ha is not None:
@@ -251,6 +262,8 @@ def build_mission_report_data(
         "change_mask_path": str(mask_path) if mask_path and mask_path.exists() else None,
         "compatibility": compat_data,
         "adaptation": adaptation_data,
+        "mission_type": "Disaster Assessment" if _da_mode == "disaster_assessment" else "General Change Analysis",
+        "disaster_type": _da_disaster.capitalize() if _da_disaster else None,
         "change_detection": {
             "changed_pixel_pct": raw_changed_pct,
             "changed_pixel_count": raw_changed_px,
