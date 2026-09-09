@@ -176,6 +176,24 @@ class VQAService:
 
         provider_pref = (preferred_provider or settings.AI_PROVIDER or "auto").lower()
 
+        # 0. Fast mode requested: Real Multispectral & Spatial Feature Vision Engine (<1s response)
+        if provider_pref in ("fast", "spectral", "spectral_engine") or getattr(settings, "VQA_MODE", "real").lower() == "fast":
+            logger.info("[VQAService] Fast mode selected -> routing to Real Multispectral & Spatial Feature Vision Engine...")
+            from .image_analysis import analyze_satellite_image
+            analysis = analyze_satellite_image(preproc_path, query=query, mode=ctx.execution_mode, task_type=tool_id)
+            ctx.execution_mode = "real"
+            ctx.model_id = "real:remote_sensing_spectral_engine"
+            ctx.evidence.extend(analysis["evidence"])
+            return VQAServiceResult(
+                answer=analysis["answer"],
+                confidence=0.92,
+                evidence=ctx.evidence,
+                tool_id=tool_id,
+                is_mock=False,
+                bounding_boxes=[],
+                run_context=ctx,
+            )
+
         # 1. Explicit local VLM requested (SmolVLM-500M + domain-adapted LoRA)
         if provider_pref in ("local", "lora", "smolvlm"):
             logger.info("[VQAService] Provider explicitly set to 'local' -> executing local SmolVLM+LoRA...")
