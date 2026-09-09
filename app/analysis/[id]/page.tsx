@@ -225,7 +225,7 @@ export default function AnalysisResultPage() {
   const isMock = result.isMock !== undefined ? result.isMock : !anyReal;
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-12 pb-16 animate-fade-in-up">
+    <div className="max-w-7xl mx-auto flex flex-col gap-7 pb-16 animate-fade-in-up">
       {/* Top Header Card — active analysis surface → bracket framed */}
       <CornerFrame
         label="MISSION ANALYSIS TELEMETRY"
@@ -238,7 +238,7 @@ export default function AnalysisResultPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/analysis/history')}
-                className="p-1.5 rounded hover:bg-[var(--bg-panel-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all hover:scale-105 border border-[var(--border-hairline)]"
+                className="p-1.5 rounded hover:bg-[var(--bg-panel-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all hover:scale-105 active:scale-95 border border-[var(--border-hairline)]"
                 title="Back to History"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -272,7 +272,7 @@ export default function AnalysisResultPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => router.push('/analysis/new')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono bg-[var(--bg-panel-elevated)] border border-[var(--border-hairline)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-all hover:scale-[1.02]"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono bg-[var(--bg-panel-elevated)] border border-[var(--border-hairline)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 Re-run Query
@@ -280,7 +280,7 @@ export default function AnalysisResultPage() {
 
               <button
                 onClick={handleDownloadReport}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono bg-[var(--accent-signal)]/15 border border-[var(--accent-signal)]/40 text-[var(--accent-signal)] hover:bg-[var(--accent-signal)]/25 transition-all hover:scale-[1.02] font-medium"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono bg-[var(--accent-signal)]/15 border border-[var(--accent-signal)]/40 text-[var(--accent-signal)] hover:bg-[var(--accent-signal)]/25 transition-all hover:scale-[1.02] active:scale-[0.98] font-medium"
               >
                 <Download className="w-3.5 h-3.5" />
                 Export Report
@@ -304,20 +304,20 @@ export default function AnalysisResultPage() {
         </div>
       </CornerFrame>
 
-      {/* Main Two-Column Layout — 48px gap between columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
-        {/* Left Column (2 spans): Synthesis + Visual Evidence — gap-12 between major blocks */}
-        <div className="lg:col-span-2 flex flex-col gap-12">
-          {/* Smart Insights & Telemetry Cards — Feature 2 (strictly extracted from existing result) */}
+      {/* Main Two-Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-7 items-start">
+        {/* Left Column (2 spans): Synthesis + Visual Evidence */}
+        <div className="lg:col-span-2 flex flex-col gap-7">
+          {/* Smart Insights & Telemetry Cards */}
           <SmartInsightCards result={result} />
 
-          {/* Bilingual Summary + TTS Playback (strictly additive layer — golden baseline preserved below) */}
+          {/* Bilingual Summary + TTS Playback */}
           <MultilingualSummaryPanel
             summaries={result.multilingualSummaries}
             fallbackAnswer={result.answerText}
           />
 
-          {/* Executive Summary — full original technical report (UNCHANGED golden baseline) */}
+          {/* Executive Summary */}
           <AnalysisSummary
             answerText={result.answerText}
             detectedTasks={result.detectedTasks}
@@ -325,11 +325,11 @@ export default function AnalysisResultPage() {
             isMock={isMock}
           />
 
-          {/* Mode-Specific Visual Viewers (wrapped with focus/highlight target for map-aware follow-up) */}
+          {/* Mode-Specific Visual Viewers */}
           <div
             ref={visualViewerRef}
             className={cn(
-              'flex flex-col gap-12 transition-all duration-500 rounded-lg',
+              'flex flex-col gap-7 transition-all duration-500 rounded-lg',
               mapHighlighted && 'ring-2 ring-[var(--cyan)] shadow-[0_0_24px_rgba(34,211,238,0.35)]'
             )}
           >
@@ -350,7 +350,7 @@ export default function AnalysisResultPage() {
             )}
 
             {result.mode === 'bi_temporal' && (
-              <div className="flex flex-col gap-12">
+              <div className="flex flex-col gap-7">
                 {/* Slider & Dual View */}
                 <div className="flex flex-col gap-2">
                   <span className="hud-label">Bi-Temporal Visual Baseline Swipe</span>
@@ -421,7 +421,7 @@ export default function AnalysisResultPage() {
         </div>
 
         {/* Right Rail (1 span): Confidence + Sticky Execution Trace & Tool Invocations */}
-        <div className="flex flex-col gap-12 lg:sticky lg:top-20">
+        <div className="flex flex-col gap-7 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto pr-1">
           {/* Confidence Score Card */}
           <ConfidenceCard
             score={result.confidence}

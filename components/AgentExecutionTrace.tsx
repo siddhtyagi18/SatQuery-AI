@@ -139,16 +139,32 @@ function StepRow({ step, isLast }: { step: ExecutionStep; isLast: boolean }) {
         {/* Key-value meta */}
         {step.meta && Object.keys(step.meta).length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-1.5">
-            {Object.entries(step.meta).map(([k, v]) => (
-              <span
-                key={k}
-                className="text-[0.68rem] font-mono inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[var(--surface-2)] border border-[var(--border-hairline)] transition-colors hover:border-[var(--cyan)]/30"
-              >
-                <span className="font-semibold text-[var(--cyan)]">{k}</span>
-                <span className="text-[var(--text-faint)]">=</span>
-                <span className="text-[var(--text-primary)] font-medium">{String(v)}</span>
-              </span>
-            ))}
+            {Object.entries(step.meta).map(([k, v]) => {
+              let displayVal = '';
+              if (v === null || v === undefined) {
+                displayVal = 'null';
+              } else if (Array.isArray(v)) {
+                displayVal = v.length === 0 ? 'none' : v.map((item) => (typeof item === 'object' ? JSON.stringify(item) : String(item))).join(', ');
+              } else if (typeof v === 'object') {
+                displayVal = Object.entries(v)
+                  .map(([subK, subV]) => `${subK}: ${subV}`)
+                  .join(' · ');
+              } else {
+                displayVal = String(v);
+              }
+              if (!displayVal || displayVal.trim() === '') displayVal = 'none';
+
+              return (
+                <span
+                  key={k}
+                  className="text-[0.68rem] font-mono inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[var(--surface-2)] border border-[var(--border-hairline)] transition-all hover:border-[var(--cyan)]/40 hover:bg-[var(--surface-2-hover)]"
+                >
+                  <span className="font-semibold text-[var(--cyan)]">{k}</span>
+                  <span className="text-[var(--text-faint)]">=</span>
+                  <span className="text-[var(--text-primary)] font-medium">{displayVal}</span>
+                </span>
+              );
+            })}
           </div>
         )}
       </div>

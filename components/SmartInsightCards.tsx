@@ -222,18 +222,18 @@ export function SmartInsightCards({ result, className }: SmartInsightCardsProps)
             return (
               <div
                 key={card.id}
-                className="p-3 rounded flex flex-col justify-between gap-1 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--cyan)]/35"
+                className="p-3.5 rounded-lg flex flex-col justify-between gap-1.5 transition-all duration-200 ease-out hover:-translate-y-1 hover:border-[var(--cyan)]/45 hover:shadow-md cursor-default group"
                 style={{
                   background: 'var(--surface-2)',
                   border: '1px solid var(--border-hairline)',
                 }}
               >
                 <div className="flex items-center justify-between gap-1.5">
-                  <span className="text-[0.6rem] font-mono tracking-wider text-[var(--text-muted)] uppercase">
+                  <span className="text-[0.62rem] font-mono font-medium tracking-wider text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors uppercase">
                     {card.label}
                   </span>
-                  <div className={`p-1 rounded ${toneBorder}`}>
-                    <Icon className="w-3 h-3" />
+                  <div className={`p-1.5 rounded-md ${toneBorder} transition-transform group-hover:scale-110`}>
+                    <Icon className="w-3.5 h-3.5" />
                   </div>
                 </div>
 
@@ -242,7 +242,7 @@ export function SmartInsightCards({ result, className }: SmartInsightCardsProps)
                     {card.value}
                   </span>
                   {card.subtext && (
-                    <span className="text-[0.62rem] font-sans text-[var(--text-muted)] truncate">
+                    <span className="text-[0.65rem] font-sans text-[var(--text-muted)] truncate mt-0.5">
                       {card.subtext}
                     </span>
                   )}

@@ -310,10 +310,10 @@ export function MultilingualSummaryPanel({
               type="button"
               onClick={() => handleTabSwitch('hi')}
               className={cn(
-                'px-3 py-1 rounded text-xs font-mono transition-all flex items-center gap-1.5 cursor-pointer',
+                'px-3.5 py-1.5 rounded-md text-xs font-mono transition-all flex items-center gap-1.5 cursor-pointer',
                 activeTab === 'hi'
-                  ? 'bg-[var(--magenta)] text-[#05070D] font-bold shadow-[0_0_10px_rgba(244,114,182,0.35)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                  ? 'bg-[var(--magenta)] text-[#05070D] font-bold shadow-[0_0_12px_rgba(192,132,252,0.4)] scale-[1.02]'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-2-hover)]'
               )}
             >
               <span>🇮🇳</span>
@@ -323,10 +323,10 @@ export function MultilingualSummaryPanel({
               type="button"
               onClick={() => handleTabSwitch('en')}
               className={cn(
-                'px-3 py-1 rounded text-xs font-mono transition-all flex items-center gap-1.5 cursor-pointer',
+                'px-3.5 py-1.5 rounded-md text-xs font-mono transition-all flex items-center gap-1.5 cursor-pointer',
                 activeTab === 'en'
-                  ? 'bg-[var(--cyan)] text-[#05070D] font-bold shadow-[0_0_10px_rgba(56,189,248,0.35)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                  ? 'bg-[var(--cyan)] text-[#05070D] font-bold shadow-[0_0_12px_rgba(56,189,248,0.4)] scale-[1.02]'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-2-hover)]'
               )}
             >
               <span>🇬🇧</span>
@@ -348,7 +348,7 @@ export function MultilingualSummaryPanel({
                   <button
                     type="button"
                     onClick={resumePlayback}
-                    className="flex items-center gap-1.5 px-3 py-1 rounded text-[0.68rem] font-mono border border-[var(--cyan)]/50 bg-[var(--cyan)]/20 text-[var(--cyan)] hover:bg-[var(--cyan)]/30 transition-all cursor-pointer shadow-[0_0_8px_rgba(56,189,248,0.25)]"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[0.68rem] font-mono border border-[var(--cyan)]/50 bg-[var(--cyan)]/20 text-[var(--cyan)] hover:bg-[var(--cyan)]/30 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-[0_0_8px_rgba(56,189,248,0.25)]"
                     title="Resume playback"
                   >
                     <Play className="w-3.5 h-3.5 fill-current" />
@@ -360,10 +360,10 @@ export function MultilingualSummaryPanel({
                     onClick={startPlayback}
                     disabled={ttsButtonDisabled || ttsState === 'playing'}
                     className={cn(
-                      'flex items-center gap-1.5 px-3 py-1 rounded text-[0.68rem] font-mono border transition-all',
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[0.68rem] font-mono border transition-all hover:scale-105 active:scale-95',
                       ttsState === 'playing'
                         ? 'bg-[var(--magenta)]/20 border-[var(--magenta)]/50 text-[var(--magenta)] cursor-default'
-                        : 'bg-[var(--surface-2)] border-[var(--border-hairline)] text-[var(--text-primary)] hover:border-[var(--magenta)]/50 hover:bg-[var(--surface-3)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed'
+                        : 'bg-[var(--surface-2)] border-[var(--border-hairline)] text-[var(--text-primary)] hover:border-[var(--magenta)]/50 hover:bg-[var(--surface-2-hover)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none'
                     )}
                     title={activeTab === 'hi' ? 'हिंदी में सुनें' : 'Listen in English'}
                   >

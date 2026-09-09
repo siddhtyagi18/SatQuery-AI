@@ -130,12 +130,12 @@ export function AnalysisSummary({
             {/* Copy report button */}
             <button
               onClick={handleCopy}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono bg-[var(--surface-2)] border border-[var(--border-hairline)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--cyan)]/40 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono bg-[var(--surface-2)] border border-[var(--border-hairline)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--cyan)]/40 hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer"
               title="Copy Full Report to Clipboard"
             >
               {copied ? (
                 <>
-                  <Check className="w-3.5 h-3.5 text-[var(--green)]" />
+                  <Check className="w-3.5 h-3.5 text-[var(--green)] animate-in zoom-in-50 duration-200" />
                   <span className="text-[var(--green)] font-medium">Copied</span>
                 </>
               ) : (

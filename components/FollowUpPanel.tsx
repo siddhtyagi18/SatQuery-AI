@@ -346,7 +346,7 @@ export function FollowUpPanel({ result, onSpatialAction, className }: FollowUpPa
               key={idx}
               disabled={isLoading}
               onClick={() => handleSend(chip.label)}
-              className="flex items-center gap-1 px-2.5 py-1 rounded text-[0.7rem] font-mono bg-[var(--surface-2)] border border-[var(--border-hairline)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--cyan)]/50 transition-all hover:scale-[1.02] disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[0.7rem] font-mono bg-[var(--surface-2)] border border-[var(--border-hairline)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--cyan)]/50 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer shadow-sm"
             >
               <span>{chip.icon}</span>
               <span>{chip.label}</span>
@@ -368,7 +368,7 @@ export function FollowUpPanel({ result, onSpatialAction, className }: FollowUpPa
                 }
               }}
               placeholder="Ask a follow-up... (e.g. 'How much area changed?' or 'कहाँ पर हुआ?')"
-              className="w-full px-3.5 py-2.5 pr-10 rounded text-xs bg-[var(--surface-2)] border border-[var(--border-hairline)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--cyan)] font-sans transition-colors"
+              className="w-full px-4 py-2.5 pr-10 rounded-xl text-xs bg-[var(--surface-2)] border border-[var(--border-hairline)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--cyan)] focus:ring-1 focus:ring-[var(--cyan)]/40 font-sans transition-all shadow-inner"
               disabled={isLoading}
             />
 
@@ -378,10 +378,10 @@ export function FollowUpPanel({ result, onSpatialAction, className }: FollowUpPa
               onClick={toggleVoice}
               disabled={isLoading}
               className={cn(
-                'absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded transition-all',
+                'absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-all active:scale-90 cursor-pointer',
                 isListening
                   ? 'bg-rose-500/20 text-rose-400 border border-rose-500/50 animate-pulse'
-                  : 'text-[var(--text-muted)] hover:text-[var(--cyan)]'
+                  : 'text-[var(--text-muted)] hover:text-[var(--cyan)] hover:bg-[var(--surface-2-hover)]'
               )}
               title={isListening ? 'Stop listening' : 'Speak follow-up question (English / Hindi)'}
             >
@@ -393,7 +393,7 @@ export function FollowUpPanel({ result, onSpatialAction, className }: FollowUpPa
             type="button"
             onClick={() => handleSend()}
             disabled={isLoading || !inputValue.trim()}
-            className="flex items-center justify-center px-4 py-2.5 rounded bg-[var(--cyan)]/20 border border-[var(--cyan)]/50 text-[var(--cyan)] hover:bg-[var(--cyan)]/30 transition-all disabled:opacity-40 disabled:pointer-events-none font-mono text-xs font-semibold shrink-0"
+            className="flex items-center justify-center px-4 py-2.5 rounded-xl bg-[var(--cyan)]/20 border border-[var(--cyan)]/50 text-[var(--cyan)] hover:bg-[var(--cyan)]/30 active:scale-95 transition-all disabled:opacity-40 disabled:pointer-events-none font-mono text-xs font-semibold shrink-0 cursor-pointer shadow-sm"
           >
             <Send className="w-3.5 h-3.5 mr-1" />
             Ask

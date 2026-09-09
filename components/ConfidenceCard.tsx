@@ -128,22 +128,28 @@ export function ConfidenceCard({ score, detectedTasks, breakdown, isMock, classN
             </div>
             <div className="flex flex-col gap-2.5">
               {effectiveBreakdown.map((item, i) => (
-                <div key={i} className="flex flex-col gap-1">
+                <div key={i} className="flex flex-col gap-1.5 p-1 rounded transition-colors hover:bg-[var(--surface-2)]/50">
                   <div className="flex items-center justify-between text-xs font-mono">
                     <span className="text-[var(--text-muted)] font-normal">{item.label}</span>
-                    <span className="text-[var(--text-primary)] font-semibold">{(item.score * 100).toFixed(0)}%</span>
+                    <span className="text-[var(--text-primary)] font-semibold font-mono">{(item.score * 100).toFixed(0)}%</span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-[var(--bg-panel-elevated)] overflow-hidden">
+                  <div className="h-1.5 rounded-full bg-[var(--surface-2)] overflow-hidden border border-[var(--border-subtle)]">
                     <div
-                      className="h-full rounded-full transition-all duration-500"
+                      className="h-full rounded-full transition-all duration-700 ease-out"
                       style={{
                         width: `${item.score * 100}%`,
                         background:
                           item.score >= 0.85
-                            ? 'var(--accent-success)'
+                            ? 'linear-gradient(90deg, #10B981, #34D399)'
                             : item.score >= 0.70
-                            ? 'var(--accent-warning)'
-                            : 'var(--accent-danger)',
+                            ? 'linear-gradient(90deg, #F59E0B, #FBBF24)'
+                            : 'linear-gradient(90deg, #EF4444, #F87171)',
+                        boxShadow:
+                          item.score >= 0.85
+                            ? '0 0 6px rgba(16, 185, 129, 0.4)'
+                            : item.score >= 0.70
+                            ? '0 0 6px rgba(245, 158, 11, 0.4)'
+                            : '0 0 6px rgba(239, 68, 68, 0.4)',
                       }}
                     />
                   </div>

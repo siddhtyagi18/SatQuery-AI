@@ -30,7 +30,7 @@ export function TopBar() {
 
   return (
     <header
-      className="h-16 border-b border-[var(--border-hairline)] bg-[var(--surface-1)]/90 backdrop-blur-md z-40 sticky top-0"
+      className="h-16 border-b border-[var(--border-hairline)] bg-[var(--surface-1)]/85 backdrop-blur-xl z-40 sticky top-0 transition-colors"
     >
       <div className="h-full px-4 md:px-6 flex items-center justify-between gap-6">
         {/* ============================================================
@@ -41,7 +41,7 @@ export function TopBar() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-2)] border border-[var(--border-hairline)]"
+            className="md:hidden p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-2)] border border-[var(--border-hairline)] transition-all active:scale-95"
             aria-label="Toggle mobile menu"
           >
             {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
@@ -50,10 +50,10 @@ export function TopBar() {
           {/* Product mark */}
           <div className="flex items-center gap-2.5">
             <div
-              className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0"
+              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm"
               style={{
-                background: 'linear-gradient(135deg, color-mix(in srgb, var(--cyan) 22%, transparent) 0%, color-mix(in srgb, var(--cyan) 6%, transparent) 100%)',
-                border: '1px solid color-mix(in srgb, var(--cyan) 30%, transparent)',
+                background: 'linear-gradient(135deg, color-mix(in srgb, var(--cyan) 24%, transparent) 0%, color-mix(in srgb, var(--cyan) 8%, transparent) 100%)',
+                border: '1px solid color-mix(in srgb, var(--cyan) 35%, transparent)',
               }}
             >
               <Satellite className="w-4 h-4" style={{ color: 'var(--cyan)' }} strokeWidth={2} />
@@ -77,7 +77,7 @@ export function TopBar() {
            ============================================================ */}
         <div className="flex-1 flex items-center justify-center max-md:hidden">
           <span
-            className="badge badge-green"
+            className="badge badge-green shadow-sm"
             style={{ padding: '4px 10px', fontSize: '0.65rem' }}
           >
             <span className="relative flex h-1.5 w-1.5 -ml-0.5">
@@ -90,7 +90,7 @@ export function TopBar() {
 
         {/* Mobile LIVE indicator (single line) */}
         <div className="md:hidden flex items-center gap-2">
-          <span className="badge badge-green" style={{ fontSize: '0.6rem', padding: '2px 6px' }}>
+          <span className="badge badge-green shadow-sm" style={{ fontSize: '0.6rem', padding: '2px 6px' }}>
             <span className="relative flex h-1.5 w-1.5">
               <span className="animate-pulse-dot absolute inline-flex h-full w-full rounded-full bg-current opacity-75" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-current" />
@@ -105,7 +105,7 @@ export function TopBar() {
            ============================================================ */}
         <div className="flex items-center flex-shrink-0">
           <div
-            className="flex items-center gap-1 p-1 rounded"
+            className="flex items-center gap-1 p-1 rounded-lg shadow-sm"
             style={{
               border: '1px solid var(--border-hairline)',
               background: 'var(--surface-2)',
@@ -133,7 +133,7 @@ export function TopBar() {
               <button
                 type="button"
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="p-1.5 rounded transition-all hover:scale-110 hover:bg-[var(--surface-2-hover)]"
+                className="p-1.5 rounded-md transition-all hover:scale-105 active:scale-95 hover:bg-[var(--surface-2-hover)]"
                 title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
                 aria-label="Toggle theme"
                 style={{ color: 'var(--text-muted)' }}

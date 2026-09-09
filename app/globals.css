@@ -192,6 +192,8 @@
 
 html {
   font-size: 16px;
+  scroll-behavior: smooth;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -203,6 +205,39 @@ body {
   min-height: 100dvh;
   line-height: 1.6;
   position: relative;
+  overflow-x: hidden;
+}
+
+/* ============================================================
+   SLEEK CUSTOM SCROLLBARS (Fast, slim, non-intrusive)
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.18);
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.45);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(56, 189, 248, 0.18) transparent;
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.15);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.35);
+}
+[data-theme="light"] * {
+  scrollbar-color: rgba(15, 23, 42, 0.15) transparent;
 }
 
 /* ============================================================

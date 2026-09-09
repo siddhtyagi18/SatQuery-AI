@@ -308,16 +308,9 @@ class SmolVLMHuggingFaceAdapter(VQAModelAdapter):
             ) from e
 
         try:
-            from PIL import Image
-            img = inference_input.rgb_image
-            max_vlm_dim = getattr(settings, "VQA_MAX_IMAGE_DIM", 512) or 512
-            if max(img.width, img.height) > max_vlm_dim:
-                img = img.copy()
-                img.thumbnail((max_vlm_dim, max_vlm_dim), Image.Resampling.LANCZOS)
-
             inputs = processor(
                 text=prompt,
-                images=[img],
+                images=[inference_input.rgb_image],
                 return_tensors="pt",
             )
             inputs = inputs.to(model.device)
@@ -338,34 +331,12 @@ class SmolVLMHuggingFaceAdapter(VQAModelAdapter):
         model = loaded.model_object
 
         import torch
-        # Optimize CPU threads if running on CPU to prevent context switching contention
-        if str(model.device).startswith("cpu") and torch.get_num_threads() > 6:
-            try:
-                torch.set_num_threads(6)
-            except Exception:
-                pass
-
-        eos_ids = []
-        if hasattr(processor, "tokenizer") and processor.tokenizer:
-            if processor.tokenizer.eos_token_id is not None:
-                eos_ids.append(processor.tokenizer.eos_token_id)
-            try:
-                eou_id = processor.tokenizer.convert_tokens_to_ids("<end_of_utterance>")
-                if eou_id is not None and eou_id not in eos_ids and eou_id != processor.tokenizer.unk_token_id:
-                    eos_ids.append(eou_id)
-            except Exception:
-                pass
-
-        max_toks = max(1, min(inference_input.max_new_tokens, 48))
         generate_kwargs: Dict[str, Any] = {
-            "max_new_tokens": max_toks,
+            "max_new_tokens": max(1, min(inference_input.max_new_tokens, 4096)),
             "temperature": max(0.0, min(inference_input.temperature, 2.0)),
             "repetition_penalty": 1.15,
             "no_repeat_ngram_size": 3,
         }
-        if eos_ids:
-            generate_kwargs["eos_token_id"] = eos_ids if len(eos_ids) > 1 else eos_ids[0]
-
         if generate_kwargs["temperature"] < 1e-3:
             generate_kwargs["do_sample"] = False
             generate_kwargs.pop("temperature", None)

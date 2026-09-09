@@ -20,7 +20,37 @@ export function AnimatedBackground() {
     let mouseY = 0;
     let currentX = 0;
     let currentY = 0;
-    let animationFrameId: number;
+    let animationFrameId: number | null = null;
+    let isMoving = false;
+
+    const animate = () => {
+      // Lerp smoothing (linear interpolation) for fluid organic response
+      const ease = 0.05;
+      const dx = mouseX - currentX;
+      const dy = mouseY - currentY;
+      
+      currentX += dx * ease;
+      currentY += dy * ease;
+
+      // Parallax layer depths
+      if (orbitalRef.current) {
+        orbitalRef.current.style.transform = `translate3d(${currentX * -16}px, ${currentY * -16}px, 0)`;
+      }
+      if (gridRef.current) {
+        gridRef.current.style.transform = `translate3d(${currentX * -8}px, ${currentY * -8}px, 0)`;
+      }
+      if (particlesRef.current) {
+        particlesRef.current.style.transform = `translate3d(${currentX * -20}px, ${currentY * -20}px, 0)`;
+      }
+
+      // If motion has effectively settled, pause RAF until next mouse move to preserve CPU/GPU
+      if (Math.abs(dx) > 0.001 || Math.abs(dy) > 0.001) {
+        animationFrameId = requestAnimationFrame(animate);
+      } else {
+        isMoving = false;
+        animationFrameId = null;
+      }
+    };
 
     const handleMouseMove = (e: MouseEvent) => {
       // Normalize mouse coordinates to [-1, 1] relative to viewport center
@@ -28,41 +58,27 @@ export function AnimatedBackground() {
       const centerY = window.innerHeight / 2;
       mouseX = (e.clientX - centerX) / centerX;
       mouseY = (e.clientY - centerY) / centerY;
+
+      if (!isMoving) {
+        isMoving = true;
+        animationFrameId = requestAnimationFrame(animate);
+      }
     };
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
 
-    const animate = () => {
-      // Lerp smoothing (linear interpolation) for fluid organic response
-      const ease = 0.04;
-      currentX += (mouseX - currentX) * ease;
-      currentY += (mouseY - currentY) * ease;
-
-      // Parallax layer depths (extremely subtle to avoid any distraction)
-      if (orbitalRef.current) {
-        orbitalRef.current.style.transform = `translate3d(${currentX * -18}px, ${currentY * -18}px, 0)`;
-      }
-      if (gridRef.current) {
-        gridRef.current.style.transform = `translate3d(${currentX * -10}px, ${currentY * -10}px, 0)`;
-      }
-      if (particlesRef.current) {
-        particlesRef.current.style.transform = `translate3d(${currentX * -24}px, ${currentY * -24}px, 0)`;
-      }
-
-      animationFrameId = requestAnimationFrame(animate);
-    };
-
-    animationFrameId = requestAnimationFrame(animate);
-
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+      }
     };
   }, []);
 
   return (
     <div
       className="fixed inset-0 overflow-hidden pointer-events-none z-0 select-none"
+      style={{ contain: 'strict' }}
       aria-hidden="true"
     >
       {/* -------------------------------------------------------------
@@ -71,7 +87,7 @@ export function AnimatedBackground() {
       <div className="absolute inset-0 bg-[var(--surface-0)]">
         {/* Primary deep navy/cyan atmospheric wash */}
         <div
-          className="absolute -top-[20%] -left-[10%] w-[70vw] h-[70vw] max-w-[900px] max-h-[900px] rounded-full opacity-25 dark:opacity-20 blur-[120px] transition-opacity duration-1000"
+          className="absolute -top-[20%] -left-[10%] w-[70vw] h-[70vw] max-w-[900px] max-h-[900px] rounded-full opacity-25 dark:opacity-20 blur-[60px] transition-opacity duration-1000"
           style={{
             background: 'radial-gradient(circle, rgba(62, 208, 255, 0.4) 0%, rgba(10, 30, 60, 0.2) 50%, transparent 70%)',
             animation: 'ambient-float-1 28s ease-in-out infinite alternate',
@@ -80,7 +96,7 @@ export function AnimatedBackground() {
 
         {/* Secondary magenta / deep orbital resonance glow */}
         <div
-          className="absolute -bottom-[20%] -right-[10%] w-[65vw] h-[65vw] max-w-[850px] max-h-[850px] rounded-full opacity-20 dark:opacity-15 blur-[140px] transition-opacity duration-1000"
+          className="absolute -bottom-[20%] -right-[10%] w-[65vw] h-[65vw] max-w-[850px] max-h-[850px] rounded-full opacity-20 dark:opacity-15 blur-[64px] transition-opacity duration-1000"
           style={{
             background: 'radial-gradient(circle, rgba(192, 132, 252, 0.3) 0%, rgba(20, 10, 40, 0.15) 50%, transparent 70%)',
             animation: 'ambient-float-2 36s ease-in-out infinite alternate-reverse',
@@ -89,7 +105,7 @@ export function AnimatedBackground() {
 
         {/* Subtle amber radar node glow */}
         <div
-          className="absolute top-[40%] right-[15%] w-[45vw] h-[45vw] max-w-[550px] max-h-[550px] rounded-full opacity-15 dark:opacity-10 blur-[100px]"
+          className="absolute top-[40%] right-[15%] w-[45vw] h-[45vw] max-w-[550px] max-h-[550px] rounded-full opacity-15 dark:opacity-10 blur-[50px]"
           style={{
             background: 'radial-gradient(circle, rgba(255, 176, 32, 0.2) 0%, transparent 65%)',
             animation: 'ambient-float-3 42s ease-in-out infinite alternate',
