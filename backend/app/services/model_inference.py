@@ -326,7 +326,7 @@ def _run_model_inference(
         f"Inference uses overlapping 256×256 tile sliding with {_TILE_OVERLAP}px overlap.\n\n"
         f"**Interpretation:** This result reflects the model's learned change representation. "
         f"The model was trained on building-related changes in bi-temporal satellite imagery.\n\n"
-        f"*Analysis performed by trained SiameseUNet checkpoint: {checkpoint_path_str} (operating threshold: {threshold:.2f}; confidence: {model_conf * 100:.1f}%)*"
+        f"*Analysis performed by trained SiameseUNet checkpoint: {checkpoint_path_str} (operating threshold: {threshold:.2f}; confidence: N/A — Uncalibrated)*"
     )
 
     evidence = [
@@ -336,7 +336,7 @@ def _run_model_inference(
         f"Changed pixels (model prediction): {changed_pixels:,} / {total_pixels:,} ({changed_pct:.2f}%).",
         f"Unchanged pixels: {total_pixels - changed_pixels:,} / {total_pixels:,} ({unchanged_pct:.2f}%).",
         f"Severity label: {severity} (heuristic: low <5%, moderate 5–25%, high >25%).",
-        f"Calibrated model confidence: {model_conf * 100:.1f}% derived from tile prediction certainty.",
+        f"Confidence: N/A — Uncalibrated (Siamese U-Net operates as an uncalibrated segmentation model).",
         f"Reference image dimensions: {W}×{H} px.",
         f"Change mask overlay saved to: {overlay_url}",
         "Output is from a trained model checkpoint, not fabricated or from a template.",
@@ -369,7 +369,7 @@ def _run_model_inference(
         "overlay_url": overlay_url,
         "execution_mode": "model_checkpoint",
         "checkpoint_path": checkpoint_path_str,
-        "confidence": model_conf,
+        "confidence": None,
     }
 
     try:
@@ -386,7 +386,7 @@ def _run_model_inference(
 
     return ChangeDetectionResult(
         answer=answer,
-        confidence=model_conf,
+        confidence=None,
         change_map=change_map,
         evidence=evidence,
         stats=stats,
@@ -479,6 +479,6 @@ def run_change_detection(
     # Tag execution mode and calibrated baseline in stats
     result.stats["execution_mode"] = "cpu_classical"
     result.stats["checkpoint_path"] = None
-    result.confidence = 0.88
-    result.stats["confidence"] = 0.88
+    result.confidence = None
+    result.stats["confidence"] = None
     return result

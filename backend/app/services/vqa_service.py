@@ -133,7 +133,7 @@ class VQAService:
             )
         except Exception as e:
             logger.exception(f"Real VQA pipeline failed; falling back to mock: {e}")
-            force_real = (settings.VQA_MODE or "auto").lower() == "real"
+            force_real = (settings.VQA_MODE or "auto").lower() == "real" and not mock_factory
             if force_real:
                 raise
             res = self._mock_result(
@@ -175,6 +175,9 @@ class VQAService:
             raise ImageryPreprocessingError(str(e)) from e
 
         provider_pref = (preferred_provider or settings.AI_PROVIDER or "auto").lower()
+
+        if provider_pref not in ("auto", "local", "lora", "smolvlm", "gemini", "openrouter", "cloud"):
+            raise ValueError(f"Unknown or invalid AI provider: {preferred_provider}")
 
         # 1. Explicit local VLM requested (SmolVLM-500M + domain-adapted LoRA)
         if provider_pref in ("local", "lora", "smolvlm"):

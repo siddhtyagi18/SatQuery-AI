@@ -656,12 +656,12 @@ def run_change_vqa(
             preferred_provider=preferred_provider,
         )
 
-        detector_conf = 0.92
+        detector_conf = None
         if change_stats and change_stats.get("confidence") is not None:
             try:
                 detector_conf = float(change_stats["confidence"])
             except (ValueError, TypeError):
-                detector_conf = 0.92
+                detector_conf = None
 
         if vqa_res.is_mock:
             # VLM fell back or unavailable; provide authentic domain-adapted remote sensing synthesis
@@ -701,16 +701,16 @@ def run_change_vqa(
                 f"- **Detected Changed Area:** `{changed_pct:.2f}%` (Severity: **{severity}**)\n"
                 f"- **Change Detection Threshold:** `{thresh_used:.2f}` (Siamese U-Net)\n"
                 f"- **Detector Model:** SiameseUNet (~490K parameters, LEVIR-CD trained checkpoint)\n"
-                f"- **Model Confidence:** `{detector_conf * 100:.1f}%` (Decision Certainty)\n"
+                f"- **Confidence:** Not calibrated for this bi-temporal analysis (confidence = null)\n"
                 f"- **Inference Provenance:** Authenticated Bi-temporal Telemetry Synthesis"
             ) if changed_pct is not None else vqa_res.answer
 
             return ChangeVQAResult(
                 answer=formatted_ans,
-                confidence=detector_conf,
+                confidence=None,
                 evidence=vqa_res.evidence + [
                     f"[ChangeVQA] Qualitative visual interpretation generated from Siamese U-Net telemetry ({changed_pct:.2f}% changed).",
-                    f"[ChangeVQA] Calibrated confidence: {detector_conf * 100:.1f}%.",
+                    "[ChangeVQA] Model does not emit a calibrated confidence score; confidence=null.",
                 ],
                 tool_id="change_vqa",
                 is_mock=False,
@@ -723,7 +723,7 @@ def run_change_vqa(
                     "reasoning_image_dimensions": active_reasoning_dims,
                     "evidence_image_dimensions": [evidence_img.width, evidence_img.height],
                     "reasoning_image_passed_to_vlm": vlm_image_name,
-                    "confidence": detector_conf,
+                    "confidence": None,
                 },
             )
 
@@ -770,14 +770,19 @@ def run_change_vqa(
                 f"{cleaned_vlm}\n\n"
                 f"**VLM Interpretation Validation:** `ACCEPTED` (Temporal change transition validated)"
             )
+        elif validation_status == "INSUFFICIENT_TEMPORAL_REASONING":
+            vlm_section = (
+                f"**Qualitative Visual Interpretation (VLM):**\n"
+                f"[VLM temporal interpretation insufficient: The model described static scenes independently without explicit temporal transition or change-oriented dynamics. Raw output: \"{cleaned_vlm}\"]\n\n"
+                f"**VLM Interpretation Validation:** `INSUFFICIENT_TEMPORAL_REASONING` (Static scene descriptions without temporal transition phrasing)"
+            )
         else:
             vlm_section = (
-                f"**Qualitative Visual Interpretation (Remote Sensing Specialist):**\n"
-                f"{dynamics_text}\n\n"
-                f"**VLM Interpretation Validation:** `CALIBRATED_TRANSITION` (Synthesized from bi-temporal imagery telemetry)"
+                f"**Qualitative Visual Interpretation (VLM):**\n"
+                f"[VLM interpretation unavailable: Output was rejected by validation as degenerate ({rejection_reason}). Raw output: `{raw_vlm_answer}`]\n\n"
+                f"**VLM Interpretation Validation:** `REJECTED` ({rejection_reason})"
             )
 
-        confidence_val = round(float(detector_conf), 4)
         formatted_answer = (
             f"### Bi-Temporal Scene Change Interpretation\n\n"
             f"{vlm_section}\n\n"
@@ -785,9 +790,9 @@ def run_change_vqa(
             f"- **Detected Changed Area:** `{changed_pct:.2f}%` (Severity: **{severity}**)\n"
             f"- **Change Detection Threshold:** `{thresh_used:.2f}` (Siamese U-Net)\n"
             f"- **Detector Model:** SiameseUNet (~490K parameters, LEVIR-CD trained checkpoint)\n"
-            f"- **Overall Model Confidence:** `{confidence_val * 100:.1f}%`\n"
-            f"- **Inference Provenance:** Vision-Language Model ({vqa_res.run_context.model_id if vqa_res.run_context else 'Cloud AI Gateway'})"
-        ) if changed_pct is not None else f"### Bi-Temporal Scene Change Interpretation\n\n{vlm_section}\n\nConfidence: {confidence_val * 100:.1f}%."
+            f"- **Confidence:** Not calibrated for this bi-temporal analysis (confidence = null)\n"
+            f"- **Inference Provenance:** Vision-Language Model ({vqa_res.run_context.model_id if vqa_res.run_context else 'local:SmolVLM'})"
+        ) if changed_pct is not None else f"### Bi-Temporal Scene Change Interpretation\n\n{vlm_section}\n\nConfidence: Not calibrated for this analysis."
 
         # Separate Change Detector evidence from VLM evidence
         evidence: List[str] = [
@@ -796,20 +801,27 @@ def run_change_vqa(
             if changed_pct is not None else "[Change Detector] Quantitative stats provided.",
             f"[Change Visualizer] Reasoning image passed to VLM: {vlm_image_name} ({active_reasoning_dims[0]}x{active_reasoning_dims[1]}px).",
             f"[Change Visualizer] Evidence visualization synthesized: 3-panel contour strip ({evidence_img.width}x{evidence_img.height}px).",
-            f"[Model Confidence] Calibrated confidence score: {confidence_val * 100:.1f}%.",
         ]
         if vqa_res.evidence:
             for ev in vqa_res.evidence:
                 if not any(k in ev.lower() for k in ("output shape", "pillow backend")):
                     evidence.append(f"[VLM Reasoning] {ev}")
 
+        if validation_status == "ACCEPTED":
+            evidence.append("[VLM Validation] Output passed temporal change quality validation.")
+        elif validation_status == "INSUFFICIENT_TEMPORAL_REASONING":
+            evidence.append(f"[VLM Validation] Output flagged as INSUFFICIENT_TEMPORAL_REASONING: Lacks temporal transition phrasing (raw: {raw_vlm_answer!r}).")
+        else:
+            evidence.append(f"[VLM Validation] Output REJECTED as degenerate: {rejection_reason} (raw: {raw_vlm_answer!r}).")
+
         evidence.append(
             "[Integrity] The change mask was generated by SiameseUNet; qualitative interpretation was processed by domain-adapted VLM."
         )
+        evidence.append("Model does not emit a calibrated confidence score; confidence=null.")
 
         return ChangeVQAResult(
             answer=formatted_answer,
-            confidence=confidence_val,
+            confidence=None,
             evidence=evidence,
             tool_id="change_vqa",
             is_mock=False,
@@ -827,7 +839,7 @@ def run_change_vqa(
                 "vlm_temporal_status": validation_status,
                 "vlm_rejection_reason": rejection_reason,
                 "processing_time_sec": round(elapsed_sec, 2),
-                "confidence": confidence_val,
+                "confidence": None,
             },
         )
 
@@ -840,24 +852,23 @@ def run_change_vqa(
             f"Natural-language visual reasoning encountered an error: {type(exc).__name__}: {exc}."
         ) if changed_pct is not None else f"[Change-VQA Error] VLM reasoning failed: {exc}"
 
-        fallback_conf = 0.91
         return ChangeVQAResult(
             answer=fallback_ans,
-            confidence=fallback_conf,
+            confidence=None,
             evidence=[
                 f"[ChangeVQA Error] {type(exc).__name__}: {exc}",
                 "[ChangeVQA Fallback] Quantitative change detector statistics preserved.",
-                f"[Model Confidence] Calibrated confidence baseline: {fallback_conf * 100:.1f}%.",
+                "Model does not emit a calibrated confidence score; confidence=null.",
             ],
             tool_id="change_vqa",
-            is_mock=False,
+            is_mock=True,
             composite_url=evidence_url,
             stats={
                 **stats,
-                "execution_mode": "real",
+                "execution_mode": "mock",
                 "composite_url": evidence_url,
                 "reasoning_url": reasoning_url,
                 "raw_vlm_answer": None,
-                "confidence": fallback_conf,
+                "confidence": None,
             },
         )

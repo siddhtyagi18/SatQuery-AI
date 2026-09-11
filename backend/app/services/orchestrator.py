@@ -321,7 +321,7 @@ def execute_plan(
                         execution_mode = "real"
                     tool_result = {
                         "answer": vqa_result.answer,
-                        "confidence": vqa_result.confidence or (0.92 if execution_mode == "real" else 0.85),
+                        "confidence": vqa_result.confidence,
                         "evidence": vqa_result.evidence,
                         "tool_id": vqa_result.tool_id,
                         "is_mock": vqa_result.is_mock,
@@ -332,7 +332,7 @@ def execute_plan(
                     logger.exception(f"Real Vision-Language tool {tid} failed; mock fallback was exhausted")
                     tool_result = {
                         "answer": f"[REAL VLM ERROR] Tool {tid} raised: {e}",
-                        "confidence": 0.85,
+                        "confidence": None,
                         "evidence": [f"Tool {tid} failed during real execution: {type(e).__name__}"],
                         "tool_id": tid,
                         "is_mock": False,
@@ -362,7 +362,7 @@ def execute_plan(
                     execution_mode = "real"
                     tool_result = {
                         "answer": os_result.answer,
-                        "confidence": os_result.confidence or 0.91,
+                        "confidence": os_result.confidence,
                         "evidence": os_result.evidence,
                         "tool_id": tid,
                         "is_mock": False,
@@ -483,7 +483,7 @@ def execute_plan(
     elif change_stats_out and change_stats_out.get("confidence") is not None:
         agg_conf = round(float(change_stats_out["confidence"]), 4)
     else:
-        agg_conf = 0.92 if any(v == "real" for v in tool_execution_modes.values()) else 0.85
+        agg_conf = None
     return (
         merged_answer,
         agg_conf,
