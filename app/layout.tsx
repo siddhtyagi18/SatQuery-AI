@@ -27,6 +27,8 @@ export default function RootLayout({
             <Toaster
               theme="dark"
               position="bottom-right"
+              closeButton
+              duration={4000}
               toastOptions={{
                 style: {
                   background: 'var(--bg-panel-elevated)',

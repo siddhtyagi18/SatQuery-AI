@@ -80,16 +80,23 @@ export default function LoginPage() {
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
+    const toastId = toast.loading('Connecting to Google Mission Portal…');
     try {
       const res = await loginWithGoogle();
       if (res?.error) {
-        toast.error(`Google Sign-In: ${res.error}`);
+        toast.error(`Google Sign-In: ${res.error}`, { id: toastId });
         setIsGoogleLoading(false);
         return;
       }
-      toast.loading('Redirecting to Google…');
+      if (res?.url) {
+        toast.success('Redirecting to Google…', { id: toastId });
+        window.location.href = res.url;
+      } else {
+        toast.dismiss(toastId);
+        setIsGoogleLoading(false);
+      }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Google OAuth failed');
+      toast.error(err instanceof Error ? err.message : 'Google OAuth failed', { id: toastId });
       setIsGoogleLoading(false);
     }
   };
