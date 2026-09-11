@@ -7,14 +7,28 @@ export const FASTAPI_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://local
 const isRemoteWithoutBackend = (() => {
   if (typeof window === 'undefined') {
     if (process.env.VERCEL || process.env.NEXT_PUBLIC_VERCEL_ENV) {
-      return !process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL.includes('localhost');
+      const url = process.env.NEXT_PUBLIC_API_URL;
+      return (
+        !url ||
+        url.includes('localhost') ||
+        url.includes('127.0.0.1') ||
+        url.includes('vercel.app') ||
+        url.startsWith('/')
+      );
     }
     return false;
   }
   const host = window.location.hostname;
   const isLocalHost = host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0';
-  const backendIsLocal = FASTAPI_BASE_URL.includes('localhost') || FASTAPI_BASE_URL.includes('127.0.0.1');
-  return !isLocalHost && backendIsLocal;
+  const backendIsUnusable =
+    !FASTAPI_BASE_URL ||
+    FASTAPI_BASE_URL.includes('localhost') ||
+    FASTAPI_BASE_URL.includes('127.0.0.1') ||
+    FASTAPI_BASE_URL.includes('vercel.app') ||
+    FASTAPI_BASE_URL.startsWith('/') ||
+    FASTAPI_BASE_URL === window.location.origin;
+
+  return !isLocalHost && backendIsUnusable;
 })();
 
 export const API_MODE: 'mock' | 'live' = (() => {
@@ -24,8 +38,8 @@ export const API_MODE: 'mock' | 'live' = (() => {
   if (explicit === 'mock') return 'mock';
 
   // Safety: even if explicitly set to 'live', if we're on a remote host
-  // (Vercel, etc.) with no real backend URL configured, force mock mode
-  // to prevent "Upload failed" / network errors hitting localhost from a
+  // (Vercel, etc.) with no reachable real backend URL configured, force mock mode
+  // to prevent "Upload failed" / network errors hitting localhost/vercel from a
   // production domain.
   if (isRemoteWithoutBackend) {
     return 'mock';

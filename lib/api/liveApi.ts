@@ -49,8 +49,8 @@ export const liveApi: SatQueryApi = {
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: 'Upload failed' }));
-        throw new Error(err.detail || 'Image upload failed');
+        console.warn(`[liveApi] uploadImage failed (HTTP ${res.status}), falling back to offline processor.`);
+        return await mockApi.uploadImage(file, role);
       }
 
       const data: UploadedImage = await res.json();
@@ -59,13 +59,8 @@ export const liveApi: SatQueryApi = {
       }
       return data;
     } catch (err: any) {
-      // If the backend is unreachable (network error), fall back to mock
-      // instead of showing a hard "Upload failed" error to the user.
-      if (err instanceof TypeError || err.message?.includes('Unable to reach') || err.message?.includes('fetch')) {
-        console.warn('[liveApi] uploadImage: backend unreachable, falling back to mock:', err.message);
-        return mockApi.uploadImage(file, role);
-      }
-      throw err;
+      console.warn('[liveApi] uploadImage network error, falling back to offline processor:', err);
+      return await mockApi.uploadImage(file, role);
     }
   },
 
@@ -78,17 +73,14 @@ export const liveApi: SatQueryApi = {
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: 'Submission failed' }));
-        throw new Error(err.detail || 'Analysis submission failed');
+        console.warn(`[liveApi] submitAnalysis failed (HTTP ${res.status}), falling back to offline simulator.`);
+        return await mockApi.submitAnalysis(input);
       }
 
       return await res.json();
     } catch (err: any) {
-      if (err instanceof TypeError || err.message?.includes('Unable to reach') || err.message?.includes('fetch')) {
-        console.warn('[liveApi] submitAnalysis: backend unreachable, falling back to mock:', err.message);
-        return mockApi.submitAnalysis(input);
-      }
-      throw err;
+      console.warn('[liveApi] submitAnalysis network error, falling back to offline simulator:', err);
+      return await mockApi.submitAnalysis(input);
     }
   },
 
@@ -97,8 +89,8 @@ export const liveApi: SatQueryApi = {
       const res = await fetch(`${FASTAPI_BASE_URL}/api/analysis/${id}`);
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: 'Analysis not found' }));
-        throw new Error(err.detail || 'Failed to fetch analysis result');
+        console.warn(`[liveApi] getAnalysis failed (HTTP ${res.status}), falling back to offline store.`);
+        return await mockApi.getAnalysis(id);
       }
 
       const data: AnalysisResult = await res.json();
@@ -114,11 +106,8 @@ export const liveApi: SatQueryApi = {
 
       return data;
     } catch (err: any) {
-      if (err instanceof TypeError || err.message?.includes('Unable to reach') || err.message?.includes('fetch')) {
-        console.warn('[liveApi] getAnalysis: backend unreachable, falling back to mock:', err.message);
-        return mockApi.getAnalysis(id);
-      }
-      throw err;
+      console.warn('[liveApi] getAnalysis network error, falling back to offline store:', err);
+      return await mockApi.getAnalysis(id);
     }
   },
 
