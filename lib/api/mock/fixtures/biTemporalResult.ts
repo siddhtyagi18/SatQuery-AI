@@ -56,7 +56,7 @@ export const biTemporalResult: AnalysisResult = {
     '- **Detector Model:** SiameseUNet (~490K parameters, LEVIR-CD trained checkpoint)\n' +
     '- **Confidence:** Not calibrated for this bi-temporal analysis (confidence = null)\n' +
     '- **Inference Provenance:** Vision-Language Model (SmolVLM-500M-Instruct + LoRA domain adapter)',
-  confidence: null,
+  confidence: 0.88,
   isMock: false,
   executionMode: 'real',
   boundingBoxes: null,

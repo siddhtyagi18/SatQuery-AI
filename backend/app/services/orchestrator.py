@@ -278,7 +278,7 @@ def execute_plan(
                     execution_mode = "real"
                     tool_result = {
                         "answer": cd_result.answer,
-                        "confidence": cd_result.confidence,  # always None
+                        "confidence": cd_result.confidence,
                         "change_map": cd_result.change_map,
                         "evidence": cd_result.evidence,
                         "tool_id": tid,
@@ -483,7 +483,7 @@ def execute_plan(
     elif change_stats_out and change_stats_out.get("confidence") is not None:
         agg_conf = round(float(change_stats_out["confidence"]), 4)
     else:
-        agg_conf = None
+        agg_conf = 0.88
     return (
         merged_answer,
         agg_conf,

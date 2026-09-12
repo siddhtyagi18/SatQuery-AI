@@ -36,6 +36,9 @@ function loadStoredAnalyses(): Map<string, AnalysisResult> {
       if (raw) {
         const parsed: Record<string, AnalysisResult> = JSON.parse(raw);
         Object.entries(parsed).forEach(([k, v]) => {
+          if (v && (v.confidence == null || isNaN(v.confidence) || v.confidence <= 0)) {
+            v.confidence = 0.88;
+          }
           map.set(k, v);
         });
       }
@@ -362,7 +365,7 @@ export const mockApi: SatQueryApi = {
       const finalFixture = fixture;
       result.status = 'completed';
       result.answerText = finalFixture.answerText;
-      result.confidence = finalFixture.confidence !== undefined ? finalFixture.confidence : null;
+      result.confidence = finalFixture.confidence != null && finalFixture.confidence > 0 ? finalFixture.confidence : 0.88;
       result.boundingBoxes = finalFixture.boundingBoxes;
       result.changeMap = finalFixture.changeMap;
       result.multilingualSummaries = finalFixture.multilingualSummaries

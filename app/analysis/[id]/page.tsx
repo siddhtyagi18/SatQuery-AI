@@ -17,6 +17,7 @@ import { MultilingualSummaryPanel } from '@/components/MultilingualSummaryPanel'
 import { SmartInsightCards } from '@/components/SmartInsightCards';
 import { FollowUpPanel } from '@/components/FollowUpPanel';
 import { ConfidenceCard } from '@/components/ConfidenceCard';
+import { computeCalibratedConfidence } from '@/lib/calibration';
 import { AgentExecutionTrace } from '@/components/AgentExecutionTrace';
 import { SatelliteViewer } from '@/components/SatelliteViewer';
 import { GroundingOverlay } from '@/components/GroundingOverlay';
@@ -170,6 +171,11 @@ export default function AnalysisResultPage() {
     if (changeExecMode === 'cpu_classical')    return 'Grayscale Absolute Difference (CPU Classical)';
     return 'Pixel-level Change Mask';
   })();
+
+  // Calibrated confidence metrics & diagnostic breakdown signals
+  const calibratedData = useMemo(() => {
+    return computeCalibratedConfidence(result ?? {});
+  }, [result]);
 
   useEffect(() => {
     if (!id) return;
@@ -538,7 +544,8 @@ export default function AnalysisResultPage() {
         <div className="flex flex-col gap-7 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto pr-1">
           {/* Confidence Score Card */}
           <ConfidenceCard
-            score={result.confidence}
+            score={result.confidence ?? calibratedData.score}
+            breakdown={calibratedData.breakdown}
             detectedTasks={result.detectedTasks}
             isMock={isMock}
           />

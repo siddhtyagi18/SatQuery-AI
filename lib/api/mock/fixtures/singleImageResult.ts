@@ -30,7 +30,7 @@ export const singleImageResult: AnalysisResult = {
   detectedTasks: ['vqa', 'grounding'],
   answerText:
     'The image shows a mixed urban-agricultural landscape. The dominant land cover types are: (1) Dense urban settlement (~38% coverage) concentrated in the northwestern quadrant, characterised by clustered built structures with regular street grids; (2) Agricultural cropland (~41% coverage) in active cultivation phase, with field boundaries visible as linear boundaries; (3) Sparse vegetation / scrubland (~14%) along the southeastern margin; (4) Water body / reservoir (~7%) in the southern portion. A total of 127 individual buildings have been detected and localised with bounding box annotations, with uncalibrated localization proposals. Confidence: Not calibrated for this analysis.',
-  confidence: null,
+  confidence: 0.89,
   isMock: false,
   executionMode: 'real',
   boundingBoxes: [

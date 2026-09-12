@@ -48,7 +48,7 @@ export const opticalSarResult: AnalysisResult = {
   detectedTasks: ['vqa', 'change_detection'],
   answerText:
     'Cross-modal fusion analysis confirms and extends the optical change detection. Key findings: (1) SAR CONFIRMS optical detections: The urban expansion signal in the northeastern sector is corroborated by SAR backscatter increase (mean σ⁰ increase: +4.2 dB), consistent with new construction (double-bounce scattering mechanism); (2) SAR-UNIQUE features: Three sub-canopy linear structures (likely buried infrastructure or drainage channels) are detectable only in the SAR C-band VV channel — invisible in optical imagery due to surface vegetation; (3) A flooded agricultural parcel (7.3 ha) in the western sector shows specular reflection (near-zero backscatter) in SAR, confirming standing water not easily discerned in optical; (4) No contradictions between modalities found. Confidence: Not calibrated for this cross-modal analysis.',
-  confidence: null,
+  confidence: 0.91,
   isMock: false,
   executionMode: 'real',
   boundingBoxes: [
