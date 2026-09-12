@@ -160,8 +160,8 @@ export function SmartInsightCards({ result, className }: SmartInsightCardsProps)
       items.push({
         id: 'spatial_ref',
         label: 'COORDINATE SYSTEM',
-        value: result.images[0].metadata.crs,
-        subtext: result.images[0].metadata.gsdMeters ? `${result.images[0].metadata.gsdMeters}m GSD` : 'WGS84 Projected',
+        value: result.images[0]?.metadata?.crs ?? 'EPSG:4326',
+        subtext: result.images[0]?.metadata?.gsdMeters ? `${result.images[0].metadata.gsdMeters}m GSD` : 'WGS84 Projected',
         icon: MapPin,
         tone: 'cyan',
       });

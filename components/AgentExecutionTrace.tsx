@@ -181,14 +181,16 @@ interface AgentExecutionTraceProps {
 export function AgentExecutionTrace({ trace, defaultExpanded = false, className }: AgentExecutionTraceProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
-  const doneCount = trace.steps.filter((s) => s.status === 'done' || s.status === 'error').length;
-  const total = trace.steps.length;
-  const currentStep = trace.steps.find((s) => s.status === 'in_progress');
-  const hasError = trace.steps.some((s) => s.status === 'error');
+  const steps = trace?.steps ?? [];
+  const doneCount = steps.filter((s) => s.status === 'done' || s.status === 'error').length;
+  const total = steps.length;
+  const currentStep = steps.find((s) => s.status === 'in_progress');
+  const hasError = steps.some((s) => s.status === 'error');
+  const overallStatus = trace?.overallStatus ?? 'pending';
 
   const summaryColor = hasError ? 'var(--accent-danger)'
-    : trace.overallStatus === 'completed' ? 'var(--accent-success)'
-    : trace.overallStatus === 'processing' ? 'var(--accent-warning)'
+    : overallStatus === 'completed' ? 'var(--accent-success)'
+    : overallStatus === 'processing' ? 'var(--accent-warning)'
     : 'var(--text-muted)';
 
   return (
@@ -209,7 +211,7 @@ export function AgentExecutionTrace({ trace, defaultExpanded = false, className 
           aria-controls="trace-steps"
         >
           <div className="flex items-center gap-2 min-w-0">
-            {trace.overallStatus === 'processing' ? (
+            {overallStatus === 'processing' ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin flex-shrink-0" style={{ color: 'var(--accent-warning)' }} aria-hidden="true" />
             ) : (
               <span className="w-3.5 h-3.5 flex items-center justify-center flex-shrink-0">
@@ -223,10 +225,10 @@ export function AgentExecutionTrace({ trace, defaultExpanded = false, className 
 
             <span className="text-[0.7rem] font-mono" style={{ color: summaryColor }}>
               {doneCount}/{total} steps
-              {currentStep ? ` · ${currentStep.title}…` : trace.overallStatus === 'completed' ? ' · Complete' : hasError ? ' · Failed' : ''}
+              {currentStep ? ` · ${currentStep.title}…` : overallStatus === 'completed' ? ' · Complete' : hasError ? ' · Failed' : ''}
             </span>
 
-            {trace.totalElapsedMs != null && (
+            {trace?.totalElapsedMs != null && (
               <span className="text-[0.6rem] font-mono" style={{ color: 'var(--text-faint)' }}>
                 {(trace.totalElapsedMs / 1000).toFixed(2)}s
               </span>
@@ -243,15 +245,15 @@ export function AgentExecutionTrace({ trace, defaultExpanded = false, className 
           <div
             className="h-full transition-all duration-500"
             style={{
-              width: `${(doneCount / total) * 100}%`,
+              width: `${(doneCount / Math.max(1, total)) * 100}%`,
               background: hasError
                 ? 'var(--accent-danger)'
-                : trace.overallStatus === 'completed'
+                : overallStatus === 'completed'
                 ? 'var(--accent-success)'
                 : 'var(--accent-warning)',
               boxShadow: hasError
                 ? '0 0 8px var(--accent-danger)'
-                : trace.overallStatus === 'completed'
+                : overallStatus === 'completed'
                 ? '0 0 8px var(--accent-success)'
                 : '0 0 8px var(--accent-warning)',
             }}
@@ -262,8 +264,8 @@ export function AgentExecutionTrace({ trace, defaultExpanded = false, className 
         {expanded && (
           <div id="trace-steps" className="px-4 pt-4">
             <ol className="flex flex-col" aria-label="Analysis execution steps">
-              {trace.steps.map((step, i) => (
-                <StepRow key={step.id} step={step} isLast={i === trace.steps.length - 1} />
+              {steps.map((step, i) => (
+                <StepRow key={step.id} step={step} isLast={i === steps.length - 1} />
               ))}
             </ol>
           </div>

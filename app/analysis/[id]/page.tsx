@@ -451,9 +451,9 @@ export default function AnalysisResultPage() {
               <div className="flex flex-col gap-2">
                 <span className="hud-label">Visual Sensor Evidence & Grounding Annotations</span>
                 <SatelliteViewer
-                  imageUrl={result.images[0]?.previewUrl ?? '/demo/optical_sample.jpg'}
-                  crs={result.images[0]?.metadata.crs}
-                  resolution={`${result.images[0]?.metadata.gsdMeters ?? 5.8}m`}
+                  imageUrl={result.images?.[0]?.previewUrl ?? '/demo/optical_sample.jpg'}
+                  crs={result.images?.[0]?.metadata?.crs}
+                  resolution={`${result.images?.[0]?.metadata?.gsdMeters ?? 5.8}m`}
                   title="Single Scene Spatial Grounding"
                 >
                   {result.boundingBoxes && result.boundingBoxes.length > 0 && (
@@ -469,10 +469,10 @@ export default function AnalysisResultPage() {
                 <div className="flex flex-col gap-2">
                   <span className="hud-label">Bi-Temporal Visual Baseline Swipe</span>
                   <BeforeAfterViewer
-                    beforeUrl={result.images[0]?.previewUrl ?? '/demo/optical_before.jpg'}
-                    afterUrl={result.images[1]?.previewUrl ?? '/demo/optical_after.jpg'}
-                    beforeDate={result.images[0]?.metadata.acquisitionDate ?? 'T1 (Jan 2022)'}
-                    afterDate={result.images[1]?.metadata.acquisitionDate ?? 'T2 (Jan 2024)'}
+                    beforeUrl={result.images?.[0]?.previewUrl ?? '/demo/optical_before.jpg'}
+                    afterUrl={result.images?.[1]?.previewUrl ?? '/demo/optical_after.jpg'}
+                    beforeDate={result.images?.[0]?.metadata?.acquisitionDate ?? 'T1 (Jan 2022)'}
+                    afterDate={result.images?.[1]?.metadata?.acquisitionDate ?? 'T2 (Jan 2024)'}
                   />
                 </div>
 
@@ -480,7 +480,7 @@ export default function AnalysisResultPage() {
                 <div className="flex flex-col gap-2">
                   <span className="hud-label">Change Detection Output</span>
                   <ChangeMapViewer
-                    baseImageUrl={result.images[1]?.previewUrl ?? '/demo/optical_after.jpg'}
+                    baseImageUrl={result.images?.[1]?.previewUrl ?? '/demo/optical_after.jpg'}
                     changeMaskUrl={result.changeMap?.overlayUrl ?? '/demo/change_mask.png'}
                     legend={result.changeMap?.legend}
                     algorithmLabel={changeAlgorithmLabel}
@@ -520,8 +520,8 @@ export default function AnalysisResultPage() {
               <div className="flex flex-col gap-2">
                 <span className="hud-label">Multimodal Cross-Sensor Fusion</span>
                 <OpticalSarViewer
-                  opticalUrl={result.images[0]?.previewUrl ?? '/demo/optical_sample.jpg'}
-                  sarUrl={result.images[1]?.previewUrl ?? '/demo/sar_sample.jpg'}
+                  opticalUrl={result.images?.[0]?.previewUrl ?? '/demo/optical_sample.jpg'}
+                  sarUrl={result.images?.[1]?.previewUrl ?? '/demo/sar_sample.jpg'}
                 />
               </div>
             )}

@@ -36,7 +36,7 @@ const MODE_BADGE: Record<string, { label: string; color: string; bg: string; bor
 
 export function ChangeStatsPanel({ trace }: ChangeStatsPanelProps) {
   // Extract step-6 meta from the execution trace
-  const step6 = trace.steps.find((s) => s.id === 'step-6');
+  const step6 = trace?.steps?.find((s) => s.id === 'step-6');
   const meta = step6?.meta;
 
   // Only render if the real change detection stats are present

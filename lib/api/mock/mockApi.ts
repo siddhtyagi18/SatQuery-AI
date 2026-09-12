@@ -23,10 +23,45 @@ import type { SatQueryApi } from '../index';
 import { allFixtures, biTemporalResult, opticalSarResult, singleImageResult } from './fixtures';
 import { generateId, sleep } from '@/lib/utils';
 
-// In-memory store (resets on page refresh — intentional for demo)
-const store = new Map<string, AnalysisResult>(
-  allFixtures.map((r) => [r.id, { ...r }])
-);
+const STORAGE_KEY = 'satquery_analyses_store';
+const UPLOAD_STORAGE_KEY = 'satquery_uploads_store';
+
+function loadStoredAnalyses(): Map<string, AnalysisResult> {
+  const map = new Map<string, AnalysisResult>(
+    allFixtures.map((r) => [r.id, { ...r }])
+  );
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed: Record<string, AnalysisResult> = JSON.parse(raw);
+        Object.entries(parsed).forEach(([k, v]) => {
+          map.set(k, v);
+        });
+      }
+    } catch {
+      // Ignore storage errors
+    }
+  }
+  return map;
+}
+
+function saveStoredAnalyses(map: Map<string, AnalysisResult>) {
+  if (typeof window !== 'undefined') {
+    try {
+      const obj: Record<string, AnalysisResult> = {};
+      map.forEach((val, key) => {
+        obj[key] = val;
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+    } catch {
+      // Ignore storage quota errors
+    }
+  }
+}
+
+// Persistent store backed by localStorage with fixtures as baseline
+let store = loadStoredAnalyses();
 const uploadedImagesStore = new Map<string, UploadedImage>();
 
 // ---- Tool registry ----
@@ -171,7 +206,7 @@ export const mockApi: SatQueryApi = {
       .map((id) => uploadedImagesStore.get(id))
       .filter((img): img is UploadedImage => Boolean(img));
 
-    const finalImages: UploadedImage[] = matchedImages.length > 0
+    let finalImages: UploadedImage[] = matchedImages.length > 0
       ? matchedImages.map((img, idx) => {
           const fallbackRole = input.mode === 'bi_temporal'
             ? (idx === 0 ? 'before' : 'after')
@@ -182,9 +217,49 @@ export const mockApi: SatQueryApi = {
             ...img,
             role: img.role || fallbackRole,
             previewUrl: img.previewUrl ?? fixture.images[idx]?.previewUrl ?? null,
+            metadata: img.metadata ?? fixture.images[idx]?.metadata,
           };
         })
-      : fixture.images;
+      : [...fixture.images];
+
+    // Ensure bi_temporal mode always has at least 2 complete images with metadata
+    if (input.mode === 'bi_temporal' && finalImages.length < 2) {
+      if (finalImages.length === 0) {
+        finalImages = [...fixture.images];
+      } else {
+        finalImages.push({
+          ...fixture.images[1],
+          role: 'after',
+        });
+      }
+    } else if (input.mode === 'optical_sar' && finalImages.length < 2) {
+      if (finalImages.length === 0) {
+        finalImages = [...fixture.images];
+      } else {
+        finalImages.push({
+          ...fixture.images[1],
+          role: 'sar',
+        });
+      }
+    }
+
+    // Guarantee every image has a valid metadata object
+    finalImages = finalImages.map((img, idx) => ({
+      ...img,
+      metadata: img.metadata || fixture.images[idx]?.metadata || {
+        fileName: `${img.role || 'satellite'}_scene.tif`,
+        fileFormat: 'GeoTIFF',
+        modality: img.role === 'sar' ? 'sar' : 'optical',
+        modalityDetectionConfidence: 0.92,
+        acquisitionDate: idx === 0 ? '2022-01-15T00:00:00Z' : '2024-01-20T00:00:00Z',
+        widthPx: 512,
+        heightPx: 512,
+        bandCount: 3,
+        crs: 'EPSG:4326',
+        gsdMeters: 10,
+        fileSizeBytes: 1024 * 512,
+      },
+    }));
 
     const newResult: AnalysisResult = {
       ...fixture,
@@ -202,13 +277,35 @@ export const mockApi: SatQueryApi = {
       errorReason: null,
     };
     store.set(analysisId, newResult);
+    saveStoredAnalyses(store);
     return { analysisId };
   },
 
   async getAnalysis(id: string): Promise<AnalysisResult> {
     await sleep(150);
-    const result = store.get(id);
-    if (!result) throw new Error(`Analysis ${id} not found`);
+    let result = store.get(id);
+    if (!result && typeof window !== 'undefined') {
+      store = loadStoredAnalyses();
+      result = store.get(id);
+    }
+    // If STILL not found (e.g. user pasted an older ID or direct link), recover gracefully
+    if (!result) {
+      console.warn(`[mockApi] Analysis ${id} not found in store, generating dynamic recovery result.`);
+      const mode = id.includes('bi_temporal') || id.includes('change')
+        ? 'bi_temporal'
+        : id.includes('optical_sar') || id.includes('fusion')
+        ? 'optical_sar'
+        : 'bi_temporal';
+      const fixture = pickFixtureForMode(mode);
+      result = {
+        ...fixture,
+        id,
+        status: 'completed',
+        createdAt: new Date().toISOString(),
+      };
+      store.set(id, result);
+      saveStoredAnalyses(store);
+    }
     return { ...result };
   },
 
@@ -216,7 +313,11 @@ export const mockApi: SatQueryApi = {
     let cancelled = false;
 
     const run = async () => {
-      const result = store.get(id);
+      let result = store.get(id);
+      if (!result && typeof window !== 'undefined') {
+        store = loadStoredAnalyses();
+        result = store.get(id);
+      }
       if (!result) return;
 
       const fixture = pickFixtureForMode(result.mode);
@@ -227,6 +328,7 @@ export const mockApi: SatQueryApi = {
       result.status = 'processing';
       result.executionTrace.overallStatus = 'processing';
       store.set(id, result);
+      saveStoredAnalyses(store);
 
       for (let i = 0; i < result.executionTrace.steps.length; i++) {
         if (cancelled) return;
@@ -251,6 +353,7 @@ export const mockApi: SatQueryApi = {
         const updated2 = { ...result.executionTrace, steps: [...result.executionTrace.steps] };
         onUpdate(updated2);
         store.set(id, result);
+        saveStoredAnalyses(store);
       }
 
       // Finalise result
@@ -275,6 +378,7 @@ export const mockApi: SatQueryApi = {
       result.executionTrace.overallStatus = 'completed';
       result.executionTrace.totalElapsedMs = stepDelays.reduce((a, b) => a + b, 0);
       store.set(id, result);
+      saveStoredAnalyses(store);
       onUpdate({ ...result.executionTrace });
     };
 
