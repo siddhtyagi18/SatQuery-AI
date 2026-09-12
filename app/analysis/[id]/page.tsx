@@ -3,7 +3,7 @@
 // Two-column layout on desktop: Visual evidence + synthesis on the left, sticky execution trace on right rail.
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { AnalysisResult, SpatialAction } from '@/lib/types/analysis';
